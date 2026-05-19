@@ -1,26 +1,475 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Neutral / dark */
+  --color-charcoal: #0a0a0c;
+  --color-graphite: #14151a;
+  --color-ink: #1a1b21;
+
+  /* Light */
+  --color-soft-white: #fafaf9;
+  --color-muted: #a1a1aa;
+
+  /* Subtle accent — warm parchment, used sparingly */
+  --color-accent: #e8c170;
+  --color-accent-soft: rgba(232, 193, 112, 0.18);
+
+  /* Status (semantic, kept) */
+  --color-status-success: #34d399;
+  --color-status-warning: #fbbf24;
+  --color-status-info: #60a5fa;
+  --color-status-danger: #f87171;
+
+  --color-background: var(--color-charcoal);
+  --color-foreground: var(--color-soft-white);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --radius-window: 24px;
+  --radius-card: 20px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---------- Theme tokens ---------- */
+
+:root,
+[data-theme="dark"] {
+  --bg-base: #05060f;
+  --bg-grain-opacity: 0.03;
+  --fg-base: #fafaf9;
+  --fg-muted: #a1a1aa;
+  --fg-subtle: #71717a;
+
+  --surface-glass-bg: rgba(14, 12, 22, 0.86);
+  --surface-glass-strong-bg: rgba(10, 8, 18, 0.92);
+  --surface-glass-soft-bg: rgba(20, 18, 32, 0.55);
+  --surface-glass-border: rgba(255, 255, 255, 0.10);
+  --surface-glass-strong-border: rgba(255, 255, 255, 0.12);
+  --surface-glass-soft-border: rgba(255, 255, 255, 0.07);
+  --surface-glass-inner: rgba(255, 255, 255, 0.08);
+
+  /* Aurora wallpaper — soft top/bottom darkening so menu bar + dock stay readable,
+     while the centre stays vivid. */
+  --wallpaper-overlay-top: rgba(4, 4, 14, 0.55);
+  --wallpaper-overlay-mid: rgba(4, 4, 14, 0.10);
+  --wallpaper-overlay-bottom: rgba(4, 4, 14, 0.55);
+  --wallpaper-tint: rgba(0, 0, 0, 0.20);
+  --wallpaper-flat: rgba(4, 4, 14, 0.10);
+
+  /* App icon tile (dock + home grid). Dark base with subtle gloss. */
+  --icon-tile-base: rgba(18, 14, 28, 0.78);
+  --icon-tile-shadow: rgba(0, 0, 0, 0.6);
+  --icon-tile-inner: rgba(255, 255, 255, 0.12);
+
+  /* Accent for hover / active state in menus + dropdowns — magenta. */
+  --accent-magenta: rgba(236, 72, 153, 0.40);
+  --accent-magenta-soft: rgba(236, 72, 153, 0.16);
+}
+
+[data-theme="light"] {
+  --bg-base: #f5f3ee;
+  --bg-grain-opacity: 0.025;
+  --fg-base: #1f2933;
+  --fg-muted: #4b5563;
+  --fg-subtle: #6b7280;
+
+  --surface-glass-bg: rgba(255, 255, 255, 0.66);
+  --surface-glass-strong-bg: rgba(255, 255, 255, 0.82);
+  --surface-glass-soft-bg: rgba(255, 255, 255, 0.45);
+  --surface-glass-border: rgba(15, 23, 42, 0.10);
+  --surface-glass-strong-border: rgba(15, 23, 42, 0.12);
+  --surface-glass-soft-border: rgba(15, 23, 42, 0.08);
+  --surface-glass-inner: rgba(255, 255, 255, 0.60);
+
+  --wallpaper-overlay-top: rgba(245, 243, 238, 0.78);
+  --wallpaper-overlay-mid: rgba(245, 243, 238, 0.55);
+  --wallpaper-overlay-bottom: rgba(245, 243, 238, 0.70);
+  --wallpaper-tint: rgba(255, 255, 255, 0.50);
+  --wallpaper-flat: rgba(245, 243, 238, 0.55);
+
+  /* App icon tile in light mode — light glass so saturated icons read clearly. */
+  --icon-tile-base: rgba(255, 255, 255, 0.92);
+  --icon-tile-shadow: rgba(15, 23, 42, 0.18);
+  --icon-tile-inner: rgba(255, 255, 255, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--fg-base);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
 }
+
+/* Premium scrollbars inside windows */
+.glass-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.glass-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.18);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.35);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Utility: hide native scrollbars while keeping element scrollable */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desktop background — pure CSS aurora.
+   Stacked radial gradients produce a soft galaxy / aurora effect:
+   - cyan/blue glow upper-left, magenta lobe right, violet wash bottom-centre
+   - top/bottom darkening for menu bar + dock legibility
+   - deep navy base so OLED-friendly. */
+.desktop-bg {
+  background-color: var(--bg-base);
+  background-image:
+    /* Top + bottom darkening for chrome legibility */
+    linear-gradient(
+      180deg,
+      var(--wallpaper-overlay-top) 0%,
+      var(--wallpaper-overlay-mid) 16%,
+      var(--wallpaper-overlay-mid) 84%,
+      var(--wallpaper-overlay-bottom) 100%
+    ),
+    /* Soft centre vignette */
+    radial-gradient(ellipse at 50% 50%, transparent 0%, var(--wallpaper-tint) 100%),
+    /* Aurora layer 1: cyan/indigo glow upper-left */
+    radial-gradient(ellipse 90% 60% at 22% 18%, rgba(56, 189, 248, 0.45) 0%, transparent 60%),
+    /* Aurora layer 2: magenta/pink lobe centre-right */
+    radial-gradient(ellipse 70% 55% at 78% 55%, rgba(236, 72, 153, 0.40) 0%, transparent 65%),
+    /* Aurora layer 3: violet wash bottom-centre */
+    radial-gradient(ellipse 80% 70% at 45% 95%, rgba(168, 85, 247, 0.35) 0%, transparent 70%),
+    /* Aurora layer 4: subtle teal glow lower-left for cool/warm balance */
+    radial-gradient(ellipse 60% 40% at 8% 78%, rgba(34, 211, 238, 0.22) 0%, transparent 70%),
+    /* Deep base gradient */
+    linear-gradient(140deg, #060818 0%, #0b0a1f 35%, #160a26 70%, #1a0a22 100%);
+  background-size: cover, cover, cover, cover, cover, cover, cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Light-mode desktop wallpaper — soft pastel aurora over a warm cream base.
+   Hue parity with the dark version (cyan-blue / magenta / violet / teal),
+   but with reduced saturation and a light base so it doesn't bleed dark
+   patches through glass surfaces or under the dock. */
+[data-theme="light"] .desktop-bg {
+  background-image:
+    linear-gradient(
+      180deg,
+      var(--wallpaper-overlay-top) 0%,
+      var(--wallpaper-overlay-mid) 16%,
+      var(--wallpaper-overlay-mid) 84%,
+      var(--wallpaper-overlay-bottom) 100%
+    ),
+    radial-gradient(ellipse at 50% 50%, transparent 0%, var(--wallpaper-tint) 100%),
+    radial-gradient(ellipse 90% 60% at 22% 18%, rgba(125, 211, 252, 0.40) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 55% at 78% 55%, rgba(244, 114, 182, 0.32) 0%, transparent 65%),
+    radial-gradient(ellipse 80% 70% at 45% 95%, rgba(192, 132, 252, 0.28) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 8% 78%, rgba(94, 234, 212, 0.22) 0%, transparent 70%),
+    linear-gradient(140deg, #fbf7ef 0%, #f5efe6 35%, #f0e9dc 70%, #ece4d4 100%);
+}
+
+/* Auth (login/lock) backdrop — always dark aurora, ignores light theme.
+   macOS-style lock screen aesthetic; we don't want it to flip pale. */
+.auth-bg {
+  background-color: #05060f;
+  background-image:
+    linear-gradient(180deg, rgba(4, 4, 14, 0.55) 0%, rgba(4, 4, 14, 0.10) 16%, rgba(4, 4, 14, 0.10) 84%, rgba(4, 4, 14, 0.55) 100%),
+    radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.20) 100%),
+    radial-gradient(ellipse 90% 60% at 22% 18%, rgba(56, 189, 248, 0.45) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 55% at 78% 55%, rgba(236, 72, 153, 0.40) 0%, transparent 65%),
+    radial-gradient(ellipse 80% 70% at 45% 95%, rgba(168, 85, 247, 0.35) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 8% 78%, rgba(34, 211, 238, 0.22) 0%, transparent 70%),
+    linear-gradient(140deg, #060818 0%, #0b0a1f 35%, #160a26 70%, #1a0a22 100%);
+  background-size: cover, cover, cover, cover, cover, cover, cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.desktop-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--bg-grain-opacity);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+/* Glass surfaces — refined: less blur, crisper edge highlight, subtle vertical gradient.
+   Goal: feels like physical glass (catches light on the top edge) without being frosted plastic. */
+.glass {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 38%),
+    var(--surface-glass-bg);
+  backdrop-filter: blur(12px) saturate(115%);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+  border: 1px solid var(--surface-glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--surface-glass-inner),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.015),
+    0 8px 24px -10px rgba(0, 0, 0, 0.40),
+    0 2px 6px -2px rgba(0, 0, 0, 0.20);
+}
+
+.glass-strong {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 32%),
+    var(--surface-glass-strong-bg);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid var(--surface-glass-strong-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 6px 18px -8px rgba(0, 0, 0, 0.45);
+}
+
+.glass-soft {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 50%),
+    var(--surface-glass-soft-bg);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  border: 1px solid var(--surface-glass-soft-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .glass {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 45%),
+    var(--surface-glass-bg);
+  box-shadow:
+    inset 0 1px 0 var(--surface-glass-inner),
+    0 8px 24px -10px rgba(15, 23, 42, 0.14),
+    0 2px 6px -2px rgba(15, 23, 42, 0.06);
+}
+[data-theme="light"] .glass-strong {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0) 32%),
+    var(--surface-glass-strong-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 6px 18px -8px rgba(15, 23, 42, 0.16);
+}
+[data-theme="light"] .glass-soft {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0) 50%),
+    var(--surface-glass-soft-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.subtle-ring {
+  box-shadow:
+    0 0 0 1px var(--surface-glass-border),
+    0 0 30px -10px rgba(0, 0, 0, 0.16);
+}
+
+.headline-gradient {
+  background: linear-gradient(135deg, var(--fg-base) 0%, var(--fg-muted) 60%, var(--fg-subtle) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Light-mode text overrides ----------
+   Most components use Tailwind's text-zinc-* utilities for dark mode.
+   In light mode, remap them via attribute-scoped rules so we don't have to
+   touch every component. */
+[data-theme="light"] body {
+  color: #1f2933;
+}
+
+[data-theme="light"] .text-zinc-50,
+[data-theme="light"] .text-zinc-100 {
+  color: #111827 !important;
+}
+[data-theme="light"] .text-zinc-200 {
+  color: #1f2937 !important;
+}
+[data-theme="light"] .text-zinc-300 {
+  color: #374151 !important;
+}
+[data-theme="light"] .text-zinc-400 {
+  color: #4b5563 !important;
+}
+[data-theme="light"] .text-zinc-500 {
+  color: #6b7280 !important;
+}
+[data-theme="light"] .text-zinc-600 {
+  color: #4b5563 !important;
+}
+
+[data-theme="light"] .border-white\/8,
+[data-theme="light"] .border-white\/10,
+[data-theme="light"] .border-white\/6 {
+  border-color: rgba(15, 23, 42, 0.10) !important;
+}
+[data-theme="light"] .border-white\/20,
+[data-theme="light"] .border-white\/25,
+[data-theme="light"] .border-white\/15,
+[data-theme="light"] .border-white\/12 {
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+[data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/8,
+[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.03\],
+[data-theme="light"] .bg-white\/\[0\.04\],
+[data-theme="light"] .bg-white\/\[0\.06\],
+[data-theme="light"] .bg-white\/\[0\.025\] {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Hover-state remaps — Tailwind's hover:bg-white/X produces rgba(255,255,255,X),
+   which is invisible on a light surface. Remap to a slate tint with enough
+   contrast to read as a hover. Also bumps the dark-mode lowest tier (the bare
+   4%–6% washes that read as "did anything happen?") to a perceptible level. */
+[data-theme="light"] .hover\:bg-white\/8:hover,
+[data-theme="light"] .hover\:bg-white\/10:hover,
+[data-theme="light"] .hover\:bg-white\/12:hover {
+  background-color: rgba(15, 23, 42, 0.07) !important;
+}
+[data-theme="light"] .hover\:bg-white\/15:hover,
+[data-theme="light"] .hover\:bg-white\/20:hover {
+  background-color: rgba(15, 23, 42, 0.10) !important;
+}
+[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.05\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.10\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Dark-mode hover boost: the 4–6% washes are nearly invisible. Lift them so
+   pointer feedback is unambiguous without losing the soft, glassy feel. */
+[data-theme="dark"] .hover\:bg-white\/\[0\.04\]:hover,
+[data-theme="dark"] .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+}
+[data-theme="dark"] .hover\:bg-white\/\[0\.05\]:hover,
+[data-theme="dark"] .hover\:bg-white\/\[0\.06\]:hover {
+  background-color: rgba(255, 255, 255, 0.085) !important;
+}
+[data-theme="dark"] .hover\:bg-white\/8:hover {
+  background-color: rgba(255, 255, 255, 0.11) !important;
+}
+[data-theme="dark"] .hover\:bg-white\/10:hover {
+  background-color: rgba(255, 255, 255, 0.13) !important;
+}
+[data-theme="dark"] .hover\:bg-white\/12:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Brighter status pill backgrounds in light mode */
+[data-theme="light"] .bg-emerald-500\/15 {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+}
+[data-theme="light"] .bg-amber-500\/15 {
+  background-color: rgba(245, 158, 11, 0.20) !important;
+}
+[data-theme="light"] .bg-sky-500\/15 {
+  background-color: rgba(14, 165, 233, 0.18) !important;
+}
+[data-theme="light"] .bg-rose-500\/15 {
+  background-color: rgba(244, 63, 94, 0.20) !important;
+}
+/* Hover-state text remaps. `hover:text-white` on a light surface = invisible.
+   In light mode it should mean "darken to the strongest body color" instead. */
+[data-theme="light"] .hover\:text-white:hover,
+[data-theme="light"] .hover\:text-zinc-100:hover,
+[data-theme="light"] .hover\:text-zinc-50:hover {
+  color: #0b1220 !important;
+}
+[data-theme="light"] .hover\:text-zinc-200:hover {
+  color: #1f2937 !important;
+}
+[data-theme="light"] .hover\:text-zinc-300:hover {
+  color: #374151 !important;
+}
+
+[data-theme="light"] .text-emerald-300 { color: #047857 !important; }
+[data-theme="light"] .text-amber-300 { color: #b45309 !important; }
+[data-theme="light"] .text-sky-300 { color: #0369a1 !important; }
+[data-theme="light"] .text-rose-300 { color: #be123c !important; }
+[data-theme="light"] .text-fuchsia-300 { color: #a21caf !important; }
+[data-theme="light"] .text-cyan-300 { color: #0e7490 !important; }
+
+/* Reddie chat: pop-in for the panel + typing dots + halo ping on the launcher. */
+@keyframes reddie-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes reddie-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%           { transform: translateY(-3px); opacity: 1; }
+}
+@keyframes reddie-ping {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  70%  { transform: scale(2.2); opacity: 0;   }
+  100% { transform: scale(2.2); opacity: 0;   }
+}
+
+/* Animations */
+@keyframes window-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); filter: blur(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+.animate-window-in { animation: window-in 240ms cubic-bezier(0.2, 0.9, 0.25, 1.1); }
+
+@keyframes dock-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-dock-bounce { animation: dock-bounce 600ms ease-in-out; }
+
+@keyframes pulse-soft {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+}
+.animate-pulse-soft { animation: pulse-soft 2.2s ease-in-out infinite; }
+
+@keyframes ios-app-zoom-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-ios-zoom { animation: ios-app-zoom-in 240ms cubic-bezier(0.2, 0.9, 0.25, 1.1); }
+
+@keyframes skeleton-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-skeleton-sweep { animation: skeleton-sweep 1.6s ease-in-out infinite; }

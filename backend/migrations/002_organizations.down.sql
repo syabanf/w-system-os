@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS divisions;
+DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS entities;

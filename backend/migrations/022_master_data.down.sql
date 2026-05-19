@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS md_items;
+DROP TABLE IF EXISTS md_categories;
