@@ -373,6 +373,30 @@ html {
 [data-theme="light"] .text-zinc-500 {
   color: #6b7280 !important;
 }
+
+/* Opacity-suffixed text utilities — Tailwind compiles `text-zinc-300/70`
+   to `color: rgb(212 212 216 / 0.7)` which is light gray at 70% opacity,
+   essentially invisible against the cream-light wallpaper. We collapse the
+   opacity into a single solid slate value per tier so home-screen labels
+   ("Good morning", "Monday 18 May · 7 signals waiting", etc.) actually
+   read in light mode. Numbers tuned to match the dark-mode perceived
+   weight: 80%/70% feel like ~slate-600; 95% on a colored tile stays white. */
+[data-theme="light"] .text-zinc-100\/95 {
+  color: #ffffff !important; /* sits on saturated app tile — keep white */
+}
+[data-theme="light"] .text-zinc-200\/95,
+[data-theme="light"] .text-zinc-200\/80 {
+  color: #1f2937 !important;
+}
+[data-theme="light"] .text-zinc-300\/95,
+[data-theme="light"] .text-zinc-300\/80,
+[data-theme="light"] .text-zinc-300\/70 {
+  color: #4b5563 !important;
+}
+[data-theme="light"] .text-zinc-400\/80,
+[data-theme="light"] .text-zinc-400\/70 {
+  color: #6b7280 !important;
+}
 [data-theme="light"] .text-zinc-600 {
   color: #4b5563 !important;
 }
@@ -390,9 +414,22 @@ html {
 }
 
 [data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/6,
 [data-theme="light"] .bg-white\/8,
 [data-theme="light"] .bg-white\/10 {
   background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Higher-opacity white tiers — page indicators, scrollbar thumbs, etc.
+   These need a slate variant in light mode or they bleach into the
+   cream wallpaper and become invisible. */
+[data-theme="light"] .bg-white\/30 {
+  background-color: rgba(15, 23, 42, 0.18) !important;
+}
+[data-theme="light"] .bg-white\/60,
+[data-theme="light"] .bg-white\/75,
+[data-theme="light"] .bg-white\/80 {
+  background-color: rgba(15, 23, 42, 0.55) !important;
 }
 [data-theme="light"] .bg-white\/\[0\.03\],
 [data-theme="light"] .bg-white\/\[0\.04\],
@@ -408,18 +445,18 @@ html {
 [data-theme="light"] .hover\:bg-white\/8:hover,
 [data-theme="light"] .hover\:bg-white\/10:hover,
 [data-theme="light"] .hover\:bg-white\/12:hover {
-  background-color: rgba(15, 23, 42, 0.07) !important;
+  background-color: rgba(15, 23, 42, 0.10) !important;
 }
 [data-theme="light"] .hover\:bg-white\/15:hover,
 [data-theme="light"] .hover\:bg-white\/20:hover {
-  background-color: rgba(15, 23, 42, 0.10) !important;
+  background-color: rgba(15, 23, 42, 0.14) !important;
 }
 [data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover,
 [data-theme="light"] .hover\:bg-white\/\[0\.05\]:hover,
 [data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover,
 [data-theme="light"] .hover\:bg-white\/\[0\.10\]:hover,
 [data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover {
-  background-color: rgba(15, 23, 42, 0.06) !important;
+  background-color: rgba(15, 23, 42, 0.09) !important;
 }
 
 /* ── Control Center quick-settings toggles ─────────────────────────────────
