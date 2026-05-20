@@ -123,9 +123,11 @@ function ControlCenterContent() {
       {/* Drag handle */}
       <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/25" />
 
-      <div className="grid grid-cols-4 gap-2.5">
-        {/* Connectivity card — spans 2 columns × 2 rows, mirrors iOS layout */}
-        <div className="col-span-2 row-span-2 grid grid-cols-2 gap-1.5 rounded-[20px] bg-white/[0.06] p-2">
+      {/*  Mobile collapses the 4-col grid into a stack of full-width cards so
+            tiles don't truncate. sm: (≥640px) restores iOS-style mosaic. */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        {/* Connectivity card — spans full width on mobile, 2×2 on sm+ */}
+        <div className="col-span-2 grid grid-cols-2 gap-1.5 rounded-[20px] bg-white/[0.06] p-2 sm:row-span-2">
           <ConnectivityTile
             active={wifi}
             onClick={() => setWifi((v) => !v)}

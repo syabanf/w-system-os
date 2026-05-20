@@ -99,15 +99,22 @@ function Toggle({ icon: Icon, label, hint, active, onClick }: ToggleProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors ${
+      // Both states get a visible hover delta in both themes:
+      //  · inactive → softer base, deepens on hover
+      //  · active   → already-filled base, lifts further on hover so the
+      //               press feedback is unambiguous (was missing before).
+      // `qs-toggle` carries the theme-aware fills that globals.css owns —
+      // keeps the active-color logic centralized instead of fighting the
+      // bg-white/X remap layer.
+      className={`qs-toggle group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-all active:scale-[0.98] ${
         active
-          ? "border-white/25 bg-white/[0.08]"
-          : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
+          ? "qs-toggle--active border-white/25"
+          : "qs-toggle--inactive border-white/8"
       }`}
     >
       <span
-        className={`grid h-7 w-7 place-items-center rounded-md ${
-          active ? "bg-white/15 text-zinc-50" : "bg-white/5 text-zinc-300"
+        className={`qs-toggle-ico grid h-7 w-7 place-items-center rounded-md transition-colors ${
+          active ? "qs-toggle-ico--active text-zinc-50" : "text-zinc-300"
         }`}
       >
         <Icon className="h-3.5 w-3.5" />

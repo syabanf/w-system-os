@@ -53,7 +53,7 @@ function MobileIcon({ module, index = 0, size = "grid", onClick }: MobileIconPro
       transition={{ delay: index * 0.025, type: "spring", stiffness: 320, damping: 22 }}
       className="group flex flex-col items-center gap-1.5"
     >
-      {tile}
+      {tileEl}
       <span className="text-[10px] font-medium text-zinc-100/95 drop-shadow">
         {module.shortName}
       </span>

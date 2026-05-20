@@ -422,6 +422,39 @@ html {
   background-color: rgba(15, 23, 42, 0.06) !important;
 }
 
+/* ── Control Center quick-settings toggles ─────────────────────────────────
+   Owned in CSS (rather than Tailwind classes) so the active fill is strong
+   enough to read in light mode — the bg-white/X remap layer flattens dark-
+   mode opacities to near-invisible slate tints, which makes active vs.
+   inactive states ambiguous. Each tier gets its own visible delta on hover:
+     · inactive: subtle base, perceptible deepening on hover
+     · active:   filled base, deeper-still on hover (was missing entirely)
+   Icon containers escalate alongside so the tile reads as a single unit. */
+
+/* Inactive base */
+.qs-toggle--inactive               { background: rgba(255, 255, 255, 0.03); }
+.qs-toggle--inactive:hover         { background: rgba(255, 255, 255, 0.09); }
+.qs-toggle--inactive .qs-toggle-ico              { background: rgba(255, 255, 255, 0.06); }
+.qs-toggle--inactive:hover .qs-toggle-ico        { background: rgba(255, 255, 255, 0.12); }
+
+/* Active base — distinctly filled in dark mode */
+.qs-toggle--active                 { background: rgba(255, 255, 255, 0.11); }
+.qs-toggle--active:hover           { background: rgba(255, 255, 255, 0.17); }
+.qs-toggle--active .qs-toggle-ico                { background: rgba(255, 255, 255, 0.20); }
+.qs-toggle--active:hover .qs-toggle-ico          { background: rgba(255, 255, 255, 0.28); }
+
+/* Light-mode overrides — opacity flips to slate so the fill is visible
+   against the cream panel surface. Numbers chosen to match the perceived
+   contrast of the dark variants above. */
+[data-theme="light"] .qs-toggle--inactive               { background: rgba(15, 23, 42, 0.035) !important; }
+[data-theme="light"] .qs-toggle--inactive:hover         { background: rgba(15, 23, 42, 0.085) !important; }
+[data-theme="light"] .qs-toggle--inactive .qs-toggle-ico              { background: rgba(15, 23, 42, 0.06) !important; }
+[data-theme="light"] .qs-toggle--inactive:hover .qs-toggle-ico        { background: rgba(15, 23, 42, 0.12) !important; }
+[data-theme="light"] .qs-toggle--active                 { background: rgba(15, 23, 42, 0.10) !important; }
+[data-theme="light"] .qs-toggle--active:hover           { background: rgba(15, 23, 42, 0.16) !important; }
+[data-theme="light"] .qs-toggle--active .qs-toggle-ico                { background: rgba(15, 23, 42, 0.16) !important; }
+[data-theme="light"] .qs-toggle--active:hover .qs-toggle-ico          { background: rgba(15, 23, 42, 0.24) !important; }
+
 /* Dark-mode hover boost: the 4–6% washes are nearly invisible. Lift them so
    pointer feedback is unambiguous without losing the soft, glassy feel. */
 [data-theme="dark"] .hover\:bg-white\/\[0\.04\]:hover,
