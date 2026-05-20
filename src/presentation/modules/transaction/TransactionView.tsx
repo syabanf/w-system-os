@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, FileSignature, ReceiptText } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDownToLine, ArrowUpFromLine, FileSignature, Pencil, Plus, ReceiptText, Trash2 } from "lucide-react";
 import { createTransactionService } from "@/application/factories/createTransactionService";
 import type { TransactionOverviewDTO } from "@/application/use-cases/transaction/GetTransactionOverview";
+import type { Payment } from "@/domain/entities/Transaction";
+import { mockClients } from "@/infrastructure/data/clients.mock";
+import { usePaymentsStore } from "@/state/payments.store";
+import { useToast } from "@/state/toast.store";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
@@ -15,6 +19,8 @@ import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataBu
 import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { TransactionDetailView, type DocRef } from "./TransactionDetailView";
+import { PaymentFormDialog } from "./PaymentFormDialog";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 
 type Tab = "invoices" | "payments" | "po" | "expenses";
 
@@ -83,7 +89,20 @@ export function TransactionView() {
   const [tab, setTab] = useState<Tab>("invoices");
   const [drillId, setDrillId] = useState<string | null>(null);
 
+  // Payments CRUD via store. The other 3 tabs still use the DTO for now.
+  const storePayments = usePaymentsStore((s) => s.items);
+  const hydratePayments = usePaymentsStore((s) => s.hydrate);
+  const addPayment = usePaymentsStore((s) => s.add);
+  const updatePayment = usePaymentsStore((s) => s.update);
+  const removePayment = usePaymentsStore((s) => s.remove);
+  const toast = useToast();
+
+  const [paymentFormOpen, setPaymentFormOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState<Payment | null>(null);
+
   useEffect(() => {
+    hydratePayments();
     let cancelled = false;
     (async () => {
       const d = await createTransactionService().getOverview();
@@ -92,11 +111,23 @@ export function TransactionView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hydratePayments]);
 
-  if (!data) return <SkeletonLoadingView />;
+  // Merge store payments into the DTO so the PaymentsTab reflects live edits.
+  const mergedData: TransactionOverviewDTO | null = useMemo(() => {
+    if (!data) return null;
+    const clientMap = new Map(mockClients.map((c) => [c.id, c.name]));
+    const enriched = storePayments.map((p) => ({
+      ...p,
+      clientName: p.clientId ? clientMap.get(p.clientId) : undefined,
+    }));
+    return { ...data, payments: enriched };
+  }, [data, storePayments]);
 
-  const docRef = drillId ? buildDocRef(tab, drillId, data) : null;
+  if (!mergedData) return <SkeletonLoadingView />;
+  const view = mergedData;
+
+  const docRef = drillId ? buildDocRef(tab, drillId, view) : null;
   const crumbLabels = docRef ? docLabel(docRef) : null;
   const crumbs: Crumb[] = docRef
     ? [
@@ -149,38 +180,85 @@ export function TransactionView() {
               emphasis
               icon={ArrowDownToLine}
               label="Invoiced (May)"
-              value={formatIDRCompact(data.metrics.invoicedThisMonth)}
-              delta={`${formatIDRCompact(data.metrics.collectedThisMonth)} collected`}
+              value={formatIDRCompact(view.metrics.invoicedThisMonth)}
+              delta={`${formatIDRCompact(view.metrics.collectedThisMonth)} collected`}
               trend="up"
             />
             <MetricCard
               icon={ArrowUpFromLine}
               label="Outstanding"
-              value={formatIDRCompact(data.metrics.outstandingTotal)}
-              delta={`${data.metrics.overdueCount} overdue`}
+              value={formatIDRCompact(view.metrics.outstandingTotal)}
+              delta={`${view.metrics.overdueCount} overdue`}
               accent="#F87171"
-              trend={data.metrics.overdueCount > 0 ? "down" : "flat"}
+              trend={view.metrics.overdueCount > 0 ? "down" : "flat"}
             />
             <MetricCard
               icon={FileSignature}
               label="POs Pending"
-              value={formatIDRCompact(data.metrics.pendingPOValue)}
+              value={formatIDRCompact(view.metrics.pendingPOValue)}
               accent="#FBBF24"
             />
             <MetricCard
               icon={ReceiptText}
               label="Expense Approvals"
-              value={formatIDRCompact(data.metrics.expensesAwaitingApproval)}
+              value={formatIDRCompact(view.metrics.expensesAwaitingApproval)}
               accent="#60A5FA"
             />
           </div>
 
-          {tab === "invoices" && <InvoicesTab data={data} onDrill={setDrillId} />}
-          {tab === "payments" && <PaymentsTab data={data} onDrill={setDrillId} />}
-          {tab === "po" && <POTab data={data} onDrill={setDrillId} />}
-          {tab === "expenses" && <ExpenseTab data={data} onDrill={setDrillId} />}
+          {tab === "invoices" && <InvoicesTab data={view} onDrill={setDrillId} />}
+          {tab === "payments" && (
+            <PaymentsTab
+              data={view}
+              onDrill={setDrillId}
+              onAdd={() => {
+                setEditingPayment(null);
+                setPaymentFormOpen(true);
+              }}
+              onEdit={(p) => {
+                setEditingPayment(p);
+                setPaymentFormOpen(true);
+              }}
+              onDelete={setConfirmDeletePayment}
+            />
+          )}
+          {tab === "po" && <POTab data={view} onDrill={setDrillId} />}
+          {tab === "expenses" && <ExpenseTab data={view} onDrill={setDrillId} />}
         </>
       )}
+
+      <PaymentFormDialog
+        open={paymentFormOpen}
+        editing={editingPayment}
+        onClose={() => setPaymentFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updatePayment(editingId, draft);
+            toast.success("Payment updated", draft.reference || "Updated payment");
+          } else {
+            addPayment(draft);
+            toast.success("Payment recorded", draft.reference || "New payment");
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDeletePayment}
+        title="Remove payment?"
+        description={
+          confirmDeletePayment
+            ? `${confirmDeletePayment.number} for ${confirmDeletePayment.amount.toLocaleString("id-ID")} IDR will be removed. The matching GL journal will need to be reversed manually.`
+            : ""
+        }
+        onCancel={() => setConfirmDeletePayment(null)}
+        onConfirm={() => {
+          if (!confirmDeletePayment) return;
+          const ref = confirmDeletePayment.number;
+          removePayment(confirmDeletePayment.id);
+          setConfirmDeletePayment(null);
+          setDrillId(null);
+          toast.info("Payment removed", `${ref} has been archived.`);
+        }}
+      />
     </div>
   );
 }
@@ -257,9 +335,15 @@ function InvoicesTab({
 function PaymentsTab({
   data,
   onDrill,
+  onAdd,
+  onEdit,
+  onDelete,
 }: {
   data: TransactionOverviewDTO;
   onDrill: (id: string) => void;
+  onAdd: () => void;
+  onEdit: (p: Payment) => void;
+  onDelete: (p: Payment) => void;
 }) {
   type Row = TransactionOverviewDTO["payments"][number];
   const cols: Column<Row>[] = [
@@ -291,16 +375,51 @@ function PaymentsTab({
       ),
     },
   ];
+  const actionCol: Column<Row> = {
+    key: "actions",
+    header: "",
+    align: "right",
+    render: (r) => (
+      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => onEdit(r)}
+          aria-label="Edit payment"
+          className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(r)}
+          aria-label="Delete payment"
+          className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+    ),
+  };
   return (
     <div className="glass rounded-[20px] p-5">
       <SectionHeader
         eyebrow="Cash"
         title={`Payments (${data.payments.length})`}
         description="Click any row to inspect the linked invoice."
+        action={
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+          >
+            <Plus className="h-3 w-3" />
+            Record payment
+          </button>
+        }
       />
       <DataTable
         rows={data.payments}
-        columns={cols}
+        columns={[...cols, actionCol]}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
         dense

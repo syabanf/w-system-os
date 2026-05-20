@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Flame, Sparkles, TrendingUp } from "lucide-react";
+import { Activity, Flame, Pencil, Plus, Sparkles, Trash2, TrendingUp } from "lucide-react";
 import { createLeadService } from "@/application/factories/createLeadService";
 import type {
   LeadInsightsDTO,
   LeadInsight,
 } from "@/application/use-cases/leads/GetLeadInsights";
+import type { Lead } from "@/domain/entities/Lead";
 import type { LeadQualification } from "@/domain/entities/LeadSource";
 import { QUALIFICATION_ORDER } from "@/domain/entities/LeadSource";
+import { useLeadsStore } from "@/state/leads.store";
+import { useToast } from "@/state/toast.store";
+import { LeadFormDialog } from "./LeadFormDialog";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { ChartCard } from "@/presentation/shared/ChartCard";
@@ -48,6 +53,43 @@ const STAGE_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | 
   Lost: "danger",
 };
 
+const NOW = new Date("2026-05-19T09:00:00Z");
+
+/** Mirrors the same derivation the GetLeadInsights use case performs, so
+ *  newly-added/edited leads from the store get the same qualification/score
+ *  treatment as the seed data. */
+function deriveInsight(lead: Lead): LeadInsight {
+  const qualification: LeadQualification =
+    lead.stage === "Won" || lead.stage === "Negotiation"
+      ? "SQL"
+      : lead.stage === "Proposal Sent"
+        ? "MQL"
+        : lead.probability >= 50
+          ? "Hot"
+          : lead.probability >= 30
+            ? "Warm"
+            : "Cold";
+
+  let score = lead.probability;
+  if (lead.dealValue > 1_000_000_000) score += 10;
+  const nameLc = lead.companyName.toLowerCase();
+  if (nameLc.includes("bank") || nameLc.includes("fin") || nameLc.includes("health")) score += 8;
+  if (lead.source === "Referral" || lead.source === "Partner") score += 8;
+
+  const ageDays = Math.max(
+    0,
+    Math.floor((NOW.getTime() - new Date(lead.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
+  );
+
+  return {
+    ...lead,
+    qualification,
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    ageDays,
+    ownerName: "Citra Anggraini",
+  };
+}
+
 export function LeadsView() {
   const [data, setData] = useState<LeadInsightsDTO | null>(null);
   const [query, setQuery] = useState("");
@@ -55,7 +97,22 @@ export function LeadsView() {
   const [tab, setTab] = useState<"pipeline" | "kanban" | "commercial">("pipeline");
   const [drillId, setDrillId] = useState<string | null>(null);
 
+  // CRUD layer: store is the source of truth for the lead list; the use-case
+  // run still provides static context (source metrics, scoring rules, activity
+  // log) that's slow-moving and not affected by individual lead edits.
+  const storeLeads = useLeadsStore((s) => s.items);
+  const hydrate = useLeadsStore((s) => s.hydrate);
+  const addLead = useLeadsStore((s) => s.add);
+  const updateLead = useLeadsStore((s) => s.update);
+  const removeLead = useLeadsStore((s) => s.remove);
+  const toast = useToast();
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Lead | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Lead | null>(null);
+
   useEffect(() => {
+    hydrate();
     let cancelled = false;
     (async () => {
       const insights = await createLeadService().getInsights();
@@ -64,12 +121,16 @@ export function LeadsView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hydrate]);
+
+  const liveLeads: LeadInsight[] = useMemo(
+    () => storeLeads.map(deriveInsight),
+    [storeLeads],
+  );
 
   const filtered = useMemo(() => {
-    if (!data) return [];
     const q = query.trim().toLowerCase();
-    return data.leads.filter((l) => {
+    return liveLeads.filter((l) => {
       if (filterQual !== "all" && l.qualification !== filterQual) return false;
       if (!q) return true;
       return (
@@ -78,11 +139,20 @@ export function LeadsView() {
         l.source.toLowerCase().includes(q)
       );
     });
-  }, [data, query, filterQual]);
+  }, [liveLeads, query, filterQual]);
 
   if (!data) return <SkeletonLoadingView />;
 
-  const drillLead = drillId ? data.leads.find((l) => l.id === drillId) ?? null : null;
+  const drillLead = drillId ? liveLeads.find((l) => l.id === drillId) ?? null : null;
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (l: Lead) => {
+    setEditing(l);
+    setFormOpen(true);
+  };
   const crumbs: Crumb[] = drillLead
     ? [
         { id: "pipeline", label: "Pipeline" },
@@ -165,8 +235,30 @@ export function LeadsView() {
     },
   ];
 
+  // Live aggregates from the store so metric cards stay accurate after CRUD.
+  const liveQualCounts = liveLeads.reduce<Record<string, number>>((acc, l) => {
+    acc[l.qualification] = (acc[l.qualification] ?? 0) + 1;
+    return acc;
+  }, {});
+  const livePipelineValue = liveLeads
+    .filter((l) => l.stage !== "Lost" && l.stage !== "Won")
+    .reduce((s, l) => s + l.dealValue, 0);
+  const liveWeightedValue = liveLeads
+    .filter((l) => l.stage !== "Lost" && l.stage !== "Won")
+    .reduce((s, l) => s + (l.dealValue * l.probability) / 100, 0);
+  const liveHotCount = liveLeads.filter((l) => l.qualification === "Hot").length;
+  const liveQualifiedCount =
+    (liveQualCounts.MQL ?? 0) + (liveQualCounts.SQL ?? 0);
+  const liveAvgScore =
+    liveLeads.length > 0
+      ? liveLeads.reduce((s, l) => s + l.score, 0) / liveLeads.length
+      : 0;
+  const liveConversion =
+    liveLeads.length > 0
+      ? (liveLeads.filter((l) => l.stage === "Won").length / liveLeads.length) * 100
+      : 0;
   const totalQualified = QUALIFICATION_ORDER.reduce(
-    (s, q) => s + (data.qualificationCounts[q] ?? 0),
+    (s, q) => s + (liveQualCounts[q] ?? 0),
     0,
   );
 
@@ -195,6 +287,36 @@ export function LeadsView() {
               className="w-full sm:w-auto md:w-72"
             />
           ) : null}
+          {tab === "pipeline" && !drillLead ? (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+            >
+              <Plus className="h-3 w-3" />
+              Add lead
+            </button>
+          ) : null}
+          {drillLead ? (
+            <>
+              <button
+                type="button"
+                onClick={() => openEdit(drillLead)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(drillLead)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[11px] font-medium text-rose-200 transition-colors hover:bg-rose-500/25"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </button>
+            </>
+          ) : null}
           <ManageMasterDataButton moduleId="leads" />
         </div>
       </header>
@@ -219,28 +341,28 @@ export function LeadsView() {
           emphasis
           icon={TrendingUp}
           label="Pipeline Value"
-          value={formatIDRCompact(data.pipelineValue)}
-          delta={`${formatIDRCompact(data.weightedValue)} weighted`}
+          value={formatIDRCompact(livePipelineValue)}
+          delta={`${formatIDRCompact(liveWeightedValue)} weighted`}
           trend="up"
         />
         <MetricCard
           icon={Flame}
           label="Hot Leads"
-          value={String(data.hotCount)}
-          delta={`${data.qualifiedCount} qualified`}
+          value={String(liveHotCount)}
+          delta={`${liveQualifiedCount} qualified`}
           accent="#FF8A92"
         />
         <MetricCard
           icon={Sparkles}
           label="Avg Lead Score"
-          value={data.averageScore.toFixed(0)}
+          value={liveAvgScore.toFixed(0)}
           delta={`max 100`}
           accent="#3B82F6"
         />
         <MetricCard
           icon={Activity}
           label="Conversion Rate"
-          value={formatPercent(data.conversionRate, 0)}
+          value={formatPercent(liveConversion, 0)}
           trend="up"
           accent="#22C55E"
         />
@@ -264,7 +386,7 @@ export function LeadsView() {
           />
           <ul className="space-y-1.5">
             {QUALIFICATION_ORDER.map((q) => {
-              const count = data.qualificationCounts[q] ?? 0;
+              const count = liveQualCounts[q] ?? 0;
               const pct = totalQualified > 0 ? (count / totalQualified) * 100 : 0;
               return (
                 <li
@@ -384,6 +506,39 @@ export function LeadsView() {
       </div>
       </>
       )}
+
+      <LeadFormDialog
+        open={formOpen}
+        editing={editing}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateLead(editingId, draft);
+            toast.success("Lead updated", draft.companyName);
+          } else {
+            addLead(draft);
+            toast.success("Lead added", `${draft.companyName} entered the pipeline`);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        title="Remove lead?"
+        description={
+          confirmDelete
+            ? `${confirmDelete.companyName} will be removed from the pipeline. Activities linked to this lead remain in history.`
+            : ""
+        }
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const name = confirmDelete.companyName;
+          removeLead(confirmDelete.id);
+          setConfirmDelete(null);
+          setDrillId(null);
+          toast.info("Lead removed", `${name} has been archived.`);
+        }}
+      />
     </div>
   );
 }

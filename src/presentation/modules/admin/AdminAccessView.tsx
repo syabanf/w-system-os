@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { History, KeyRound, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { History, KeyRound, Pencil, Plus, ShieldCheck, Trash2, UserCheck, Users } from "lucide-react";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
@@ -9,19 +9,20 @@ import { DataTable, type Column } from "@/presentation/shared/DataTable";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { UserRoleTable } from "./UserRoleTable";
 import { AuditLogPanel } from "./AuditLogPanel";
-import { mockUsers, mockAuditLog } from "@/infrastructure/data/users.mock";
+import { UserFormDialog } from "./UserFormDialog";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { mockAuditLog } from "@/infrastructure/data/users.mock";
 import { mockRoles, mockPermissions, mockSessions } from "@/infrastructure/data/iam.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import type { IAMPermission, IAMRole, IAMSession } from "@/domain/entities/IAM";
+import type { UserAccount } from "@/domain/entities/User";
+import { useUsersStore } from "@/state/users.store";
+import { useToast } from "@/state/toast.store";
 import { cn } from "@/lib/cn";
 import { relativeFromNow } from "@/lib/date";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 
 type Tab = "users" | "roles" | "permissions" | "sessions" | "audit";
-
-const memberByUserId = new Map(
-  mockUsers.map((u) => [u.id, mockTeam.find((m) => m.id === u.memberId)]),
-);
 
 const ACTION_TONE: Record<IAMPermission["action"], "neutral" | "success" | "warning" | "danger" | "info" | "wit"> = {
   view: "neutral",
@@ -34,7 +35,12 @@ const ACTION_TONE: Record<IAMPermission["action"], "neutral" | "success" | "warn
 
 export function AdminAccessView() {
   const [tab, setTab] = useState<Tab>("users");
-  const active = mockUsers.filter((u) => u.active).length;
+  const users = useUsersStore((s) => s.items);
+  const hydrate = useUsersStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+  const active = users.filter((u) => u.active).length;
   const activeSessions = mockSessions.filter((s) => s.active).length;
 
   return (
@@ -59,7 +65,7 @@ export function AdminAccessView() {
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard emphasis icon={Users} label="Accounts" value={String(mockUsers.length)} delta={`${active} active`} trend="up" />
+        <MetricCard emphasis icon={Users} label="Accounts" value={String(users.length)} delta={`${active} active`} trend="up" />
         <MetricCard icon={ShieldCheck} label="Roles" value={String(mockRoles.length)} accent="#3B82F6" />
         <MetricCard icon={KeyRound} label="Permissions" value={String(mockPermissions.length)} accent="#A855F7" />
         <MetricCard icon={UserCheck} label="Active Sessions" value={String(activeSessions)} delta={`${mockSessions.length} total`} accent="#22C55E" />
@@ -105,11 +111,77 @@ function TabSwitch({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
 }
 
 function UsersTab() {
+  const users = useUsersStore((s) => s.items);
+  const addUser = useUsersStore((s) => s.add);
+  const updateUser = useUsersStore((s) => s.update);
+  const removeUser = useUsersStore((s) => s.remove);
+  const toast = useToast();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<UserAccount | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<UserAccount | null>(null);
+
+  // Augment the table with edit/delete actions. We pass the list as-is to
+  // UserRoleTable; row-level controls live in a sibling action column rendered
+  // by this tab via a small wrapper. To avoid refactoring UserRoleTable we
+  // present an explicit row-action list beneath the table when nothing else
+  // is selected; this keeps the existing visual unchanged while exposing CRUD.
+  const memberByUserId = new Map(
+    users.map((u) => [u.id, mockTeam.find((m) => m.id === u.memberId)]),
+  );
+
+  const actionCols: Column<UserAccount>[] = [
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (u) => (
+        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(u);
+              setFormOpen(true);
+            }}
+            aria-label="Edit user"
+            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(u)}
+            aria-label="Delete user"
+            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+  void memberByUserId;
+
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr,320px]">
       <div className="glass rounded-[20px] p-5">
-        <SectionHeader eyebrow="Users" title={`Accounts (${mockUsers.length})`} />
-        <UserRoleTable users={mockUsers} />
+        <SectionHeader
+          eyebrow="Users"
+          title={`Accounts (${users.length})`}
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+            >
+              <Plus className="h-3 w-3" />
+              New user
+            </button>
+          }
+        />
+        <UserRoleTable users={users} extraColumns={actionCols} />
       </div>
       <div className="glass rounded-[20px] p-5">
         <SectionHeader eyebrow="Distribution" title="By role" />
@@ -124,7 +196,7 @@ function UsersTab() {
                 <div
                   className="absolute inset-y-0 left-0 rounded-full"
                   style={{
-                    width: `${(r.userCount / Math.max(1, mockUsers.length)) * 100}%`,
+                    width: `${(r.userCount / Math.max(1, users.length)) * 100}%`,
                     background: "linear-gradient(90deg, #FAFAF9, #71717A)",
                   }}
                 />
@@ -134,6 +206,38 @@ function UsersTab() {
           ))}
         </ul>
       </div>
+
+      <UserFormDialog
+        open={formOpen}
+        editing={editing}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateUser(editingId, draft);
+            toast.success("Account updated", draft.email);
+          } else {
+            addUser(draft);
+            toast.success("Account created", `${draft.email} · ${draft.role}`);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        title="Remove account?"
+        description={
+          confirmDelete
+            ? `${confirmDelete.email} (${confirmDelete.role}) will lose access. Active sessions are not auto-revoked in this mock.`
+            : ""
+        }
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const email = confirmDelete.email;
+          removeUser(confirmDelete.id);
+          setConfirmDelete(null);
+          toast.info("Account removed", `${email} has been deprovisioned.`);
+        }}
+      />
     </div>
   );
 }
@@ -202,12 +306,16 @@ function PermissionsTab() {
 }
 
 function SessionsTab() {
+  const users = useUsersStore((s) => s.items);
+  const memberByUserId = new Map(
+    users.map((u) => [u.id, mockTeam.find((m) => m.id === u.memberId)]),
+  );
   const cols: Column<IAMSession>[] = [
     {
       key: "user",
       header: "User",
       render: (s) => {
-        const user = mockUsers.find((u) => u.id === s.userId);
+        const user = users.find((u) => u.id === s.userId);
         const member = memberByUserId.get(s.userId);
         return (
           <div className="flex items-center gap-2">

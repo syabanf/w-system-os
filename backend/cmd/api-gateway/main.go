@@ -17,6 +17,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	adminrepo "github.com/wit/erp-os/internal/admin/repository/postgres"
+	adminhttp "github.com/wit/erp-os/internal/admin/transport/http"
+	adminuse "github.com/wit/erp-os/internal/admin/usecase"
 	analyticshttp "github.com/wit/erp-os/internal/analytics/transport/http"
 	clientsrepo "github.com/wit/erp-os/internal/clients/repository/postgres"
 	clientshttp "github.com/wit/erp-os/internal/clients/transport/http"
@@ -24,12 +27,21 @@ import (
 	hrrepo "github.com/wit/erp-os/internal/hr/repository/postgres"
 	hrhttp "github.com/wit/erp-os/internal/hr/transport/http"
 	hruse "github.com/wit/erp-os/internal/hr/usecase"
+	knowledgerepo "github.com/wit/erp-os/internal/knowledge/repository/postgres"
+	knowledgehttp "github.com/wit/erp-os/internal/knowledge/transport/http"
+	knowledgeuse "github.com/wit/erp-os/internal/knowledge/usecase"
 	leadsrepo "github.com/wit/erp-os/internal/leads/repository/postgres"
 	leadshttp "github.com/wit/erp-os/internal/leads/transport/http"
 	leadsuse "github.com/wit/erp-os/internal/leads/usecase"
+	mdrepo "github.com/wit/erp-os/internal/masterdata/repository/postgres"
+	mdhttp "github.com/wit/erp-os/internal/masterdata/transport/http"
+	mduse "github.com/wit/erp-os/internal/masterdata/usecase"
 	perfrepo "github.com/wit/erp-os/internal/performance/repository/postgres"
 	perfhttp "github.com/wit/erp-os/internal/performance/transport/http"
 	perfuse "github.com/wit/erp-os/internal/performance/usecase"
+	portalrepo "github.com/wit/erp-os/internal/portal/repository/postgres"
+	portalhttp "github.com/wit/erp-os/internal/portal/transport/http"
+	portaluse "github.com/wit/erp-os/internal/portal/usecase"
 	projrepo "github.com/wit/erp-os/internal/projects/repository/postgres"
 	projhttp "github.com/wit/erp-os/internal/projects/transport/http"
 	projuse "github.com/wit/erp-os/internal/projects/usecase"
@@ -40,6 +52,9 @@ import (
 	supportrepo "github.com/wit/erp-os/internal/support/repository/postgres"
 	supporthttp "github.com/wit/erp-os/internal/support/transport/http"
 	supportuse "github.com/wit/erp-os/internal/support/usecase"
+	tsrepo "github.com/wit/erp-os/internal/timesheet/repository/postgres"
+	tshttp "github.com/wit/erp-os/internal/timesheet/transport/http"
+	tsuse "github.com/wit/erp-os/internal/timesheet/usecase"
 	txrepo "github.com/wit/erp-os/internal/transactions/repository/postgres"
 	txhttp "github.com/wit/erp-os/internal/transactions/transport/http"
 	txuse "github.com/wit/erp-os/internal/transactions/usecase"
@@ -128,6 +143,24 @@ func mountRoutes(r chi.Router, pool *pgxpool.Pool) {
 
 	// Performance 360 (templates; questions/submissions/answers/rater_settings follow)
 	r.Route("/api/v1/performance", perfhttp.NewHandler(perfuse.NewTemplateService(perfrepo.NewTemplateRepo(pool))).Routes)
+
+	// Knowledge (wiki articles)
+	r.Route("/api/v1/knowledge", knowledgehttp.NewHandler(knowledgeuse.NewArticleService(knowledgerepo.NewArticleRepo(pool))).Routes)
+
+	// Timesheet
+	r.Route("/api/v1/timesheet", tshttp.NewHandler(tsuse.NewEntryService(tsrepo.NewEntryRepo(pool))).Routes)
+
+	// Admin / IAM users (roles + sessions + audit log follow same pattern)
+	r.Route("/api/v1/admin", adminhttp.NewHandler(adminuse.NewUserService(adminrepo.NewUserRepo(pool))).Routes)
+
+	// Master data — categories + items each own their own sub-route group
+	r.Route("/api/v1/master-data", func(r chi.Router) {
+		mdhttp.NewCategoryHandler(mduse.NewCategoryService(mdrepo.NewCategoryRepo(pool))).Routes(r)
+		mdhttp.NewItemHandler(mduse.NewItemService(mdrepo.NewItemRepo(pool))).Routes(r)
+	})
+
+	// Portal — employee self-service (chat threads for now)
+	r.Route("/api/v1/portal", portalhttp.NewHandler(portaluse.NewThreadService(portalrepo.NewThreadRepo(pool))).Routes)
 
 	// Analytics — Dashboard / KPIs / Reports (computed, no domain layer)
 	ah := analyticshttp.NewHandler(pool)

@@ -9,8 +9,14 @@ import { formatDateTime } from "@/lib/date";
 
 const teamMap = new Map(mockTeam.map((m) => [m.id, m]));
 
-export function UserRoleTable({ users }: { users: UserAccount[] }) {
-  const columns: Column<UserAccount>[] = [
+export function UserRoleTable({
+  users,
+  extraColumns = [],
+}: {
+  users: UserAccount[];
+  extraColumns?: Column<UserAccount>[];
+}) {
+  const baseColumns: Column<UserAccount>[] = [
     {
       key: "user",
       header: "User",
@@ -50,5 +56,12 @@ export function UserRoleTable({ users }: { users: UserAccount[] }) {
     },
   ];
 
-  return <DataTable<UserAccount> columns={columns} rows={users} rowKey={(u) => u.id} dense />;
+  return (
+    <DataTable<UserAccount>
+      columns={[...baseColumns, ...extraColumns]}
+      rows={users}
+      rowKey={(u) => u.id}
+      dense
+    />
+  );
 }

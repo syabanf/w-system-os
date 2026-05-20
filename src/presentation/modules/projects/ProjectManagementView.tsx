@@ -1,17 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Briefcase, Gauge, Sparkles } from "lucide-react";
+import { AlertTriangle, Briefcase, Gauge, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { createProjectService } from "@/application/factories/createProjectService";
 import { createSprintService } from "@/application/factories/createSprintService";
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
 import type { ProjectBoardDTO } from "@/application/use-cases/tasks/GetProjectBoard";
+import type { Project } from "@/domain/entities/Project";
+import { mockClients } from "@/infrastructure/data/clients.mock";
+import { mockTeam } from "@/infrastructure/data/team.mock";
+import { useProjectsStore } from "@/state/projects.store";
+import { useToast } from "@/state/toast.store";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { SearchInput } from "@/presentation/shared/SearchInput";
 import { ProjectTable } from "./ProjectTable";
 import { ProjectKanban } from "./ProjectKanban";
 import { ProjectRoadmap } from "./ProjectRoadmap";
+import { ProjectFormDialog } from "./ProjectFormDialog";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
 import { ProjectDetailView } from "./ProjectDetailView";
 import { EpicDetailView } from "./EpicDetailView";
@@ -31,14 +38,26 @@ type Drill =
   | { level: "story"; projectId: string; epicId: string; storyId: string };
 
 export function ProjectManagementView() {
-  const [projects, setProjects] = useState<ProjectOverviewDTO[]>([]);
+  const [baseline, setBaseline] = useState<ProjectOverviewDTO[]>([]);
   const [board, setBoard] = useState<ProjectBoardDTO | null>(null);
   const [view, setView] = useState<View>("table");
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<Section>("portfolio");
   const [drill, setDrill] = useState<Drill>({ level: "portfolio" });
 
+  const storeProjects = useProjectsStore((s) => s.items);
+  const hydrate = useProjectsStore((s) => s.hydrate);
+  const addProject = useProjectsStore((s) => s.add);
+  const updateProject = useProjectsStore((s) => s.update);
+  const removeProject = useProjectsStore((s) => s.remove);
+  const toast = useToast();
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
+
   useEffect(() => {
+    hydrate();
     let cancelled = false;
     (async () => {
       const [overview, projectBoard] = await Promise.all([
@@ -46,14 +65,38 @@ export function ProjectManagementView() {
         createSprintService().getProjectBoard(),
       ]);
       if (!cancelled) {
-        setProjects(overview);
+        setBaseline(overview);
         setBoard(projectBoard);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hydrate]);
+
+  // Project DTOs are derived from the store. We keep baseline only as a
+  // reference for service-side enrichments (clientName/managerName/margin)
+  // that are stable per-record; when those aren't available (newly-created
+  // projects), we fall back to local mock lookups.
+  const baselineMap = useMemo(() => new Map(baseline.map((p) => [p.id, p])), [baseline]);
+  const clientMap = useMemo(() => new Map(mockClients.map((c) => [c.id, c.name])), []);
+  const teamMap = useMemo(() => new Map(mockTeam.map((m) => [m.id, m.name])), []);
+
+  const projects: ProjectOverviewDTO[] = useMemo(() => {
+    return storeProjects.map((p) => {
+      const enriched = baselineMap.get(p.id);
+      const budgetUtilization = p.budget > 0 ? (p.actualCost / p.budget) * 100 : 0;
+      return enriched
+        ? { ...enriched, ...p, budgetUtilization }
+        : {
+            ...p,
+            clientName: clientMap.get(p.clientId) ?? "Unknown",
+            managerName: teamMap.get(p.projectManagerId) ?? "Unknown",
+            budgetUtilization,
+            grossMargin: p.budget - p.actualCost,
+          };
+    });
+  }, [storeProjects, baselineMap, clientMap, teamMap]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -151,6 +194,40 @@ export function ProjectManagementView() {
                 className="w-full sm:w-auto md:w-72"
               />
               <ViewSwitch view={view} onChange={setView} />
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(null);
+                  setFormOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+              >
+                <Plus className="h-3 w-3" />
+                New project
+              </button>
+            </>
+          ) : null}
+          {section === "portfolio" && drill.level === "project" && drillProject ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(drillProject);
+                  setFormOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(drillProject)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[11px] font-medium text-rose-200 transition-colors hover:bg-rose-500/25"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </button>
             </>
           ) : null}
           <SectionSwitch
@@ -247,6 +324,39 @@ export function ProjectManagementView() {
           </div>
         </>
       )}
+
+      <ProjectFormDialog
+        open={formOpen}
+        editing={editing}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateProject(editingId, draft);
+            toast.success("Project updated", draft.name);
+          } else {
+            addProject(draft);
+            toast.success("Project created", draft.name);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        title="Archive project?"
+        description={
+          confirmDelete
+            ? `${confirmDelete.code} · ${confirmDelete.name} will be removed from the portfolio. Linked epics, stories, tasks, tickets and invoices remain in storage but become orphans in this view.`
+            : ""
+        }
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const name = confirmDelete.name;
+          removeProject(confirmDelete.id);
+          setConfirmDelete(null);
+          setDrill({ level: "portfolio" });
+          toast.info("Project archived", `${name} has been removed.`);
+        }}
+      />
     </div>
   );
 }
