@@ -630,7 +630,7 @@ function LeaveRequestTab() {
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr,360px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <form
           onSubmit={submit}
           className="glass rounded-[20px] p-5"

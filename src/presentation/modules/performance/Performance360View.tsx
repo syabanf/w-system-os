@@ -639,7 +639,7 @@ function EmployeeDashboard({ employeeId }: { employeeId: string }) {
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr,320px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="glass rounded-[20px] p-5">
           <SectionHeader
             eyebrow="Radar"

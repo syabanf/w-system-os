@@ -206,8 +206,11 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
           rightSlot={rightSlot}
         />
       </DragSurface>
-      <div className="glass-scroll relative h-[calc(100%-50px)] overflow-y-auto">
-        <div className="px-4 py-4 sm:px-5 md:px-6 md:py-5 lg:px-7 xl:px-8">{children}</div>
+      <div className="glass-scroll relative h-[calc(100%-50px)] overflow-y-auto overflow-x-hidden">
+        {/* Tightened mobile padding; we no longer need the xl: bump since the
+            content sets its own internal padding. Smaller window widths get
+            more usable horizontal real-estate. */}
+        <div className="px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-5 lg:px-6">{children}</div>
       </div>
 
       {!isMax ? (

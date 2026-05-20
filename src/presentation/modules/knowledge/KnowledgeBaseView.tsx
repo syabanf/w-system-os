@@ -123,7 +123,7 @@ export function KnowledgeBaseView() {
         <KnowledgeCategoryGrid articles={articles} category={category} onSelect={setCategory} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_560px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_560px]">
         <div className="glass rounded-[20px] p-5">
           <SectionHeader eyebrow="Library" title={`Articles (${filtered.length})`} />
           <ul className="space-y-2">

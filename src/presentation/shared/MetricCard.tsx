@@ -36,8 +36,10 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        "glass relative overflow-hidden rounded-[20px] p-5 transition-transform",
-        "hover:-translate-y-0.5 hover:shadow-[0_18px_60px_-15px_rgba(0,0,0,0.55)]",
+        "glass surface-smooth relative overflow-hidden rounded-[20px] p-4 md:p-5",
+        // Subtle lift on hover; faster active-state response for snappier feel.
+        "motion-safe:hover:-translate-y-0.5 hover:shadow-[0_18px_60px_-15px_rgba(0,0,0,0.55)]",
+        "active:translate-y-0 active:duration-75",
         emphasis && "subtle-ring",
       )}
     >
@@ -58,7 +60,7 @@ export function MetricCard({
         ) : null}
       </div>
       <div className="mt-3 flex items-end gap-2">
-        <div className="text-2xl font-semibold tracking-tight text-zinc-50 md:text-[28px]">
+        <div className="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl md:text-[26px] lg:text-[28px]">
           {value}
         </div>
       </div>
