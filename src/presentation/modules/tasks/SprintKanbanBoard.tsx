@@ -14,7 +14,13 @@ const PRIORITY_TONE: Record<string, string> = {
   critical: "#EF4444",
 };
 
-export function SprintKanbanBoard({ tasks }: { tasks: Task[] }) {
+interface KanbanProps {
+  tasks: Task[];
+  onEdit?: (t: Task) => void;
+  onDelete?: (t: Task) => void;
+}
+
+export function SprintKanbanBoard({ tasks, onEdit, onDelete }: KanbanProps) {
   return (
     <div className="glass-scroll -mx-1 overflow-x-auto pb-1">
       <div className="flex min-w-max gap-3 px-1">
@@ -43,19 +49,35 @@ export function SprintKanbanBoard({ tasks }: { tasks: Task[] }) {
                     return (
                       <li
                         key={t.id}
-                        className="glass-soft cursor-pointer rounded-xl border border-white/6 p-3 transition-all hover:-translate-y-0.5 hover:border-white/20"
+                        onClick={() => onEdit?.(t)}
+                        className="glass-soft group cursor-pointer rounded-xl border border-white/6 p-3 transition-all hover:-translate-y-0.5 hover:border-white/20"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-mono text-[10px] text-zinc-400">{t.code}</span>
-                          <span
-                            className="rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
-                            style={{
-                              background: `${PRIORITY_TONE[t.priority]}20`,
-                              color: PRIORITY_TONE[t.priority],
-                            }}
-                          >
-                            {t.priority}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span
+                              className="rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                              style={{
+                                background: `${PRIORITY_TONE[t.priority]}20`,
+                                color: PRIORITY_TONE[t.priority],
+                              }}
+                            >
+                              {t.priority}
+                            </span>
+                            {onDelete ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDelete(t);
+                                }}
+                                aria-label="Delete task"
+                                className="grid h-5 w-5 place-items-center rounded-md text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-rose-500/15 hover:text-rose-300"
+                              >
+                                ×
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
                         <div className="mt-1 text-xs font-semibold text-zinc-100">{t.title}</div>
                         {t.blocked ? (

@@ -7,9 +7,13 @@ import { createSprintService } from "@/application/factories/createSprintService
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
 import type { ProjectBoardDTO } from "@/application/use-cases/tasks/GetProjectBoard";
 import type { Project } from "@/domain/entities/Project";
+import type { Epic } from "@/domain/entities/Epic";
+import type { UserStory } from "@/domain/entities/UserStory";
 import { mockClients } from "@/infrastructure/data/clients.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useProjectsStore } from "@/state/projects.store";
+import { useEpicsStore } from "@/state/epics.store";
+import { useUserStoriesStore } from "@/state/userStories.store";
 import { useToast } from "@/state/toast.store";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
@@ -18,6 +22,8 @@ import { ProjectTable } from "./ProjectTable";
 import { ProjectKanban } from "./ProjectKanban";
 import { ProjectRoadmap } from "./ProjectRoadmap";
 import { ProjectFormDialog } from "./ProjectFormDialog";
+import { EpicFormDialog } from "./EpicFormDialog";
+import { StoryFormDialog } from "./StoryFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
 import { ProjectDetailView } from "./ProjectDetailView";
@@ -50,14 +56,37 @@ export function ProjectManagementView() {
   const addProject = useProjectsStore((s) => s.add);
   const updateProject = useProjectsStore((s) => s.update);
   const removeProject = useProjectsStore((s) => s.remove);
+
+  const epicsItems = useEpicsStore((s) => s.items);
+  const hydrateEpics = useEpicsStore((s) => s.hydrate);
+  const addEpic = useEpicsStore((s) => s.add);
+  const updateEpic = useEpicsStore((s) => s.update);
+  const removeEpic = useEpicsStore((s) => s.remove);
+
+  const storiesItems = useUserStoriesStore((s) => s.items);
+  const hydrateStories = useUserStoriesStore((s) => s.hydrate);
+  const addStory = useUserStoriesStore((s) => s.add);
+  const updateStory = useUserStoriesStore((s) => s.update);
+  const removeStory = useUserStoriesStore((s) => s.remove);
+
   const toast = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
 
+  const [epicFormOpen, setEpicFormOpen] = useState(false);
+  const [editingEpic, setEditingEpic] = useState<Epic | null>(null);
+  const [confirmDeleteEpic, setConfirmDeleteEpic] = useState<Epic | null>(null);
+
+  const [storyFormOpen, setStoryFormOpen] = useState(false);
+  const [editingStory, setEditingStory] = useState<UserStory | null>(null);
+  const [confirmDeleteStory, setConfirmDeleteStory] = useState<UserStory | null>(null);
+
   useEffect(() => {
     hydrate();
+    hydrateEpics();
+    hydrateStories();
     let cancelled = false;
     (async () => {
       const [overview, projectBoard] = await Promise.all([
@@ -72,7 +101,13 @@ export function ProjectManagementView() {
     return () => {
       cancelled = true;
     };
-  }, [hydrate]);
+  }, [hydrate, hydrateEpics, hydrateStories]);
+
+  // Avoid unused-var warnings — these reactive subscriptions exist to trigger
+  // re-renders when CRUD mutations happen even though we don't reach into the
+  // lists directly here (the DTO drill renderers do).
+  void epicsItems;
+  void storiesItems;
 
   // Project DTOs are derived from the store. We keep baseline only as a
   // reference for service-side enrichments (clientName/managerName/margin)
@@ -212,17 +247,86 @@ export function ProjectManagementView() {
               <button
                 type="button"
                 onClick={() => {
+                  setEditingEpic(null);
+                  setEpicFormOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+              >
+                <Plus className="h-3 w-3" />
+                Add epic
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setEditing(drillProject);
                   setFormOpen(true);
                 }}
                 className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
               >
                 <Pencil className="h-3 w-3" />
-                Edit
+                Edit project
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(drillProject)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[11px] font-medium text-rose-200 transition-colors hover:bg-rose-500/25"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </button>
+            </>
+          ) : null}
+          {section === "portfolio" && drill.level === "epic" && drillEpic ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingStory(null);
+                  setStoryFormOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+              >
+                <Plus className="h-3 w-3" />
+                Add story
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // The drill DTO is an EpicNode (extends Epic) — cast safely.
+                  setEditingEpic(drillEpic as unknown as Epic);
+                  setEpicFormOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit epic
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteEpic(drillEpic as unknown as Epic)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[11px] font-medium text-rose-200 transition-colors hover:bg-rose-500/25"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </button>
+            </>
+          ) : null}
+          {section === "portfolio" && drill.level === "story" && drillStory ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingStory(drillStory as unknown as UserStory);
+                  setStoryFormOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit story
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteStory(drillStory as unknown as UserStory)}
                 className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-3 py-1 text-[11px] font-medium text-rose-200 transition-colors hover:bg-rose-500/25"
               >
                 <Trash2 className="h-3 w-3" />
@@ -355,6 +459,77 @@ export function ProjectManagementView() {
           setConfirmDelete(null);
           setDrill({ level: "portfolio" });
           toast.info("Project archived", `${name} has been removed.`);
+        }}
+      />
+
+      <EpicFormDialog
+        open={epicFormOpen}
+        defaultProjectId={drillProject?.id}
+        editing={editingEpic}
+        onClose={() => setEpicFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateEpic(editingId, draft);
+            toast.success("Epic updated", draft.name);
+          } else {
+            const created = addEpic(draft);
+            toast.success("Epic created", `${created.code} · ${draft.name}`);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDeleteEpic}
+        title="Remove epic?"
+        description={
+          confirmDeleteEpic
+            ? `${confirmDeleteEpic.code} · ${confirmDeleteEpic.name} will be removed. User stories under this epic become orphans.`
+            : ""
+        }
+        onCancel={() => setConfirmDeleteEpic(null)}
+        onConfirm={() => {
+          if (!confirmDeleteEpic) return;
+          const ref = `${confirmDeleteEpic.code} · ${confirmDeleteEpic.name}`;
+          removeEpic(confirmDeleteEpic.id);
+          setConfirmDeleteEpic(null);
+          if (drill.level === "epic" || drill.level === "story")
+            setDrill({ level: "project", projectId: drill.projectId });
+          toast.info("Epic removed", ref);
+        }}
+      />
+
+      <StoryFormDialog
+        open={storyFormOpen}
+        defaultEpicId={drill.level === "epic" || drill.level === "story" ? drill.epicId : undefined}
+        defaultProjectId={drill.level === "portfolio" ? undefined : drill.projectId}
+        editing={editingStory}
+        onClose={() => setStoryFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateStory(editingId, draft);
+            toast.success("Story updated", draft.title);
+          } else {
+            const created = addStory(draft);
+            toast.success("Story created", `${created.code} · ${draft.title}`);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDeleteStory}
+        title="Remove user story?"
+        description={
+          confirmDeleteStory
+            ? `${confirmDeleteStory.code} · ${confirmDeleteStory.title} will be removed. Sprint tasks linked to this story remain but become orphans.`
+            : ""
+        }
+        onCancel={() => setConfirmDeleteStory(null)}
+        onConfirm={() => {
+          if (!confirmDeleteStory) return;
+          const ref = `${confirmDeleteStory.code} · ${confirmDeleteStory.title}`;
+          removeStory(confirmDeleteStory.id);
+          setConfirmDeleteStory(null);
+          if (drill.level === "story")
+            setDrill({ level: "epic", projectId: drill.projectId, epicId: drill.epicId });
+          toast.info("Story removed", ref);
         }}
       />
     </div>

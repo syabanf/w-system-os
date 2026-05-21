@@ -7,6 +7,7 @@ import type { ClientPortfolioItem } from "@/application/use-cases/clients/GetCli
 import type { Client } from "@/domain/entities/Client";
 import { useClientsStore } from "@/state/clients.store";
 import { useToast } from "@/state/toast.store";
+import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { SearchInput } from "@/presentation/shared/SearchInput";
@@ -102,6 +103,12 @@ export function ClientManagementView() {
     setEditing(c);
     setFormOpen(true);
   };
+
+  // ⌘N / Ctrl-N → quick "add client" — matches every other CRUD module.
+  useHotkey("mod+n", (e) => {
+    e.preventDefault();
+    openCreate();
+  });
 
   return (
     <div className="space-y-5">

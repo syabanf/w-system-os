@@ -12,6 +12,7 @@ import type { LeadQualification } from "@/domain/entities/LeadSource";
 import { QUALIFICATION_ORDER } from "@/domain/entities/LeadSource";
 import { useLeadsStore } from "@/state/leads.store";
 import { useToast } from "@/state/toast.store";
+import { useHotkey } from "@/hooks/useHotkey";
 import { LeadFormDialog } from "./LeadFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { MetricCard } from "@/presentation/shared/MetricCard";
@@ -140,6 +141,14 @@ export function LeadsView() {
       );
     });
   }, [liveLeads, query, filterQual]);
+
+  // ⌘N / Ctrl-N → quick "add lead". MUST be declared before any early return
+  // so the hook order stays stable across "loading skeleton" and "loaded" renders.
+  useHotkey("mod+n", (e) => {
+    e.preventDefault();
+    setEditing(null);
+    setFormOpen(true);
+  });
 
   if (!data) return <SkeletonLoadingView />;
 

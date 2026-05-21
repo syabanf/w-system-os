@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 
 interface DeleteConfirmDialogProps {
@@ -26,6 +27,24 @@ export function DeleteConfirmDialog({
   onCancel,
   onConfirm,
 }: DeleteConfirmDialogProps) {
+  // Esc closes; Enter confirms. Both match desktop OS norms and let the user
+  // commit-or-bail with the keyboard alone — important since the modal steals
+  // pointer focus.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCancel();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        onConfirm();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onCancel, onConfirm]);
+
   if (!open) return null;
   return (
     <div
@@ -48,6 +67,9 @@ export function DeleteConfirmDialog({
           </div>
         </div>
         <div className="mt-4 flex items-center justify-end gap-2">
+          <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
+            Esc to cancel · ⏎ to delete
+          </span>
           <button
             type="button"
             onClick={onCancel}
@@ -58,7 +80,8 @@ export function DeleteConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-full bg-rose-500/80 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500"
+            autoFocus
+            className="rounded-full bg-rose-500/80 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300/50"
           >
             {confirmLabel}
           </button>

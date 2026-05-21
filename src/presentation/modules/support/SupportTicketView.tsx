@@ -14,6 +14,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useTicketsStore } from "@/state/tickets.store";
 import { useToast } from "@/state/toast.store";
+import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { TicketQueue } from "./TicketQueue";
@@ -80,6 +81,14 @@ export function SupportTicketView() {
   const breachedCount = enriched.filter((t) => t.isBreached).length;
   const changeRequestCount = enriched.filter((t) => t.isChangeRequest).length;
   const averageResolutionHours = baseline?.averageResolutionHours ?? 0;
+
+  // ⌘N / Ctrl-N → quick "new ticket". MUST be declared before any early return
+  // so the hook order stays stable across "loading skeleton" and "loaded" renders.
+  useHotkey("mod+n", (e) => {
+    e.preventDefault();
+    setEditing(null);
+    setFormOpen(true);
+  });
 
   if (!baseline) return <SkeletonLoadingView />;
 

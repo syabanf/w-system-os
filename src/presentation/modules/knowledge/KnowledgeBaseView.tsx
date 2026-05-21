@@ -7,6 +7,7 @@ import type { KnowledgeArticle } from "@/infrastructure/data/knowledge.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useKnowledgeStore } from "@/state/knowledge.store";
 import { useToast } from "@/state/toast.store";
+import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { SearchInput } from "@/presentation/shared/SearchInput";
@@ -69,6 +70,11 @@ export function KnowledgeBaseView() {
     setEditing(a);
     setFormOpen(true);
   };
+
+  useHotkey("mod+n", (e) => {
+    e.preventDefault();
+    openCreate();
+  });
 
   return (
     <div className="space-y-5">

@@ -7,13 +7,18 @@ import {
   Layers,
   LineChart as LineChartIcon,
   ListChecks,
+  Pencil,
+  Plus,
   ShieldAlert,
   Target,
+  Trash2,
 } from "lucide-react";
 import { createSprintService } from "@/application/factories/createSprintService";
 import type { SprintSummary } from "@/application/use-cases/tasks/GetSprintSummary";
 import type { BurndownPoint } from "@/application/use-cases/tasks/CalculateBurndown";
 import type { ProjectBoardDTO } from "@/application/use-cases/tasks/GetProjectBoard";
+import type { Sprint } from "@/domain/entities/Sprint";
+import type { Task } from "@/domain/entities/Task";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { ChartCard } from "@/presentation/shared/ChartCard";
@@ -21,9 +26,16 @@ import { SprintKanbanBoard } from "./SprintKanbanBoard";
 import { BurndownChart } from "./BurndownChart";
 import { SprintVelocityChart } from "./SprintVelocityChart";
 import { BacklogTree } from "./BacklogTree";
+import { SprintFormDialog } from "./SprintFormDialog";
+import { TaskFormDialog } from "./TaskFormDialog";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { formatPercent } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { useSprintsStore } from "@/state/sprints.store";
+import { useTasksStore } from "@/state/tasks.store";
+import { useToast } from "@/state/toast.store";
+import { useHotkey } from "@/hooks/useHotkey";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 
 const teamMap = new Map(mockTeam.map((m) => [m.id, m]));
@@ -37,7 +49,47 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
   const [burndown, setBurndown] = useState<BurndownPoint[]>([]);
   const [tab, setTab] = useState<Tab>("backlog");
 
+  // CRUD stores layered on top of the DTOs. Sprints + Tasks remain visible via
+  // the service-computed summaries (velocity, burndown, etc.), but new + edited
+  // records appear in the picker, board, and backlog via the merge below.
+  const sprints = useSprintsStore((s) => s.items);
+  const hydrateSprints = useSprintsStore((s) => s.hydrate);
+  const addSprint = useSprintsStore((s) => s.add);
+  const updateSprint = useSprintsStore((s) => s.update);
+  const removeSprint = useSprintsStore((s) => s.remove);
+
+  const tasks = useTasksStore((s) => s.items);
+  const hydrateTasks = useTasksStore((s) => s.hydrate);
+  const addTask = useTasksStore((s) => s.add);
+  const updateTask = useTasksStore((s) => s.update);
+  const removeTask = useTasksStore((s) => s.remove);
+
+  const toast = useToast();
+
+  const [sprintFormOpen, setSprintFormOpen] = useState(false);
+  const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
+  const [confirmDeleteSprint, setConfirmDeleteSprint] = useState<Sprint | null>(null);
+
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [confirmDeleteTask, setConfirmDeleteTask] = useState<Task | null>(null);
+
+  // ⌘N — context-aware: planning a sprint when on Velocity/Backlog, adding a
+  // task when a sprint is actively selected on the Board.
+  useHotkey("mod+n", (e) => {
+    e.preventDefault();
+    if (tab === "board" && activeId) {
+      setEditingTask(null);
+      setTaskFormOpen(true);
+    } else {
+      setEditingSprint(null);
+      setSprintFormOpen(true);
+    }
+  });
+
   useEffect(() => {
+    hydrateSprints();
+    hydrateTasks();
     let cancelled = false;
     (async () => {
       const service = createSprintService();
@@ -57,7 +109,14 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hydrateSprints, hydrateTasks]);
+
+  // Surface store-only sprints (created since page load) in the picker cards.
+  // The seed mock IDs collide with `summaries` IDs so the union de-dupes by id.
+  const storeSprintsById = new Map(sprints.map((s) => [s.id, s]));
+  const summaryIds = new Set(summaries.map((s) => s.sprint.id));
+  const extraSprints: Sprint[] = sprints.filter((s) => !summaryIds.has(s.id) && s.status !== "completed");
+  void storeSprintsById;
 
   const activeSummary = summaries.find((s) => s.sprint.id === activeId);
 
@@ -92,12 +151,48 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <TabSwitch tab={tab} onChange={setTab} />
+          <button
+            type="button"
+            onClick={() => {
+              setEditingSprint(null);
+              setSprintFormOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+            title="Plan sprint (⌘N)"
+          >
+            <Plus className="h-3 w-3" />
+            Plan sprint
+          </button>
+          {tab === "board" && activeId ? (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTask(null);
+                setTaskFormOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
+            >
+              <Plus className="h-3 w-3" />
+              Add task
+            </button>
+          ) : null}
           <ManageMasterDataButton moduleId="projects" />
         </div>
       </header>
       ) : (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <TabSwitch tab={tab} onChange={setTab} />
+          <button
+            type="button"
+            onClick={() => {
+              setEditingSprint(null);
+              setSprintFormOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
+          >
+            <Plus className="h-3 w-3" />
+            Plan sprint
+          </button>
         </div>
       )}
 
@@ -139,34 +234,81 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
       </div>
 
       <div className="grid gap-2 lg:grid-cols-4">
-        {summaries.map((s) => {
-          const isActive = s.sprint.id === activeId;
+        {[...summaries.map((s) => s.sprint), ...extraSprints].map((sprint) => {
+          // The store may have a newer version of any sprint that's also in
+          // the DTO summaries — prefer the store record for display fields.
+          const overrides = storeSprintsById.get(sprint.id);
+          const s = overrides ?? sprint;
+          const isActive = s.id === activeId;
+          const matched = summaries.find((x) => x.sprint.id === s.id);
+          const blockedCount = matched?.blockedCount ?? 0;
           return (
-            <button
-              key={s.sprint.id}
-              onClick={() => onSelect(s.sprint.id)}
+            <div
+              key={s.id}
               className={cn(
-                "glass-soft rounded-2xl border p-4 text-left transition-all",
+                "glass-soft group relative rounded-2xl border p-4 text-left transition-all",
                 "hover:-translate-y-0.5",
                 isActive ? "border-white/25 bg-white/8" : "border-white/8",
               )}
             >
-              <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                {s.sprint.startDate} → {s.sprint.endDate}
-              </div>
-              <div className="mt-1 text-sm font-semibold text-zinc-100">{s.sprint.name}</div>
-              <div className="mt-1 text-[11px] text-zinc-400">{s.sprint.goal}</div>
-              <div className="mt-3 flex items-center gap-2 text-[10px]">
-                <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-zinc-200">
-                  {s.sprint.completedPoints}/{s.sprint.committedPoints}pt
-                </span>
-                {s.blockedCount > 0 ? (
-                  <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-rose-300">
-                    {s.blockedCount} blocked
+              <button
+                onClick={() => onSelect(s.id)}
+                className="block w-full text-left"
+              >
+                <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                  {s.startDate} → {s.endDate}
+                </div>
+                <div className="mt-1 truncate text-sm font-semibold text-zinc-100">{s.name}</div>
+                <div className="mt-1 line-clamp-2 text-[11px] text-zinc-400">{s.goal}</div>
+                <div className="mt-3 flex items-center gap-2 text-[10px]">
+                  <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-zinc-200">
+                    {s.completedPoints}/{s.committedPoints}pt
                   </span>
-                ) : null}
+                  {blockedCount > 0 ? (
+                    <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-rose-300">
+                      {blockedCount} blocked
+                    </span>
+                  ) : null}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5",
+                      s.status === "active"
+                        ? "bg-emerald-500/15 text-emerald-300"
+                        : s.status === "completed"
+                          ? "bg-white/8 text-zinc-300"
+                          : "bg-amber-500/15 text-amber-300",
+                    )}
+                  >
+                    {s.status}
+                  </span>
+                </div>
+              </button>
+              <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingSprint(s);
+                    setSprintFormOpen(true);
+                  }}
+                  aria-label="Edit sprint"
+                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-zinc-300 hover:bg-white/10 hover:text-zinc-100"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDeleteSprint(s);
+                  }}
+                  aria-label="Delete sprint"
+                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-zinc-300 hover:bg-rose-500/15 hover:text-rose-300"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -191,7 +333,14 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
                 title={`Scrum board — ${activeSummary.sprint.name}`}
                 description={`${activeSummary.tasks.length} tasks across ${Object.keys(activeSummary.byStatus).length} columns`}
               />
-              <SprintKanbanBoard tasks={activeSummary.tasks} />
+              <SprintKanbanBoard
+                tasks={activeSummary.tasks}
+                onEdit={(t) => {
+                  setEditingTask(t);
+                  setTaskFormOpen(true);
+                }}
+                onDelete={setConfirmDeleteTask}
+              />
             </div>
             <div className="glass rounded-[20px] p-5">
               <SectionHeader eyebrow="Workload" title="Team workload" />
@@ -322,6 +471,73 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
           <BurndownChart data={burndown} />
         </ChartCard>
       ) : null}
+
+      <SprintFormDialog
+        open={sprintFormOpen}
+        editing={editingSprint}
+        onClose={() => setSprintFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateSprint(editingId, draft);
+            toast.success("Sprint updated", draft.name);
+          } else {
+            const created = addSprint(draft);
+            setActiveId(created.id);
+            toast.success("Sprint planned", `${draft.name} · ${draft.committedPoints}pt committed`);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDeleteSprint}
+        title="Cancel & remove sprint?"
+        description={
+          confirmDeleteSprint
+            ? `${confirmDeleteSprint.name} (${confirmDeleteSprint.committedPoints}pt committed) will be removed from the board. Tasks assigned to this sprint move back to the backlog.`
+            : ""
+        }
+        onCancel={() => setConfirmDeleteSprint(null)}
+        onConfirm={() => {
+          if (!confirmDeleteSprint) return;
+          const name = confirmDeleteSprint.name;
+          removeSprint(confirmDeleteSprint.id);
+          setConfirmDeleteSprint(null);
+          setActiveId(null);
+          toast.info("Sprint removed", `${name} has been archived.`);
+        }}
+      />
+
+      <TaskFormDialog
+        open={taskFormOpen}
+        defaultSprintId={activeId ?? undefined}
+        editing={editingTask}
+        onClose={() => setTaskFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateTask(editingId, draft);
+            toast.success("Task updated", draft.title);
+          } else {
+            const created = addTask(draft);
+            toast.success("Task added", `${created.code} · ${draft.title}`);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDeleteTask}
+        title="Remove task?"
+        description={
+          confirmDeleteTask
+            ? `${confirmDeleteTask.code} · ${confirmDeleteTask.title} (${confirmDeleteTask.storyPoints}pt) will be removed from the sprint. Comments and time entries are preserved.`
+            : ""
+        }
+        onCancel={() => setConfirmDeleteTask(null)}
+        onConfirm={() => {
+          if (!confirmDeleteTask) return;
+          const ref = `${confirmDeleteTask.code} · ${confirmDeleteTask.title}`;
+          removeTask(confirmDeleteTask.id);
+          setConfirmDeleteTask(null);
+          toast.info("Task removed", ref);
+        }}
+      />
     </div>
   );
 }
