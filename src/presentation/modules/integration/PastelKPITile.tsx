@@ -9,6 +9,9 @@ interface PastelKPITileProps {
   value: string;
   label: string;
   className?: string;
+  /** Extra inline styles (merged after the pastel background). Callers use this
+   *  to set `--stagger-index` for cascaded entrance animations. */
+  style?: React.CSSProperties;
 }
 
 /** PDF-spec pastel tiles. Hex backgrounds are intentionally explicit (not
@@ -26,14 +29,14 @@ const TONE_BG: Record<PastelTone, string> = {
 const INK = "#1f2933";
 const INK_MUTED = "#4b5563";
 
-export function PastelKPITile({ tone, value, label, className }: PastelKPITileProps) {
+export function PastelKPITile({ tone, value, label, className, style }: PastelKPITileProps) {
   return (
     <div
       className={cn(
-        "glass relative overflow-hidden rounded-[20px] p-4 md:p-5",
+        "glass hover-lift stagger-item relative overflow-hidden rounded-[20px] p-4 md:p-5",
         className,
       )}
-      style={{ background: TONE_BG[tone] }}
+      style={{ background: TONE_BG[tone], ...style }}
     >
       <div
         className="text-3xl font-bold leading-none tracking-tight"

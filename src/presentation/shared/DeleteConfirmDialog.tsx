@@ -48,14 +48,14 @@ export function DeleteConfirmDialog({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 backdrop-blur-md"
+      className="animate-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 backdrop-blur-md"
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="glass-strong w-full max-w-sm overflow-hidden rounded-2xl border border-white/12 p-5 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7)]"
+        className="animate-dialog-in glass-strong w-full max-w-sm overflow-hidden rounded-2xl border border-white/12 p-5 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7)]"
       >
         <div className="flex items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500/15 text-rose-300">
@@ -73,7 +73,7 @@ export function DeleteConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full px-3 py-1.5 text-[11px] text-zinc-300 hover:bg-white/8 hover:text-zinc-100"
+            className="press rounded-full px-3 py-1.5 text-[11px] text-zinc-300 hover:bg-white/8 hover:text-zinc-100"
           >
             Cancel
           </button>
@@ -81,7 +81,7 @@ export function DeleteConfirmDialog({
             type="button"
             onClick={onConfirm}
             autoFocus
-            className="rounded-full bg-rose-500/80 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300/50"
+            className="press rounded-full bg-rose-500/80 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300/50"
           >
             {confirmLabel}
           </button>

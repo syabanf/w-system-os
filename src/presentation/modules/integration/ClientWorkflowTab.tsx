@@ -162,6 +162,7 @@ export function ClientWorkflowTab({
           onAddClient={onAddClient}
         />
         <DrillView
+          key={drillClient.id}
           client={drillClient}
           projectId={firstProjectIdForClient}
           view={drillView}
@@ -201,10 +202,10 @@ export function ClientWorkflowTab({
       ) : null}
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <PastelKPITile tone="cream" value={String(companyCount)} label="Company" />
-        <PastelKPITile tone="mint" value={String(clientCount)} label="Client" />
-        <PastelKPITile tone="blue" value={String(projectCount)} label="Project" />
-        <PastelKPITile tone="lilac" value={String(cancelCount)} label="Cancel" />
+        <PastelKPITile tone="cream" value={String(companyCount)} label="Company" style={{ "--stagger-index": 0 } as React.CSSProperties} />
+        <PastelKPITile tone="mint" value={String(clientCount)} label="Client" style={{ "--stagger-index": 1 } as React.CSSProperties} />
+        <PastelKPITile tone="blue" value={String(projectCount)} label="Project" style={{ "--stagger-index": 2 } as React.CSSProperties} />
+        <PastelKPITile tone="lilac" value={String(cancelCount)} label="Cancel" style={{ "--stagger-index": 3 } as React.CSSProperties} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
@@ -267,7 +268,7 @@ export function ClientWorkflowTab({
                 <button
                   type="button"
                   onClick={onAddClient}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+                  className="press inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-[11px] font-semibold text-zinc-900 hover:bg-white"
                 >
                   <Plus className="h-3 w-3" />
                   Add client
@@ -301,7 +302,7 @@ export function ClientWorkflowTab({
                     <tr
                       key={c.id}
                       onClick={() => setDrillId(c.id)}
-                      className="cursor-pointer border-t border-white/5 transition-colors hover:bg-white/[0.04]"
+                      className="animate-fade-in cursor-pointer border-t border-white/5 transition-colors hover:bg-white/[0.04]"
                     >
                       <Td>
                         <div className="flex items-center gap-2">
@@ -431,12 +432,12 @@ function DrillView({
   const owner = teamName(client.accountOwnerId);
 
   return (
-    <div className="space-y-4">
+    <div className="animate-slide-in-right space-y-4">
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-300 hover:bg-white/10 hover:text-zinc-50"
+          className="press inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-300 hover:bg-white/10 hover:text-zinc-50"
         >
           <ChevronLeft className="h-3 w-3" />
           Back to clients
@@ -468,21 +469,21 @@ function DrillView({
           <button
             type="button"
             onClick={() => toast.info("Detail panel", "Demo only")}
-            className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-medium text-zinc-200 hover:bg-white/10"
+            className="press rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-medium text-zinc-200 hover:bg-white/10"
           >
             Detail
           </button>
           <button
             type="button"
             onClick={() => toast.info("Edit triggered", client.name)}
-            className="rounded-full bg-[#2563EB] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
+            className="press rounded-full bg-[#2563EB] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
           >
             Edit
           </button>
           <button
             type="button"
             onClick={() => toast.success("Downloading…", client.name)}
-            className="inline-flex items-center gap-1 rounded-full bg-[#10B981] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#059669]"
+            className="press inline-flex items-center gap-1 rounded-full bg-[#10B981] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#059669]"
           >
             <Download className="h-3 w-3" />
             Download
@@ -501,7 +502,7 @@ function DrillView({
             toast.info("Calendar view");
           }}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white transition-colors",
+            "press inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white transition-colors",
             view === "calendar"
               ? "bg-[#EA580C] hover:bg-[#C2410C]"
               : "bg-[#F97316] hover:bg-[#EA580C]",
@@ -514,16 +515,16 @@ function DrillView({
           <button
             type="button"
             onClick={onToggleFilterMenu}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
+            className="press inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
           >
             <Filter className="h-3 w-3" />
             Filter Task
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className={cn("h-3 w-3 transition-transform", filterMenuOpen && "rotate-180")} />
           </button>
           {filterMenuOpen ? (
             <div
               role="menu"
-              className="glass-strong absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-white/10 shadow-xl"
+              className="animate-scale-in glass-strong absolute left-0 top-full z-20 mt-1 w-48 origin-top-left overflow-hidden rounded-xl border border-white/10 shadow-xl"
               onMouseLeave={onCloseFilterMenu}
             >
               {FILTER_TASK_OPTIONS.map((opt) => (
@@ -550,20 +551,22 @@ function DrillView({
         <button
           type="button"
           onClick={() => toast.info("Action view", "Demo only")}
-          className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
+          className="press ml-auto inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
         >
           Action View
           <ChevronDown className="h-3 w-3" />
         </button>
       </div>
 
-      {view === "calendar" ? (
-        <MilestoneCalendar projectId={projectId} />
-      ) : view === "invoices" ? (
-        <InvoiceMiniList clientId={client.id} />
-      ) : (
-        <ProjectMilestoneTracker projectId={projectId} />
-      )}
+      <div key={view} className="animate-fade-in-up">
+        {view === "calendar" ? (
+          <MilestoneCalendar projectId={projectId} />
+        ) : view === "invoices" ? (
+          <InvoiceMiniList clientId={client.id} />
+        ) : (
+          <ProjectMilestoneTracker projectId={projectId} />
+        )}
+      </div>
     </div>
   );
 }
@@ -599,7 +602,7 @@ function ClientSidebarList({
             onClick={onAddClient}
             aria-label="Add client"
             title="Add client"
-            className="grid h-6 w-6 place-items-center rounded-full bg-white/85 text-zinc-900 transition-colors hover:bg-white"
+            className="press grid h-6 w-6 place-items-center rounded-full bg-white/85 text-zinc-900 hover:bg-white"
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -621,15 +624,19 @@ function ClientSidebarList({
             No clients match.
           </li>
         ) : (
-          clients.map((c) => {
+          clients.map((c, i) => {
             const active = c.id === activeId;
             return (
-              <li key={c.id}>
+              <li
+                key={c.id}
+                className="stagger-item"
+                style={{ "--stagger-index": i } as React.CSSProperties}
+              >
                 <button
                   type="button"
                   onClick={() => onSelect(c.id)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors",
+                    "press flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left",
                     active
                       ? "bg-white/12 ring-1 ring-inset ring-white/15"
                       : "hover:bg-white/[0.05]",
@@ -706,7 +713,7 @@ function RowAction({ label, icon: Icon, tone, onClick }: RowActionProps) {
       aria-label={label}
       title={label}
       className={cn(
-        "grid h-6 w-6 place-items-center rounded text-zinc-400 transition-colors",
+        "press grid h-6 w-6 place-items-center rounded text-zinc-400 hover:scale-110",
         tone === "danger"
           ? "hover:bg-rose-500/15 hover:text-rose-300"
           : "hover:bg-white/10 hover:text-zinc-100",
@@ -731,7 +738,7 @@ function PageChip({ children, onClick, active, disabled }: PageChipProps) {
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors",
+        "press inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium",
         active
           ? "bg-white/12 text-zinc-50"
           : "bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-zinc-100",
