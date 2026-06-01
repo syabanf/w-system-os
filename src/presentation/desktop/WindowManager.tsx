@@ -20,6 +20,7 @@ import { UserPortalView } from "@/presentation/modules/portal/UserPortalView";
 import { ReportsView } from "@/presentation/modules/reports/ReportsView";
 import { KPIsView } from "@/presentation/modules/kpis/KPIsView";
 import { Performance360View } from "@/presentation/modules/performance/Performance360View";
+import { IntegrationDashboardView } from "@/presentation/modules/integration/IntegrationDashboardView";
 
 function renderModule(id: AppModuleId) {
   switch (id) {
@@ -38,6 +39,7 @@ function renderModule(id: AppModuleId) {
     case "reports": return <ReportsView />;
     case "kpis": return <KPIsView />;
     case "performance": return <Performance360View />;
+    case "integration": return <IntegrationDashboardView />;
     default: return null;
   }
 }

@@ -15,12 +15,14 @@ import {
 import type { ClientPortfolioItem } from "@/application/use-cases/clients/GetClientPortfolio";
 import { mockInvoices } from "@/infrastructure/data/invoices.mock";
 import { mockTickets } from "@/infrastructure/data/tickets.mock";
+import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { createProjectService } from "@/application/factories/createProjectService";
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
+import { ProjectMilestoneTracker } from "@/presentation/modules/projects/ProjectMilestoneTracker";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 
@@ -65,6 +67,13 @@ export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
 
   const invoices = useMemo(() => mockInvoices.filter((i) => i.clientId === client.id), [client.id]);
   const tickets = useMemo(() => mockTickets.filter((t) => t.clientId === client.id), [client.id]);
+  // The milestone tracker needs a project anchor. Pick the first project for
+  // this client from the canonical project list (the projects.store may not be
+  // hydrated yet here). Falls back to undefined → empty-state CTA below.
+  const firstProjectId = useMemo(
+    () => mockProjects.find((p) => p.clientId === client.id)?.id,
+    [client.id],
+  );
 
   const outstanding = invoices
     .filter((i) => i.status === "sent" || i.status === "overdue")
@@ -156,6 +165,27 @@ export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
           accent="#F59E0B"
         />
       </div>
+
+      <section>
+        <SectionHeader
+          eyebrow="Workflow"
+          title="Project milestones"
+          description="Per-engagement workflow + payment + dev tracker."
+        />
+        {client.activeProjects > 0 && firstProjectId ? (
+          <ProjectMilestoneTracker projectId={firstProjectId} />
+        ) : (
+          <div className="glass rounded-[20px] border border-dashed border-white/10 p-8 text-center">
+            <div className="text-sm font-semibold text-zinc-100">
+              No project linked yet
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">
+              Link a project to this client from the Projects module to start
+              tracking workflow, payment, and development milestones.
+            </p>
+          </div>
+        )}
+      </section>
 
       <div className="glass rounded-[20px] p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

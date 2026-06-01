@@ -15,6 +15,7 @@ import {
   FileBarChart,
   Target,
   Sparkles,
+  LayoutDashboard,
 } from "lucide-react";
 
 export type AppModuleId =
@@ -32,7 +33,8 @@ export type AppModuleId =
   | "portal"
   | "reports"
   | "kpis"
-  | "performance";
+  | "performance"
+  | "integration";
 
 export interface AppModule {
   id: AppModuleId;
@@ -50,6 +52,7 @@ export interface AppModule {
 // Module order tuned so dock reads as: exec → growth → delivery → ops → finance → system.
 export const APP_MODULES: AppModule[] = [
   { id: "dashboard", name: "Executive Dashboard", shortName: "Dashboard", description: "Firm-wide pulse for leadership and PMO.", icon: Compass, accent: "#FAFAF9", accentLight: "#475569", group: "executive" },
+  { id: "integration", name: "Integration Dashboard", shortName: "Integration", description: "Unified client workflow, team timeline, and product catalog.", icon: LayoutDashboard, accent: "#06B6D4", accentLight: "#0891B2", group: "executive" },
   { id: "kpis", name: "KPIs & Targets", shortName: "KPIs", description: "Live KPI scoreboard with trend, target floor, and status.", icon: Target, accent: "#BAE6FD", accentLight: "#0369A1", group: "executive" },
   { id: "reports", name: "Reports", shortName: "Reports", description: "Report library, recent runs, and scheduled deliveries.", icon: FileBarChart, accent: "#A5F3FC", accentLight: "#0E7490", group: "executive" },
   { id: "leads", name: "Sales & Pipeline", shortName: "Sales", description: "Leads, scoring, sales kanban, and project commercial.", icon: Flame, accent: "#FBCFE8", accentLight: "#BE185D", group: "growth" },

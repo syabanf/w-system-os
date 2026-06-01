@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
+  ChevronDown,
   LayoutGrid,
   Moon,
   Search,
@@ -18,7 +19,11 @@ import { useDesktopStore } from "@/state/desktop.store";
 import { useSpotlightStore } from "@/state/spotlight.store";
 import { useNotificationStore } from "@/state/notification.store";
 import { useThemeStore } from "@/state/theme.store";
+import { useToast } from "@/state/toast.store";
+import { useWindowStore } from "@/state/window.store";
+import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
+import { ClientPortalMegaMenu } from "@/presentation/desktop/ClientPortalMegaMenu";
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -40,7 +45,12 @@ export function TopMenuBar() {
   const unread = useNotificationStore((s) => s.unread);
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggle);
+  const toast = useToast();
+  const openApp = useWindowStore((s) => s.openApp);
+  const setIntegrationCategory = useIntegrationFilterStore((s) => s.setCategory);
   const now = useClock();
+  const [isClientPortalOpen, setClientPortalOpen] = useState(false);
+  const clientPortalTriggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div className="glass-strong fixed inset-x-0 top-0 z-40 flex h-9 items-center justify-between border-b border-white/8 px-3 text-xs text-zinc-300">
@@ -74,6 +84,34 @@ export function TopMenuBar() {
           <button className="hover:text-zinc-100">View</button>
           <button className="hover:text-zinc-100">Workspaces</button>
           <button className="hover:text-zinc-100">Help</button>
+          <div className="relative">
+            <button
+              ref={clientPortalTriggerRef}
+              onClick={() => setClientPortalOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={isClientPortalOpen}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors",
+                isClientPortalOpen ? "bg-white/10 text-zinc-100" : "hover:text-zinc-100",
+              )}
+            >
+              Client Portal
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            <ClientPortalMegaMenu
+              open={isClientPortalOpen}
+              onClose={() => setClientPortalOpen(false)}
+              onSelect={(id) => {
+                setIntegrationCategory(id);
+                openApp("integration");
+                toast.info(
+                  "Opening Integration Dashboard",
+                  `Filtered by ${id.replace("-", " ")}`,
+                );
+              }}
+              anchorRef={clientPortalTriggerRef}
+            />
+          </div>
         </nav>
       </div>
 
