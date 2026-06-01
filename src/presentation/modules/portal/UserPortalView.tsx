@@ -989,7 +989,7 @@ function MeetHRTab() {
 
 function Toast({ text }: { text: string }) {
   return (
-    <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs text-zinc-100 shadow-lg ring-1 ring-white/15">
+    <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs text-white shadow-lg ring-1 ring-white/15">
       {text}
     </div>
   );

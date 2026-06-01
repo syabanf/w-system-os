@@ -46,7 +46,10 @@ function DockIcon({ module, open, isFocused, onClick }: DockIconProps) {
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-900/90 px-2 py-1 text-[10px] font-medium text-zinc-100 opacity-0 ring-1 ring-white/8 transition-opacity",
+          // text-white (not text-zinc-100) so the label stays white in BOTH themes —
+          // the global remap layer would otherwise flip text-zinc-100 to slate
+          // in light mode, leaving dark-on-dark inside the always-dark pill.
+          "pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-900/95 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-[0_6px_18px_-6px_rgba(0,0,0,0.45)] ring-1 ring-white/15 transition-opacity",
           "group-hover:opacity-100",
         )}
       >

@@ -292,7 +292,7 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
                     setSprintFormOpen(true);
                   }}
                   aria-label="Edit sprint"
-                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-zinc-300 hover:bg-white/10 hover:text-zinc-100"
+                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-white/80 hover:bg-white/10 hover:text-white"
                 >
                   <Pencil className="h-3 w-3" />
                 </button>
@@ -303,7 +303,7 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
                     setConfirmDeleteSprint(s);
                   }}
                   aria-label="Delete sprint"
-                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-zinc-300 hover:bg-rose-500/15 hover:text-rose-300"
+                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-white/80 hover:bg-rose-500/15 hover:text-rose-300"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>

@@ -180,7 +180,7 @@ function parse(source: string): React.ReactNode[] {
       nodes.push(
         <pre
           key={key++}
-          className="overflow-x-auto rounded-xl border border-white/8 bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-zinc-100"
+          className="overflow-x-auto rounded-xl border border-white/8 bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-white"
         >
           <code>{buf.join("\n")}</code>
         </pre>,
