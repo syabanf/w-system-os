@@ -141,20 +141,40 @@ export function ClientWorkflowTab({
     : null;
 
   if (drillClient && firstProjectIdForClient) {
+    // Master-detail: keep the client list visible in a left sidebar (PDF
+    // pages 5–6 pattern) while the selected client's detail renders on the
+    // right. Selecting another row swaps the detail in place.
     return (
-      <DrillView
-        client={drillClient}
-        projectId={firstProjectIdForClient}
-        view={drillView}
-        onChangeView={setDrillView}
-        filterMenuOpen={filterMenuOpen}
-        onToggleFilterMenu={() => setFilterMenuOpen((v) => !v)}
-        onCloseFilterMenu={() => setFilterMenuOpen(false)}
-        onBack={() => {
-          setDrillId(null);
-          setDrillView("milestones");
-        }}
-      />
+      <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
+        <ClientSidebarList
+          clients={filtered}
+          activeId={drillClient.id}
+          query={query}
+          onQueryChange={(v) => {
+            setQuery(v);
+            setPage(0);
+          }}
+          onSelect={(id) => {
+            setDrillId(id);
+            setDrillView("milestones");
+            setFilterMenuOpen(false);
+          }}
+          onAddClient={onAddClient}
+        />
+        <DrillView
+          client={drillClient}
+          projectId={firstProjectIdForClient}
+          view={drillView}
+          onChangeView={setDrillView}
+          filterMenuOpen={filterMenuOpen}
+          onToggleFilterMenu={() => setFilterMenuOpen((v) => !v)}
+          onCloseFilterMenu={() => setFilterMenuOpen(false)}
+          onBack={() => {
+            setDrillId(null);
+            setDrillView("milestones");
+          }}
+        />
+      </div>
     );
   }
 
@@ -545,6 +565,100 @@ function DrillView({
         <ProjectMilestoneTracker projectId={projectId} />
       )}
     </div>
+  );
+}
+
+interface ClientSidebarListProps {
+  clients: Client[];
+  activeId: string;
+  query: string;
+  onQueryChange: (v: string) => void;
+  onSelect: (id: string) => void;
+  onAddClient?: () => void;
+}
+
+/** Compact, selectable client list shown alongside the detail pane while
+ *  drilled in — the "master" column of the master-detail layout. */
+function ClientSidebarList({
+  clients,
+  activeId,
+  query,
+  onQueryChange,
+  onSelect,
+  onAddClient,
+}: ClientSidebarListProps) {
+  return (
+    <aside className="glass flex flex-col rounded-[20px] p-3 lg:max-h-[calc(100vh-200px)]">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+          Clients · {clients.length}
+        </div>
+        {onAddClient ? (
+          <button
+            type="button"
+            onClick={onAddClient}
+            aria-label="Add client"
+            title="Add client"
+            className="grid h-6 w-6 place-items-center rounded-full bg-white/85 text-zinc-900 transition-colors hover:bg-white"
+          >
+            <Plus className="h-3 w-3" />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-2 px-1">
+        <SearchInput
+          value={query}
+          onChange={onQueryChange}
+          placeholder="Search clients…"
+          className="w-full"
+        />
+      </div>
+
+      <ul className="mt-2 flex-1 space-y-1 overflow-y-auto pr-0.5">
+        {clients.length === 0 ? (
+          <li className="px-2 py-6 text-center text-[11px] text-zinc-400">
+            No clients match.
+          </li>
+        ) : (
+          clients.map((c) => {
+            const active = c.id === activeId;
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(c.id)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors",
+                    active
+                      ? "bg-white/12 ring-1 ring-inset ring-white/15"
+                      : "hover:bg-white/[0.05]",
+                  )}
+                >
+                  <Avatar name={c.name} color={c.logoColor} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={cn(
+                        "truncate text-xs font-semibold",
+                        active ? "text-zinc-50" : "text-zinc-200",
+                      )}
+                    >
+                      {c.name}
+                    </div>
+                    <div className="truncate text-[10px] text-zinc-400">
+                      {c.industry}
+                    </div>
+                  </div>
+                  {active ? (
+                    <ChevronRight className="h-3 w-3 shrink-0 text-zinc-300" />
+                  ) : null}
+                </button>
+              </li>
+            );
+          })
+        )}
+      </ul>
+    </aside>
   );
 }
 
