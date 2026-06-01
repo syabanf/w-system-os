@@ -10,6 +10,7 @@ import {
   Eye,
   Filter,
   Pencil,
+  Plus,
   Trash2,
   X,
 } from "lucide-react";
@@ -30,6 +31,22 @@ import { MilestoneCalendar } from "./MilestoneCalendar";
 import { InvoiceMiniList } from "./InvoiceMiniList";
 
 const PAGE_SIZE = 7;
+
+interface ClientWorkflowTabProps {
+  /** Override the client source — pass store items when used inside the Clients
+   *  module so newly-added clients appear immediately. Falls back to the static
+   *  `mockClients` seed when omitted (Integration Dashboard demo path). */
+  clients?: Client[];
+  /** Show an "Add client" CTA in the table toolbar that calls this handler. */
+  onAddClient?: () => void;
+  /** Wire the pencil action in each row. Without this it just toasts "Edit triggered". */
+  onEditClient?: (c: Client) => void;
+  /** Wire the trash action in each row. Without this it just warns "Delete demo". */
+  onDeleteClient?: (c: Client) => void;
+  /** Suppress the cyan filter chip (used by the Integration Dashboard module
+   *  but not when this view drives the standalone Clients module). */
+  hideFilterChip?: boolean;
+}
 
 const STATUS_OPTIONS: { id: string; label: string }[] = [
   { id: "all", label: "All statuses" },
@@ -61,10 +78,20 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ClientWorkflowTab() {
+export function ClientWorkflowTab({
+  clients: clientsProp,
+  onAddClient,
+  onEditClient,
+  onDeleteClient,
+  hideFilterChip = false,
+}: ClientWorkflowTabProps = {}) {
   const toast = useToast();
   const filterCategory = useIntegrationFilterStore((s) => s.category);
   const clearFilter = useIntegrationFilterStore((s) => s.clear);
+
+  // Source of truth: store-injected list (Clients module) or static mock
+  // (Integration Dashboard demo).
+  const clientsSource = clientsProp ?? mockClients;
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string>("all");
@@ -73,9 +100,9 @@ export function ClientWorkflowTab() {
   const [drillView, setDrillView] = useState<DrillView>("milestones");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
-  // KPI counts (live from mock data).
-  const companyCount = mockClients.length;
-  const clientCount = mockClients.length;
+  // KPI counts (live from source).
+  const companyCount = clientsSource.length;
+  const clientCount = clientsSource.length;
   const projectCount = mockProjects.length;
   // No projects use "Cancelled" status in mock; PDF shows the tile anyway.
   const cancelCount =
@@ -88,7 +115,7 @@ export function ClientWorkflowTab() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return mockClients.filter((c) => {
+    return clientsSource.filter((c) => {
       if (status !== "all" && c.health !== status) return false;
       if (!q) return true;
       return (
@@ -97,7 +124,7 @@ export function ClientWorkflowTab() {
         c.primaryContact.toLowerCase().includes(q)
       );
     });
-  }, [query, status]);
+  }, [clientsSource, query, status]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -107,7 +134,7 @@ export function ClientWorkflowTab() {
   );
 
   const drillClient = drillId
-    ? mockClients.find((c) => c.id === drillId) ?? null
+    ? clientsSource.find((c) => c.id === drillId) ?? null
     : null;
   const firstProjectIdForClient = drillClient
     ? mockProjects.find((p) => p.clientId === drillClient.id)?.id ?? mockProjects[0]?.id
@@ -133,7 +160,7 @@ export function ClientWorkflowTab() {
 
   return (
     <div className="space-y-5">
-      {filterCategory ? (
+      {filterCategory && !hideFilterChip ? (
         <div className="flex items-center gap-2">
           <span className="glass-soft inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-[11px] text-cyan-200">
             <Filter className="h-3 w-3" />
@@ -216,6 +243,16 @@ export function ClientWorkflowTab() {
                   </option>
                 ))}
               </select>
+              {onAddClient ? (
+                <button
+                  type="button"
+                  onClick={onAddClient}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add client
+                </button>
+              ) : null}
             </div>
           </header>
 
@@ -289,7 +326,9 @@ export function ClientWorkflowTab() {
                             icon={Pencil}
                             tone="default"
                             onClick={() =>
-                              toast.info("Edit triggered", c.name)
+                              onEditClient
+                                ? onEditClient(c)
+                                : toast.info("Edit triggered", c.name)
                             }
                           />
                           <RowAction
@@ -297,7 +336,9 @@ export function ClientWorkflowTab() {
                             icon={Trash2}
                             tone="danger"
                             onClick={() =>
-                              toast.warning("Delete demo", `${c.name} (no-op)`)
+                              onDeleteClient
+                                ? onDeleteClient(c)
+                                : toast.warning("Delete demo", `${c.name} (no-op)`)
                             }
                           />
                         </div>
