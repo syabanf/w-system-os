@@ -10,9 +10,11 @@ import {
   Download,
   Eye,
   Filter,
+  LayoutGrid,
   Layers,
   Pencil,
   Plus,
+  Table2,
   Trash2,
   Users,
   Wallet,
@@ -32,6 +34,7 @@ import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { cn } from "@/lib/cn";
 import { formatIDRCompact } from "@/lib/currency";
 import { ProjectMilestoneTracker } from "@/presentation/modules/projects/ProjectMilestoneTracker";
+import { ProjectMilestoneTable } from "@/presentation/modules/projects/ProjectMilestoneTable";
 import { PastelKPITile } from "./PastelKPITile";
 import { MilestoneCalendar } from "./MilestoneCalendar";
 import { InvoiceMiniList } from "./InvoiceMiniList";
@@ -62,7 +65,18 @@ const STATUS_OPTIONS: { id: string; label: string }[] = [
   { id: "churn-risk", label: "Churn risk" },
 ];
 
-type DrillView = "milestones" | "calendar" | "invoices";
+type DrillView = "board" | "table" | "calendar" | "invoices";
+
+/** View-mode segmented control options for the project data step. */
+const DATA_VIEW_MODES: ReadonlyArray<{
+  id: Extract<DrillView, "board" | "table" | "calendar">;
+  label: string;
+  icon: typeof LayoutGrid;
+}> = [
+  { id: "board", label: "Board", icon: LayoutGrid },
+  { id: "table", label: "Table", icon: Table2 },
+  { id: "calendar", label: "Calendar", icon: Calendar },
+];
 
 const FILTER_TASK_OPTIONS = [
   { id: "invoices" as const, label: "Invoice List" },
@@ -110,7 +124,7 @@ export function ClientWorkflowTab({
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [drillId, setDrillId] = useState<string | null>(null);
-  const [drillView, setDrillView] = useState<DrillView>("milestones");
+  const [drillView, setDrillView] = useState<DrillView>("board");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
   // KPI counts (live from source).
@@ -171,7 +185,7 @@ export function ClientWorkflowTab({
           }}
           onSelect={(id) => {
             setDrillId(id);
-            setDrillView("milestones");
+            setDrillView("board");
             setFilterMenuOpen(false);
           }}
           onAddClient={onAddClient}
@@ -187,7 +201,7 @@ export function ClientWorkflowTab({
           onCloseFilterMenu={() => setFilterMenuOpen(false)}
           onBack={() => {
             setDrillId(null);
-            setDrillView("milestones");
+            setDrillView("board");
           }}
         />
       </div>
@@ -569,7 +583,7 @@ function DrillView({
                 type="button"
                 onClick={() => {
                   setSelectedProjectId(p.id);
-                  onChangeView("milestones");
+                  onChangeView("board");
                   onCloseFilterMenu();
                 }}
                 style={{ "--stagger-index": i } as React.CSSProperties}
@@ -662,22 +676,30 @@ function DrillView({
             <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
               Project Filter
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                onChangeView(view === "calendar" ? "milestones" : "calendar");
-                toast.info("Calendar view");
-              }}
-              className={cn(
-                "press inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white transition-colors",
-                view === "calendar"
-                  ? "bg-[#EA580C] hover:bg-[#C2410C]"
-                  : "bg-[#F97316] hover:bg-[#EA580C]",
-              )}
-            >
-              <Calendar className="h-3 w-3" />
-              Calendar View
-            </button>
+            {/* View-mode switch: Board · Table · Calendar */}
+            <div className="inline-flex rounded-full bg-white/5 p-0.5">
+              {DATA_VIEW_MODES.map((mode) => {
+                const active = view === mode.id;
+                const Icon = mode.icon;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => onChangeView(mode.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "press inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors",
+                      active
+                        ? "bg-white/15 text-zinc-50"
+                        : "text-zinc-300 hover:bg-white/8 hover:text-zinc-50",
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
             <div className="relative">
               <button
                 type="button"
@@ -703,7 +725,7 @@ function DrillView({
                         if (opt.id === "invoices") {
                           onChangeView("invoices");
                         } else {
-                          onChangeView("milestones");
+                          onChangeView("board");
                           toast.info(opt.label, "Demo only");
                         }
                       }}
@@ -730,6 +752,8 @@ function DrillView({
               <MilestoneCalendar projectId={selectedProject.id} />
             ) : view === "invoices" ? (
               <InvoiceMiniList clientId={client.id} />
+            ) : view === "table" ? (
+              <ProjectMilestoneTable projectId={selectedProject.id} />
             ) : (
               <ProjectMilestoneTracker projectId={selectedProject.id} />
             )}

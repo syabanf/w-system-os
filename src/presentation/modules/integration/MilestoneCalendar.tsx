@@ -3,29 +3,22 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useProjectMilestones } from "@/state/milestones.store";
-import type {
-  MilestoneSection,
-  ProjectMilestone,
-} from "@/domain/entities/ProjectMilestone";
+import type { ProjectMilestone } from "@/domain/entities/ProjectMilestone";
 import { cn } from "@/lib/cn";
+import {
+  CATEGORY_ACCENT,
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  MILESTONE_CATEGORY,
+  SECTION_TITLE,
+  type MilestoneCategory,
+} from "@/presentation/modules/projects/milestone.shared";
 
 interface MilestoneCalendarProps {
   projectId: string;
 }
 
-const SECTION_COLOR: Record<MilestoneSection, string> = {
-  workflow: "#60A5FA",
-  payment: "#F59E0B",
-  credential: "#A855F7",
-  development: "#34D399",
-};
-
-const SECTION_LABEL: Record<MilestoneSection, string> = {
-  workflow: "Workflow",
-  payment: "Payment",
-  credential: "Credential",
-  development: "Development",
-};
+type CategoryFilter = MilestoneCategory | "all";
 
 const DAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -57,24 +50,27 @@ export function MilestoneCalendar({ projectId }: MilestoneCalendarProps) {
   const [cursor, setCursor] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   );
+  const [filter, setFilter] = useState<CategoryFilter>("all");
 
   const grid = useMemo(
     () => buildMonthGrid(cursor.getFullYear(), cursor.getMonth()),
     [cursor],
   );
 
-  // Index milestones by ISO yyyy-mm-dd for O(1) day lookup.
+  // Index milestones by ISO yyyy-mm-dd for O(1) day lookup, honouring the
+  // active Technical/Commercial filter.
   const byDay = useMemo(() => {
     const map = new Map<string, ProjectMilestone[]>();
     for (const m of milestones) {
       if (!m.dueDate) continue;
+      if (filter !== "all" && MILESTONE_CATEGORY[m.section] !== filter) continue;
       const key = m.dueDate.slice(0, 10);
       const list = map.get(key) ?? [];
       list.push(m);
       map.set(key, list);
     }
     return map;
-  }, [milestones]);
+  }, [milestones, filter]);
 
   const monthLabel = cursor.toLocaleString("en-GB", {
     month: "long",
@@ -160,9 +156,11 @@ export function MilestoneCalendar({ projectId }: MilestoneCalendarProps) {
                 {items.slice(0, 4).map((m) => (
                   <span
                     key={m.id}
-                    title={`${SECTION_LABEL[m.section]}: ${m.label}`}
+                    title={`${SECTION_TITLE[m.section]}: ${m.label}`}
                     className="block h-1.5 w-1.5 rounded-full"
-                    style={{ background: SECTION_COLOR[m.section] }}
+                    style={{
+                      background: CATEGORY_ACCENT[MILESTONE_CATEGORY[m.section]],
+                    }}
                   />
                 ))}
                 {items.length > 4 ? (
@@ -176,16 +174,32 @@ export function MilestoneCalendar({ projectId }: MilestoneCalendarProps) {
         })}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] text-zinc-400">
-        {(Object.keys(SECTION_LABEL) as MilestoneSection[]).map((s) => (
-          <span key={s} className="inline-flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: SECTION_COLOR[s] }}
-            />
-            {SECTION_LABEL[s]}
-          </span>
-        ))}
+      {/* Category filter doubles as the legend — Technical vs Commercial. */}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {(["all", ...CATEGORY_ORDER] as CategoryFilter[]).map((f) => {
+          const active = f === filter;
+          const accent = f === "all" ? "#A1A1AA" : CATEGORY_ACCENT[f];
+          const label = f === "all" ? "All" : CATEGORY_LABEL[f];
+          return (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors",
+                active
+                  ? "bg-white/12 text-zinc-100"
+                  : "text-zinc-400 hover:bg-white/6 hover:text-zinc-200",
+              )}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: accent }}
+              />
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import type {
   MilestoneSection,
-  MilestoneStatus,
   ProjectMilestone,
 } from "@/domain/entities/ProjectMilestone";
 import type { ProjectTeamRole } from "@/domain/entities/ProjectTeamRole";
@@ -31,58 +30,22 @@ import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { cn } from "@/lib/cn";
 import { MilestoneFormDialog } from "./MilestoneFormDialog";
+import {
+  CATEGORY_ACCENT,
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  CATEGORY_SECTIONS,
+  formatMilestoneDate,
+  progressOf,
+  SECTION_TITLE,
+  StatusPill,
+  type MilestoneCategory,
+} from "./milestone.shared";
 
 interface ProjectMilestoneTrackerProps {
   projectId: string;
   /** Optional inline title above the three columns. */
   title?: string;
-}
-
-const STATUS_LABEL: Record<MilestoneStatus, string> = {
-  "waiting-action": "Waiting action",
-  "already-sent": "Already sent",
-  "in-progress": "In progress",
-  approved: "Approved",
-  overdue: "Overdue",
-};
-
-/** Inline pill styling. We don't reuse `StatusBadge` because its tone palette
- *  doesn't cover the "mint" (already-sent) hue from the mockup, and the
- *  vocabulary is milestone-specific anyway. */
-const STATUS_PILL: Record<MilestoneStatus, string> = {
-  "waiting-action": "bg-blue-500/15 text-blue-300 ring-blue-400/30",
-  "already-sent": "bg-teal-500/15 text-teal-200 ring-teal-400/30",
-  "in-progress": "bg-amber-500/15 text-amber-300 ring-amber-400/30",
-  approved: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30",
-  overdue: "bg-rose-500/15 text-rose-300 ring-rose-400/30",
-};
-
-const SECTION_TITLE: Record<MilestoneSection, string> = {
-  workflow: "Workflow",
-  payment: "Payment Progress",
-  credential: "Credential Data",
-  development: "Development Data",
-};
-
-/** Completion = (approved + already-sent) / total. Mirrors the PDF's
- *  "what's progressed" framing — anything we've shipped or filed is "done"
- *  for progress-bar purposes, even if not yet approved. */
-function progressOf(items: ProjectMilestone[]): number {
-  if (items.length === 0) return 0;
-  const done = items.filter(
-    (i) => i.status === "approved" || i.status === "already-sent",
-  ).length;
-  return Math.round((done / items.length) * 100);
-}
-
-function formatDate(iso?: string): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-  });
 }
 
 export function ProjectMilestoneTracker({
@@ -184,60 +147,54 @@ export function ProjectMilestoneTracker({
         </h3>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Column 1 — Workflow */}
-        <div className="glass rounded-[20px] p-4">
-          <MilestoneSubsection
-            section="workflow"
-            items={grouped.workflow}
-            onEdit={openEdit}
-            onDelete={setConfirmDelete}
-            onAdd={() => openCreate("workflow")}
-          />
-        </div>
-
-        {/* Column 2 — Payment + Credential */}
-        <div className="glass space-y-4 rounded-[20px] p-4">
-          <MilestoneSubsection
-            section="payment"
-            items={grouped.payment}
-            onEdit={openEdit}
-            onDelete={setConfirmDelete}
-            onAdd={() => openCreate("payment")}
-          />
-          <div className="border-t border-white/8" />
-          <MilestoneSubsection
-            section="credential"
-            items={grouped.credential}
-            onEdit={openEdit}
-            onDelete={setConfirmDelete}
-            onAdd={() => openCreate("credential")}
-          />
-        </div>
-
-        {/* Column 3 — Project Team + Development */}
-        <div className="glass space-y-4 rounded-[20px] p-4">
-          <ProjectTeamSubsection
-            roles={teamRoles}
-            onAdd={() => {
-              setEditingTeam(null);
-              setTeamFormOpen(true);
-            }}
-            onEdit={(r) => {
-              setEditingTeam(r);
-              setTeamFormOpen(true);
-            }}
-            onDelete={setConfirmDeleteTeam}
-          />
-          <div className="border-t border-white/8" />
-          <MilestoneSubsection
-            section="development"
-            items={grouped.development}
-            onEdit={openEdit}
-            onDelete={setConfirmDelete}
-            onAdd={() => openCreate("development")}
-          />
-        </div>
+      {/* Board grouped by category — Technical vs Commercial. Each band owns
+          its milestone sections (+ the project team under Technical). */}
+      <div className="space-y-4">
+        {CATEGORY_ORDER.map((category) => {
+          const sections = CATEGORY_SECTIONS[category];
+          const categoryItems = sections.flatMap((s) => grouped[s]);
+          const pct = progressOf(categoryItems);
+          const isTechnical = category === "technical";
+          return (
+            <div key={category} className="space-y-3">
+              <CategoryBandHeader category={category} pct={pct} />
+              <div
+                className={cn(
+                  "grid gap-4",
+                  isTechnical ? "lg:grid-cols-3" : "lg:grid-cols-2",
+                )}
+              >
+                {sections.map((section) => (
+                  <div key={section} className="glass rounded-[20px] p-4">
+                    <MilestoneSubsection
+                      section={section}
+                      items={grouped[section]}
+                      onEdit={openEdit}
+                      onDelete={setConfirmDelete}
+                      onAdd={() => openCreate(section)}
+                    />
+                  </div>
+                ))}
+                {isTechnical ? (
+                  <div className="glass rounded-[20px] p-4">
+                    <ProjectTeamSubsection
+                      roles={teamRoles}
+                      onAdd={() => {
+                        setEditingTeam(null);
+                        setTeamFormOpen(true);
+                      }}
+                      onEdit={(r) => {
+                        setEditingTeam(r);
+                        setTeamFormOpen(true);
+                      }}
+                      onDelete={setConfirmDeleteTeam}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <MilestoneFormDialog
@@ -280,6 +237,33 @@ export function ProjectMilestoneTracker({
         onCancel={() => setConfirmDeleteTeam(null)}
         onConfirm={handleConfirmDeleteTeam}
       />
+    </div>
+  );
+}
+
+function CategoryBandHeader({
+  category,
+  pct,
+}: {
+  category: MilestoneCategory;
+  pct: number;
+}) {
+  const accent = CATEGORY_ACCENT[category];
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className="h-4 w-1 rounded-full"
+        style={{ background: accent }}
+        aria-hidden
+      />
+      <h3
+        className="text-[11px] font-semibold uppercase tracking-[0.22em]"
+        style={{ color: accent }}
+      >
+        {CATEGORY_LABEL[category]}
+      </h3>
+      <div className="h-px flex-1 bg-white/8" />
+      <span className="font-mono text-[10px] text-zinc-400">{pct}%</span>
     </div>
   );
 }
@@ -376,16 +360,9 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
           </span>
         )}
       </div>
-      <span
-        className={cn(
-          "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ring-1",
-          STATUS_PILL[status],
-        )}
-      >
-        {STATUS_LABEL[status]}
-      </span>
+      <StatusPill status={status} />
       <span className="w-12 shrink-0 text-right font-mono text-[10px] text-zinc-400">
-        {formatDate(dueDate)}
+        {formatMilestoneDate(dueDate)}
       </span>
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button
