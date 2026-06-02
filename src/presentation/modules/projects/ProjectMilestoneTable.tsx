@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { ChevronRight, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import type {
   MilestoneSection,
   ProjectMilestone,
@@ -21,6 +21,7 @@ import {
   CATEGORY_ORDER,
   CATEGORY_SECTIONS,
   formatMilestoneDate,
+  MilestoneDetail,
   progressOf,
   SECTION_TITLE,
   StatusPill,
@@ -50,6 +51,16 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
   const [confirmDelete, setConfirmDelete] = useState<ProjectMilestone | null>(
     null,
   );
+  // Expanded rows reveal the "detailed items" panel inline beneath the row.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   // Count per category for the tab badges.
   const counts = useMemo(() => {
@@ -179,61 +190,94 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
                 </td>
               </tr>
             ) : (
-              rows.map((m) => (
-                <tr
-                  key={m.id}
-                  className="group border-b border-white/5 transition-colors hover:bg-white/[0.03]"
-                >
-                  <td className="px-2 py-2">
-                    {m.driveLink ? (
-                      <a
-                        href={m.driveLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-100 hover:underline"
-                      >
-                        {m.label}
-                        <ExternalLink className="h-2.5 w-2.5 text-zinc-400" />
-                      </a>
-                    ) : (
-                      <span className="text-[11px] font-medium text-zinc-100">
-                        {m.label}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-[10px] text-zinc-400">
-                    {SECTION_TITLE[m.section]}
-                  </td>
-                  <td className="px-2 py-2">
-                    <StatusPill status={m.status} />
-                  </td>
-                  <td className="px-2 py-2 text-right font-mono text-[10px] text-zinc-400">
-                    {formatMilestoneDate(m.dueDate)}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(m)}
-                        className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-                        aria-label={`Edit ${m.label}`}
-                        title="Edit"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(m)}
-                        className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-                        aria-label={`Delete ${m.label}`}
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              rows.map((m) => {
+                const isOpen = expanded.has(m.id);
+                return (
+                  <Fragment key={m.id}>
+                    <tr
+                      onClick={() => toggleExpanded(m.id)}
+                      aria-expanded={isOpen}
+                      className={cn(
+                        "group cursor-pointer border-b border-white/5 transition-colors hover:bg-white/[0.03]",
+                        isOpen && "bg-white/[0.04]",
+                      )}
+                    >
+                      <td className="px-2 py-2">
+                        <span className="inline-flex items-center gap-1.5">
+                          <ChevronRight
+                            className={cn(
+                              "h-3 w-3 shrink-0 text-zinc-500 transition-transform",
+                              isOpen && "rotate-90 text-zinc-300",
+                            )}
+                          />
+                          {m.driveLink ? (
+                            <a
+                              href={m.driveLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-100 hover:underline"
+                            >
+                              {m.label}
+                              <ExternalLink className="h-2.5 w-2.5 text-zinc-400" />
+                            </a>
+                          ) : (
+                            <span className="text-[11px] font-medium text-zinc-100">
+                              {m.label}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-[10px] text-zinc-400">
+                        {SECTION_TITLE[m.section]}
+                      </td>
+                      <td className="px-2 py-2">
+                        <StatusPill status={m.status} />
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-[10px] text-zinc-400">
+                        {formatMilestoneDate(m.dueDate)}
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(m);
+                            }}
+                            className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                            aria-label={`Edit ${m.label}`}
+                            title="Edit"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDelete(m);
+                            }}
+                            className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+                            aria-label={`Delete ${m.label}`}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isOpen ? (
+                      <tr className="border-b border-white/5 bg-white/[0.015]">
+                        <td colSpan={5} className="px-3 pb-3 pt-1">
+                          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+                            <MilestoneDetail milestone={m} />
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

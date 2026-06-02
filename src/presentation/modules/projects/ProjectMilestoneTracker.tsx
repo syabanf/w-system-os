@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronRight,
   ExternalLink,
   Pencil,
   Phone,
@@ -36,6 +37,7 @@ import {
   CATEGORY_ORDER,
   CATEGORY_SECTIONS,
   formatMilestoneDate,
+  MilestoneDetail,
   progressOf,
   SECTION_TITLE,
   StatusPill,
@@ -329,67 +331,83 @@ interface MilestoneRowProps {
 
 function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
   const { label, status, dueDate, driveLink } = milestone;
+  const [open, setOpen] = useState(false);
   return (
-    <li
-      className="group flex items-center gap-2 rounded-lg border border-white/6 bg-white/[0.02] px-2 py-1.5 transition-colors hover:bg-white/[0.05]"
-      onClick={onEdit}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          onEdit();
-        }
-      }}
-    >
-      <div className="min-w-0 flex-1">
-        {driveLink ? (
-          <a
-            href={driveLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 truncate text-[11px] font-medium text-zinc-100 hover:underline"
-            onClick={(e) => e.stopPropagation()}
+    <li className="group rounded-lg border border-white/6 bg-white/[0.02] transition-colors hover:bg-white/[0.05]">
+      {/* Summary line — clicking it expands the detailed items below. */}
+      <div
+        className="flex items-center gap-2 px-2 py-1.5"
+        onClick={() => setOpen((o) => !o)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((o) => !o);
+          }
+        }}
+      >
+        <ChevronRight
+          className={cn(
+            "h-3 w-3 shrink-0 text-zinc-500 transition-transform",
+            open && "rotate-90 text-zinc-300",
+          )}
+        />
+        <div className="min-w-0 flex-1">
+          {driveLink ? (
+            <a
+              href={driveLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 truncate text-[11px] font-medium text-zinc-100 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="truncate">{label}</span>
+              <ExternalLink className="h-2.5 w-2.5 shrink-0 text-zinc-400" />
+            </a>
+          ) : (
+            <span className="block truncate text-[11px] font-medium text-zinc-100">
+              {label}
+            </span>
+          )}
+        </div>
+        <StatusPill status={status} />
+        <span className="w-12 shrink-0 text-right font-mono text-[10px] text-zinc-400">
+          {formatMilestoneDate(dueDate)}
+        </span>
+        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+            aria-label={`Edit ${label}`}
+            title="Edit"
           >
-            <span className="truncate">{label}</span>
-            <ExternalLink className="h-2.5 w-2.5 shrink-0 text-zinc-400" />
-          </a>
-        ) : (
-          <span className="block truncate text-[11px] font-medium text-zinc-100">
-            {label}
-          </span>
-        )}
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+            aria-label={`Delete ${label}`}
+            title="Delete"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
       </div>
-      <StatusPill status={status} />
-      <span className="w-12 shrink-0 text-right font-mono text-[10px] text-zinc-400">
-        {formatMilestoneDate(dueDate)}
-      </span>
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-          aria-label={`Edit ${label}`}
-          title="Edit"
-        >
-          <Pencil className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-          aria-label={`Delete ${label}`}
-          title="Delete"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
-      </div>
+      {open ? (
+        <div className="border-t border-white/8 px-3 py-2.5">
+          <MilestoneDetail milestone={milestone} />
+        </div>
+      ) : null}
     </li>
   );
 }

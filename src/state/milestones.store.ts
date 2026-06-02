@@ -3,9 +3,11 @@
 import { useMemo } from "react";
 import type {
   MilestoneSection,
+  MilestoneStatus,
   ProjectMilestone,
 } from "@/domain/entities/ProjectMilestone";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
+import { mockTeam } from "@/infrastructure/data/team.mock";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type ProjectMilestoneDraft = Omit<ProjectMilestone, "id">;
@@ -77,6 +79,51 @@ function seedDueDate(projectId: string, kind: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Weighted spread so a freshly-seeded project reads like real work in motion
+ *  rather than a wall of "waiting action". */
+const STATUS_POOL: ReadonlyArray<MilestoneStatus> = [
+  "approved",
+  "approved",
+  "already-sent",
+  "in-progress",
+  "in-progress",
+  "waiting-action",
+  "waiting-action",
+  "overdue",
+];
+
+function seedStatus(projectId: string, kind: string): MilestoneStatus {
+  return STATUS_POOL[hashSeed(`${projectId}:${kind}:status`) % STATUS_POOL.length];
+}
+
+function seedOwnerId(projectId: string, kind: string): string {
+  const member = mockTeam[hashSeed(`${projectId}:${kind}:owner`) % mockTeam.length];
+  return member.id;
+}
+
+/** Short, plausible PM notes. ~⅗ of milestones get one; the rest stay blank so
+ *  the detail panel also exercises its empty state. */
+const NOTE_SNIPPETS: ReadonlyArray<string> = [
+  "Awaiting client sign-off before we can mark this complete.",
+  "Shared with stakeholders — pending feedback in the next sync.",
+  "Blocked on the vendor API credentials; escalated to the PM.",
+  "Draft reviewed internally; minor revisions requested.",
+  "On track. Final copy to be attached to the drive folder.",
+  "Dependency on the previous milestone resolved last week.",
+];
+
+function seedNotes(projectId: string, kind: string): string | undefined {
+  const h = hashSeed(`${projectId}:${kind}:notes`);
+  if (h % 5 < 2) return undefined; // ~40% have no notes
+  return NOTE_SNIPPETS[h % NOTE_SNIPPETS.length];
+}
+
+function seedDriveLink(projectId: string, kind: string): string | undefined {
+  const h = hashSeed(`${projectId}:${kind}:drive`);
+  if (h % 2 === 0) return undefined; // ~half link to a document
+  return `https://drive.google.com/drive/folders/${projectId}-${kind}`;
+}
+
 function buildSeed(): ProjectMilestone[] {
   const rows: ProjectMilestone[] = [];
   for (const project of mockProjects) {
@@ -88,8 +135,11 @@ function buildSeed(): ProjectMilestone[] {
           section,
           kind: entry.kind,
           label: entry.label,
-          status: "waiting-action",
+          status: seedStatus(project.id, entry.kind),
           dueDate: seedDueDate(project.id, entry.kind),
+          ownerId: seedOwnerId(project.id, entry.kind),
+          notes: seedNotes(project.id, entry.kind),
+          driveLink: seedDriveLink(project.id, entry.kind),
         });
       }
     }
@@ -103,7 +153,10 @@ export const useMilestonesStore = createCRUDStore<
   ProjectMilestone,
   ProjectMilestoneDraft
 >({
-  storageKey: "wit-erp-os.milestones",
+  // v2: seed now carries owner / status / notes / drive link for the
+  // expandable detail panel. Bumped so existing demos re-seed with the richer
+  // data instead of showing the older bare rows.
+  storageKey: "wit-erp-os.milestones.v2",
   seed,
   idPrefix: "ms",
   fromDraft: (draft, { id }) => ({ ...draft, id }),
