@@ -9,6 +9,7 @@ import {
   Download,
   Eye,
   Filter,
+  Layers,
   Pencil,
   Plus,
   Trash2,
@@ -19,6 +20,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockKnowledge } from "@/infrastructure/data/knowledge.mock";
 import type { Client } from "@/domain/entities/Client";
+import type { Project } from "@/domain/entities/Project";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { SearchInput } from "@/presentation/shared/SearchInput";
 import { DrillBreadcrumb } from "@/presentation/shared/DrillBreadcrumb";
@@ -64,6 +66,13 @@ const FILTER_TASK_OPTIONS = [
   { id: "dev-doc" as const, label: "Development Document" },
   { id: "demo" as const, label: "Demo Link" },
 ];
+
+/** Health → status-dot colour for project chips in the drill view. */
+const PROJECT_HEALTH_DOT: Record<Project["health"], string> = {
+  green: "bg-emerald-400",
+  amber: "bg-amber-400",
+  red: "bg-rose-400",
+};
 
 function teamName(id: string | undefined): string {
   if (!id) return "—";
@@ -136,11 +145,13 @@ export function ClientWorkflowTab({
   const drillClient = drillId
     ? clientsSource.find((c) => c.id === drillId) ?? null
     : null;
-  const firstProjectIdForClient = drillClient
-    ? mockProjects.find((p) => p.clientId === drillClient.id)?.id ?? mockProjects[0]?.id
-    : null;
+  // A client owns MANY projects — collect them all so the drill view can list
+  // and switch between them (Client → Projects → Milestones hierarchy).
+  const drillClientProjects = drillClient
+    ? mockProjects.filter((p) => p.clientId === drillClient.id)
+    : [];
 
-  if (drillClient && firstProjectIdForClient) {
+  if (drillClient) {
     // Master-detail: keep the client list visible in a left sidebar (PDF
     // pages 5–6 pattern) while the selected client's detail renders on the
     // right. Selecting another row swaps the detail in place.
@@ -164,7 +175,7 @@ export function ClientWorkflowTab({
         <DrillView
           key={drillClient.id}
           client={drillClient}
-          projectId={firstProjectIdForClient}
+          projects={drillClientProjects}
           view={drillView}
           onChangeView={setDrillView}
           filterMenuOpen={filterMenuOpen}
@@ -409,7 +420,8 @@ export function ClientWorkflowTab({
 
 interface DrillViewProps {
   client: Client;
-  projectId: string;
+  /** Every project owned by this client — a client has many. */
+  projects: Project[];
   view: DrillView;
   onChangeView: (v: DrillView) => void;
   filterMenuOpen: boolean;
@@ -420,7 +432,7 @@ interface DrillViewProps {
 
 function DrillView({
   client,
-  projectId,
+  projects,
   view,
   onChangeView,
   filterMenuOpen,
@@ -430,6 +442,15 @@ function DrillView({
 }: DrillViewProps) {
   const toast = useToast();
   const owner = teamName(client.accountOwnerId);
+
+  // Which of the client's projects is currently being inspected. Resets to the
+  // first project whenever the client changes (DrillView is keyed by client.id
+  // at the call site, so this state remounts fresh per client).
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    () => projects[0]?.id ?? "",
+  );
+  const selectedProject =
+    projects.find((p) => p.id === selectedProjectId) ?? projects[0] ?? null;
 
   return (
     <div className="animate-slide-in-right space-y-4">
@@ -447,6 +468,9 @@ function DrillView({
             { id: "mgmt", label: "Management" },
             { id: "client", label: "Client Data" },
             { id: client.id, label: client.name },
+            ...(selectedProject
+              ? [{ id: selectedProject.id, label: selectedProject.name }]
+              : []),
           ]}
           onJump={(level) => {
             if (level < 2) onBack();
@@ -463,7 +487,10 @@ function DrillView({
           <div className="truncate text-base font-semibold text-zinc-50">
             {client.name}
           </div>
-          <div className="text-[11px] text-zinc-400">PIC · {owner}</div>
+          <div className="text-[11px] text-zinc-400">
+            PIC · {owner} · {projects.length}{" "}
+            {projects.length === 1 ? "project" : "projects"}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -491,82 +518,149 @@ function DrillView({
         </div>
       </div>
 
-      <div className="glass-soft flex flex-wrap items-center gap-2 rounded-full border border-white/8 px-3 py-2">
-        <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-          Project Filter
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            onChangeView(view === "calendar" ? "milestones" : "calendar");
-            toast.info("Calendar view");
-          }}
-          className={cn(
-            "press inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white transition-colors",
-            view === "calendar"
-              ? "bg-[#EA580C] hover:bg-[#C2410C]"
-              : "bg-[#F97316] hover:bg-[#EA580C]",
-          )}
-        >
-          <Calendar className="h-3 w-3" />
-          Calendar View
-        </button>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={onToggleFilterMenu}
-            className="press inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
-          >
-            <Filter className="h-3 w-3" />
-            Filter Task
-            <ChevronDown className={cn("h-3 w-3 transition-transform", filterMenuOpen && "rotate-180")} />
-          </button>
-          {filterMenuOpen ? (
-            <div
-              role="menu"
-              className="animate-scale-in glass-strong absolute left-0 top-full z-20 mt-1 w-48 origin-top-left overflow-hidden rounded-xl border border-white/10 shadow-xl"
-              onMouseLeave={onCloseFilterMenu}
-            >
-              {FILTER_TASK_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    onCloseFilterMenu();
-                    if (opt.id === "invoices") {
-                      onChangeView("invoices");
-                    } else {
-                      onChangeView("milestones");
-                      toast.info(opt.label, "Demo only");
-                    }
-                  }}
-                  className="block w-full px-3 py-1.5 text-left text-[11px] text-zinc-200 hover:bg-white/8"
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
+      {!selectedProject ? (
+        <div className="glass rounded-[20px] p-8 text-center text-sm text-zinc-400">
+          No projects linked to this client yet.
         </div>
-        <button
-          type="button"
-          onClick={() => toast.info("Action view", "Demo only")}
-          className="press ml-auto inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
-        >
-          Action View
-          <ChevronDown className="h-3 w-3" />
-        </button>
-      </div>
+      ) : (
+        <>
+          {/* Project switcher — a client owns many projects; pick one to drive
+              the milestone tracker / calendar below. */}
+          <div className="glass-soft rounded-[20px] border border-white/8 p-3">
+            <div className="mb-2 flex items-center gap-1.5 px-1">
+              <Layers className="h-3 w-3 text-zinc-400" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                Projects · {projects.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {projects.map((p) => {
+                const active = p.id === selectedProject.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedProjectId(p.id);
+                      onChangeView("milestones");
+                      onCloseFilterMenu();
+                    }}
+                    className={cn(
+                      "press flex w-full flex-col gap-1.5 rounded-xl border px-3 py-2 text-left sm:w-auto sm:min-w-[200px] sm:flex-1",
+                      active
+                        ? "border-white/25 bg-white/12"
+                        : "border-white/8 bg-white/[0.02] hover:bg-white/[0.05]",
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          PROJECT_HEALTH_DOT[p.health],
+                        )}
+                      />
+                      <span className="truncate text-xs font-semibold text-zinc-100">
+                        {p.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-zinc-300">
+                        {p.status}
+                      </span>
+                      <span className="font-mono text-[10px] text-zinc-400">
+                        {p.progress}%
+                      </span>
+                    </div>
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-white/8">
+                      <div
+                        className="h-full rounded-full bg-emerald-400/80"
+                        style={{ width: `${p.progress}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-      <div key={view} className="animate-fade-in-up">
-        {view === "calendar" ? (
-          <MilestoneCalendar projectId={projectId} />
-        ) : view === "invoices" ? (
-          <InvoiceMiniList clientId={client.id} />
-        ) : (
-          <ProjectMilestoneTracker projectId={projectId} />
-        )}
-      </div>
+          <div className="glass-soft flex flex-wrap items-center gap-2 rounded-full border border-white/8 px-3 py-2">
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+              Project Filter
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onChangeView(view === "calendar" ? "milestones" : "calendar");
+                toast.info("Calendar view");
+              }}
+              className={cn(
+                "press inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white transition-colors",
+                view === "calendar"
+                  ? "bg-[#EA580C] hover:bg-[#C2410C]"
+                  : "bg-[#F97316] hover:bg-[#EA580C]",
+              )}
+            >
+              <Calendar className="h-3 w-3" />
+              Calendar View
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={onToggleFilterMenu}
+                className="press inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
+              >
+                <Filter className="h-3 w-3" />
+                Filter Task
+                <ChevronDown className={cn("h-3 w-3 transition-transform", filterMenuOpen && "rotate-180")} />
+              </button>
+              {filterMenuOpen ? (
+                <div
+                  role="menu"
+                  className="animate-scale-in glass-strong absolute left-0 top-full z-20 mt-1 w-48 origin-top-left overflow-hidden rounded-xl border border-white/10 shadow-xl"
+                  onMouseLeave={onCloseFilterMenu}
+                >
+                  {FILTER_TASK_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        onCloseFilterMenu();
+                        if (opt.id === "invoices") {
+                          onChangeView("invoices");
+                        } else {
+                          onChangeView("milestones");
+                          toast.info(opt.label, "Demo only");
+                        }
+                      }}
+                      className="block w-full px-3 py-1.5 text-left text-[11px] text-zinc-200 hover:bg-white/8"
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => toast.info("Action view", "Demo only")}
+              className="press ml-auto inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
+            >
+              Action View
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+
+          <div key={`${selectedProject.id}-${view}`} className="animate-fade-in-up">
+            {view === "calendar" ? (
+              <MilestoneCalendar projectId={selectedProject.id} />
+            ) : view === "invoices" ? (
+              <InvoiceMiniList clientId={client.id} />
+            ) : (
+              <ProjectMilestoneTracker projectId={selectedProject.id} />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
