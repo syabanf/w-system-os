@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  ArrowRight,
   Calendar,
   ChevronDown,
   ChevronLeft,
@@ -13,6 +14,8 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { mockClients } from "@/infrastructure/data/clients.mock";
@@ -27,6 +30,7 @@ import { DrillBreadcrumb } from "@/presentation/shared/DrillBreadcrumb";
 import { useToast } from "@/state/toast.store";
 import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { cn } from "@/lib/cn";
+import { formatIDRCompact } from "@/lib/currency";
 import { ProjectMilestoneTracker } from "@/presentation/modules/projects/ProjectMilestoneTracker";
 import { PastelKPITile } from "./PastelKPITile";
 import { MilestoneCalendar } from "./MilestoneCalendar";
@@ -443,37 +447,59 @@ function DrillView({
   const toast = useToast();
   const owner = teamName(client.accountOwnerId);
 
-  // Which of the client's projects is currently being inspected. Resets to the
-  // first project whenever the client changes (DrillView is keyed by client.id
-  // at the call site, so this state remounts fresh per client).
-  const [selectedProjectId, setSelectedProjectId] = useState(
-    () => projects[0]?.id ?? "",
+  // Step-by-step drill: Clients → Projects → Data.
+  // `selectedProjectId === null` means we're on the PROJECTS step (list all
+  // projects for this client). Picking one advances to the DATA step (the
+  // milestone tracker / calendar / invoices). DrillView is keyed by client.id
+  // at the call site, so this state remounts fresh per client.
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
   );
   const selectedProject =
-    projects.find((p) => p.id === selectedProjectId) ?? projects[0] ?? null;
+    projects.find((p) => p.id === selectedProjectId) ?? null;
 
   return (
     <div className="animate-slide-in-right space-y-4">
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"
-          onClick={onBack}
+          onClick={() => {
+            // On the DATA step, step back to PROJECTS; on the PROJECTS step,
+            // step back out to the all-clients list.
+            if (selectedProject) {
+              setSelectedProjectId(null);
+              onCloseFilterMenu();
+            } else {
+              onBack();
+            }
+          }}
           className="press inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-300 hover:bg-white/10 hover:text-zinc-50"
         >
           <ChevronLeft className="h-3 w-3" />
-          Back to clients
+          {selectedProject ? "Back to projects" : "Back to clients"}
         </button>
         <DrillBreadcrumb
           crumbs={[
             { id: "mgmt", label: "Management" },
             { id: "client", label: "Client Data" },
-            { id: client.id, label: client.name },
+            {
+              id: client.id,
+              label: client.name,
+              sublabel: `${projects.length} ${projects.length === 1 ? "project" : "projects"}`,
+            },
             ...(selectedProject
               ? [{ id: selectedProject.id, label: selectedProject.name }]
               : []),
           ]}
           onJump={(level) => {
-            if (level < 2) onBack();
+            // 0=Management, 1=Client Data → all-clients list.
+            // 2=client name → PROJECTS step (clear the selected project).
+            if (level < 2) {
+              onBack();
+            } else if (level === 2) {
+              setSelectedProjectId(null);
+              onCloseFilterMenu();
+            }
           }}
         />
       </div>
@@ -518,69 +544,118 @@ function DrillView({
         </div>
       </div>
 
-      {!selectedProject ? (
+      {projects.length === 0 ? (
         <div className="glass rounded-[20px] p-8 text-center text-sm text-zinc-400">
           No projects linked to this client yet.
         </div>
+      ) : !selectedProject ? (
+        /* ── STEP 2 · PROJECTS ─────────────────────────────────────────────
+           All projects owned by this client. Pick one to drill into its
+           data (milestones / calendar / invoices). */
+        <div className="animate-fade-in-up space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5 px-1">
+            <Layers className="h-3.5 w-3.5 text-zinc-400" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
+              Projects · {projects.length}
+            </span>
+            <span className="text-[11px] text-zinc-500">
+              — select a project to view all its data
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {projects.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setSelectedProjectId(p.id);
+                  onChangeView("milestones");
+                  onCloseFilterMenu();
+                }}
+                style={{ "--stagger-index": i } as React.CSSProperties}
+                className="press hover-lift stagger-item group glass-soft flex flex-col gap-3 rounded-2xl border border-white/8 p-4 text-left hover:border-white/20"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        PROJECT_HEALTH_DOT[p.health],
+                      )}
+                    />
+                    <span className="truncate text-sm font-semibold text-zinc-50">
+                      {p.name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider text-zinc-300">
+                    {p.status}
+                  </span>
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+                  {p.code}
+                </div>
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-[10px] text-zinc-400">
+                    <span>Progress</span>
+                    <span className="font-mono text-zinc-300">{p.progress}%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
+                    <div
+                      className="h-full rounded-full bg-emerald-400/80"
+                      style={{ width: `${p.progress}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-zinc-400">
+                  <span className="inline-flex items-center gap-1">
+                    <Wallet className="h-3 w-3" />
+                    {formatIDRCompact(p.budget)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {p.teamIds.length}
+                  </span>
+                  <span className="truncate">PM · {teamName(p.projectManagerId)}</span>
+                </div>
+                <div className="mt-auto flex items-center gap-1 pt-1 text-[11px] font-semibold text-[#2563EB]">
+                  View all data
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
+        /* ── STEP 3 · DATA ─────────────────────────────────────────────────
+           The selected project's full data: milestone tracker, calendar or
+           invoices. */
         <>
-          {/* Project switcher — a client owns many projects; pick one to drive
-              the milestone tracker / calendar below. */}
-          <div className="glass-soft rounded-[20px] border border-white/8 p-3">
-            <div className="mb-2 flex items-center gap-1.5 px-1">
-              <Layers className="h-3 w-3 text-zinc-400" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                Projects · {projects.length}
-              </span>
+          <div className="glass-soft flex flex-wrap items-center gap-3 rounded-2xl border border-white/8 px-4 py-3">
+            <span
+              className={cn(
+                "h-2.5 w-2.5 shrink-0 rounded-full",
+                PROJECT_HEALTH_DOT[selectedProject.health],
+              )}
+            />
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-zinc-50">
+                {selectedProject.name}
+              </div>
+              <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+                {selectedProject.code} · {selectedProject.status} · {selectedProject.progress}%
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {projects.map((p) => {
-                const active = p.id === selectedProject.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedProjectId(p.id);
-                      onChangeView("milestones");
-                      onCloseFilterMenu();
-                    }}
-                    className={cn(
-                      "press flex w-full flex-col gap-1.5 rounded-xl border px-3 py-2 text-left sm:w-auto sm:min-w-[200px] sm:flex-1",
-                      active
-                        ? "border-white/25 bg-white/12"
-                        : "border-white/8 bg-white/[0.02] hover:bg-white/[0.05]",
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "h-1.5 w-1.5 shrink-0 rounded-full",
-                          PROJECT_HEALTH_DOT[p.health],
-                        )}
-                      />
-                      <span className="truncate text-xs font-semibold text-zinc-100">
-                        {p.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-zinc-300">
-                        {p.status}
-                      </span>
-                      <span className="font-mono text-[10px] text-zinc-400">
-                        {p.progress}%
-                      </span>
-                    </div>
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-white/8">
-                      <div
-                        className="h-full rounded-full bg-emerald-400/80"
-                        style={{ width: `${p.progress}%` }}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedProjectId(null);
+                onCloseFilterMenu();
+              }}
+              className="press ml-auto inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
+            >
+              <Layers className="h-3 w-3" />
+              All projects
+            </button>
           </div>
 
           <div className="glass-soft flex flex-wrap items-center gap-2 rounded-full border border-white/8 px-3 py-2">
