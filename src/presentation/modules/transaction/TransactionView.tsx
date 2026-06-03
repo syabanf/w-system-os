@@ -12,6 +12,7 @@ import { useInvoicesStore } from "@/state/invoices.store";
 import { usePurchaseOrdersStore } from "@/state/purchaseOrders.store";
 import { useExpenseClaimsStore } from "@/state/expenseClaims.store";
 import { useToast } from "@/state/toast.store";
+import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
@@ -295,6 +296,20 @@ export function TransactionView() {
   const [expenseFormOpen, setExpenseFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseClaim | null>(null);
   const [confirmDeleteExpense, setConfirmDeleteExpense] = useState<ExpenseClaim | null>(null);
+
+  // Reddie command surface: a "create" intent targeting this module opens the
+  // INVOICE create form (the same thing the New-invoice button does), switching
+  // to the invoices tab first so the new record lands where it belongs.
+  const intent = useCommandIntentStore((s) => s.intent);
+  const clearIntent = useCommandIntentStore((s) => s.clear);
+  useEffect(() => {
+    if (intent?.module === "transaction" && intent.action === "create") {
+      setTab("invoices");
+      setEditingInvoice(null);
+      setInvoiceFormOpen(true);
+      clearIntent();
+    }
+  }, [intent, clearIntent]);
 
   // ⌘N opens whichever creator matches the currently-selected tab.
   useHotkey("mod+n", (e) => {

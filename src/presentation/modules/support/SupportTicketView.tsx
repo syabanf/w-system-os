@@ -14,6 +14,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useTicketsStore } from "@/state/tickets.store";
 import { useToast } from "@/state/toast.store";
+import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
@@ -332,7 +333,20 @@ export function SupportTicketView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ticket | null>(null);
+  const [prefillTitle, setPrefillTitle] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Ticket | null>(null);
+
+  // Reddie / command-surface intent: open the create form (optionally prefilled).
+  const intent = useCommandIntentStore((s) => s.intent);
+  const clearIntent = useCommandIntentStore((s) => s.clear);
+  useEffect(() => {
+    if (intent?.module === "support" && intent.action === "create") {
+      setEditing(null);
+      setPrefillTitle(intent.prefill);
+      setFormOpen(true);
+      clearIntent();
+    }
+  }, [intent, clearIntent]);
 
   useEffect(() => {
     hydrate();
@@ -378,6 +392,7 @@ export function SupportTicketView() {
 
   const openCreate = () => {
     setEditing(null);
+    setPrefillTitle(undefined);
     setFormOpen(true);
   };
   const openEdit = (t: Ticket) => {
@@ -490,7 +505,11 @@ export function SupportTicketView() {
       <TicketFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => setFormOpen(false)}
+        initialTitle={prefillTitle}
+        onClose={() => {
+          setFormOpen(false);
+          setPrefillTitle(undefined);
+        }}
         onSubmit={(draft, editingId) => {
           if (editingId) {
             updateTicket(editingId, draft);

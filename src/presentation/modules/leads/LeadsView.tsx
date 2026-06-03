@@ -11,6 +11,7 @@ import type { Lead } from "@/domain/entities/Lead";
 import type { LeadQualification } from "@/domain/entities/LeadSource";
 import { QUALIFICATION_ORDER } from "@/domain/entities/LeadSource";
 import { useLeadsStore } from "@/state/leads.store";
+import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useToast } from "@/state/toast.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { LeadFormDialog } from "./LeadFormDialog";
@@ -114,7 +115,20 @@ export function LeadsView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
+  const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Lead | null>(null);
+
+  // Reddie / command-surface intent: open the create form (optionally prefilled).
+  const intent = useCommandIntentStore((s) => s.intent);
+  const clearIntent = useCommandIntentStore((s) => s.clear);
+  useEffect(() => {
+    if (intent?.module === "leads" && intent.action === "create") {
+      setEditing(null);
+      setPrefillName(intent.prefill);
+      setFormOpen(true);
+      clearIntent();
+    }
+  }, [intent, clearIntent]);
 
   useEffect(() => {
     hydrate();
@@ -151,6 +165,7 @@ export function LeadsView() {
   useHotkey("mod+n", (e) => {
     e.preventDefault();
     setEditing(null);
+    setPrefillName(undefined);
     setFormOpen(true);
   });
 
@@ -160,10 +175,12 @@ export function LeadsView() {
 
   const openCreate = () => {
     setEditing(null);
+    setPrefillName(undefined);
     setFormOpen(true);
   };
   const openEdit = (l: Lead) => {
     setEditing(l);
+    setPrefillName(undefined);
     setFormOpen(true);
   };
   const crumbs: Crumb[] = drillLead
@@ -532,7 +549,11 @@ export function LeadsView() {
       <LeadFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => setFormOpen(false)}
+        initialName={prefillName}
+        onClose={() => {
+          setFormOpen(false);
+          setPrefillName(undefined);
+        }}
         onSubmit={(draft, editingId) => {
           if (editingId) {
             updateLead(editingId, draft);

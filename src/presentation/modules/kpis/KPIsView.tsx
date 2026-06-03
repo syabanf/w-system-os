@@ -32,6 +32,7 @@ import {
   type KpiUnit,
 } from "@/state/kpis.store";
 import { useToast } from "@/state/toast.store";
+import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 import { KPIFormDialog } from "./KPIFormDialog";
@@ -94,14 +95,28 @@ export function KPIsView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<KPI | null>(null);
+  const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<KPI | null>(null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
+  // Reddie / command-surface intent: open the create form (optionally prefilled).
+  const intent = useCommandIntentStore((s) => s.intent);
+  const clearIntent = useCommandIntentStore((s) => s.clear);
+  useEffect(() => {
+    if (intent?.module === "kpis" && intent.action === "create") {
+      setEditing(null);
+      setPrefillName(intent.prefill);
+      setFormOpen(true);
+      clearIntent();
+    }
+  }, [intent, clearIntent]);
+
   const openCreate = () => {
     setEditing(null);
+    setPrefillName(undefined);
     setFormOpen(true);
   };
   const openEdit = (k: KPI) => {
@@ -276,7 +291,11 @@ export function KPIsView() {
       <KPIFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => setFormOpen(false)}
+        initialName={prefillName}
+        onClose={() => {
+          setFormOpen(false);
+          setPrefillName(undefined);
+        }}
         onSubmit={(draft, editingId) => {
           if (editingId) {
             updateKpi(editingId, draft);

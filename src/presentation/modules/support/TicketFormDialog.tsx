@@ -17,6 +17,7 @@ const SEVERITIES: TicketSeverity[] = ["low", "medium", "high", "critical"];
 interface Props {
   open: boolean;
   editing?: Ticket | null;
+  initialTitle?: string;
   onClose: () => void;
   onSubmit: (draft: TicketDraft, editingId?: string) => void;
 }
@@ -40,15 +41,15 @@ function fromTicket(t: Ticket): TicketDraft {
   return { ...rest, code, createdAt, slaDeadline };
 }
 
-export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
+export function TicketFormDialog({ open, editing, initialTitle, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<TicketDraft>(emptyDraft);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(editing ? fromTicket(editing) : emptyDraft());
+    setDraft(editing ? fromTicket(editing) : { ...emptyDraft(), title: initialTitle ?? "" });
     setSubmitted(false);
-  }, [open, editing]);
+  }, [open, editing, initialTitle]);
 
   const set = <K extends keyof TicketDraft>(key: K, value: TicketDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));

@@ -15,6 +15,7 @@ const HEALTHS: Project["health"][] = ["green", "amber", "red"];
 interface Props {
   open: boolean;
   editing?: Project | null;
+  initialName?: string;
   onClose: () => void;
   onSubmit: (draft: ProjectDraft, editingId?: string) => void;
 }
@@ -47,17 +48,19 @@ function fromProject(p: Project): ProjectDraft {
   return { ...rest, code };
 }
 
-export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
+export function ProjectFormDialog({ open, editing, initialName, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<ProjectDraft>(emptyDraft);
   const [techInput, setTechInput] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(editing ? fromProject(editing) : emptyDraft());
+    setDraft(
+      editing ? fromProject(editing) : { ...emptyDraft(), name: initialName ?? "" },
+    );
     setTechInput("");
     setSubmitted(false);
-  }, [open, editing]);
+  }, [open, editing, initialName]);
 
   const set = <K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));

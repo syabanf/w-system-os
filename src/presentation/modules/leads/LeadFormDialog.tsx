@@ -13,6 +13,8 @@ const SOURCES: LeadSource[] = ["Referral", "Website", "Outbound", "Event", "Part
 interface Props {
   open: boolean;
   editing?: Lead | null;
+  /** Optional prefill for the company-name field on create (command-surface intent). */
+  initialName?: string;
   onClose: () => void;
   onSubmit: (draft: LeadDraft, editingId?: string) => void;
 }
@@ -38,13 +40,13 @@ function fromLead(l: Lead): LeadDraft {
   return { ...rest, createdAt };
 }
 
-export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
+export function LeadFormDialog({ open, editing, initialName, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<LeadDraft>(emptyDraft);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(editing ? fromLead(editing) : emptyDraft());
-  }, [open, editing]);
+    setDraft(editing ? fromLead(editing) : { ...emptyDraft(), companyName: initialName ?? "" });
+  }, [open, editing, initialName]);
 
   const [submitted, setSubmitted] = useState(false);
 

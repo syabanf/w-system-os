@@ -12,6 +12,7 @@ import type { UserStory } from "@/domain/entities/UserStory";
 import { mockClients } from "@/infrastructure/data/clients.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useProjectsStore } from "@/state/projects.store";
+import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useEpicsStore } from "@/state/epics.store";
 import { useUserStoriesStore } from "@/state/userStories.store";
 import { useToast } from "@/state/toast.store";
@@ -104,7 +105,20 @@ export function ProjectManagementView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
+  const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
+
+  // Reddie / command-surface intent: open the project create form (optionally prefilled).
+  const intent = useCommandIntentStore((s) => s.intent);
+  const clearIntent = useCommandIntentStore((s) => s.clear);
+  useEffect(() => {
+    if (intent?.module === "projects" && intent.action === "create") {
+      setEditing(null);
+      setPrefillName(intent.prefill);
+      setFormOpen(true);
+      clearIntent();
+    }
+  }, [intent, clearIntent]);
 
   const [epicFormOpen, setEpicFormOpen] = useState(false);
   const [editingEpic, setEditingEpic] = useState<Epic | null>(null);
@@ -471,7 +485,11 @@ export function ProjectManagementView() {
       <ProjectFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => setFormOpen(false)}
+        initialName={prefillName}
+        onClose={() => {
+          setFormOpen(false);
+          setPrefillName(undefined);
+        }}
         onSubmit={(draft, editingId) => {
           if (editingId) {
             updateProject(editingId, draft);

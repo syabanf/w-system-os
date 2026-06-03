@@ -62,17 +62,20 @@ function fromKpi(k: KPI): Draft {
 interface Props {
   open: boolean;
   editing?: KPI | null;
+  /** Prefill the name field on a new (create) form — used by Reddie's
+   *  "new kpi …" command. Ignored in edit mode. */
+  initialName?: string;
   onClose: () => void;
   onSubmit: (draft: KpiDraft, editingId?: string) => void;
 }
 
-export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
+export function KPIFormDialog({ open, editing, initialName, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(editing ? fromKpi(editing) : emptyDraft());
-  }, [open, editing]);
+    setDraft(editing ? fromKpi(editing) : { ...emptyDraft(), name: initialName ?? "" });
+  }, [open, editing, initialName]);
 
   useEffect(() => {
     if (!open) return;
