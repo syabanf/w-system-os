@@ -39,7 +39,10 @@ import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { Avatar } from "@/presentation/shared/Avatar";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { DrillCue } from "@/presentation/shared/DrillCue";
+import { useDrillState } from "@/state/drill.store";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { cn } from "@/lib/cn";
@@ -78,8 +81,8 @@ function employeeName(id: string): string {
 
 export function Performance360View() {
   const [tab, setTab] = useState<Tab>("templates");
-  const [drillTemplateId, setDrillTemplateId] = useState<string | null>(null);
-  const [drillEmployeeId, setDrillEmployeeId] = useState<string | null>(null);
+  const [drillTemplateId, setDrillTemplateId] = useDrillState("perf.template");
+  const [drillEmployeeId, setDrillEmployeeId] = useDrillState("perf.employee");
 
   const templates = usePerformanceTemplatesStore((s) => s.items);
   const hydrateTemplates = usePerformanceTemplatesStore((s) => s.hydrate);
@@ -181,12 +184,17 @@ export function Performance360View() {
       </header>
 
       {drillTemplate || drillEmployee ? (
-        <DrillBreadcrumb
+        <DrillHeader
           crumbs={crumbs}
           onJump={() => {
             setDrillTemplateId(null);
             setDrillEmployeeId(null);
           }}
+          onBack={() => {
+            setDrillTemplateId(null);
+            setDrillEmployeeId(null);
+          }}
+          backLabel={drillTemplate ? "Back to templates" : "Back to dashboard"}
           ariaLabel="Performance drill-down"
         />
       ) : null}
@@ -358,6 +366,8 @@ function TemplateCard({
       <button
         type="button"
         onClick={onOpen}
+        role="button"
+        aria-label={`Open ${template.name}`}
         className="glass-soft flex w-full flex-col gap-3 rounded-2xl border border-white/8 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/20"
       >
         <header className="flex items-start gap-3">
@@ -381,8 +391,11 @@ function TemplateCard({
           <span>
             {qCount} questions · {subs.length} submissions
           </span>
-          <span className="font-mono text-zinc-300">
-            {subs.length > 0 ? `${Math.round((done / subs.length) * 100)}% done` : "—"}
+          <span className="flex items-center gap-2">
+            <span className="font-mono text-zinc-300">
+              {subs.length > 0 ? `${Math.round((done / subs.length) * 100)}% done` : "—"}
+            </span>
+            <DrillCue label="Open" />
           </span>
         </footer>
       </button>
@@ -615,7 +628,9 @@ function DashboardList({ onOpen }: { onOpen: (id: string) => void }) {
               key={r.empId}
               type="button"
               onClick={() => onOpen(r.empId)}
-              className="glass-soft flex items-center gap-3 rounded-2xl border border-white/8 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/20"
+              role="button"
+              aria-label={`Open ${emp.firstName} ${emp.lastName}`}
+              className="group glass-soft flex items-center gap-3 rounded-2xl border border-white/8 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/20"
             >
               {member ? (
                 <Avatar
@@ -642,6 +657,7 @@ function DashboardList({ onOpen }: { onOpen: (id: string) => void }) {
                   </span>
                 </div>
               </div>
+              <DrillCue label="Open" className="self-center" />
             </button>
           );
         })}

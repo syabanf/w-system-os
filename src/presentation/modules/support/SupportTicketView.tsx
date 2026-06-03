@@ -26,7 +26,10 @@ import { TicketFormDialog } from "./TicketFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { DrillCue } from "@/presentation/shared/DrillCue";
+import { useDrillState } from "@/state/drill.store";
 
 const NOW = new Date("2026-05-18T09:00:00Z");
 
@@ -96,11 +99,13 @@ function SortableTable<T>({
   rows,
   rowKey,
   onRowClick,
+  rowAriaLabel,
 }: {
   columns: SortableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
+  rowAriaLabel?: (row: T) => string;
 }) {
   const [sort, setSort] = useState<SortState>(null);
 
@@ -184,8 +189,10 @@ function SortableTable<T>({
             <tr
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
+              role={onRowClick ? "button" : undefined}
+              aria-label={onRowClick ? rowAriaLabel?.(row) : undefined}
               className={cn(
-                "border-t border-white/5 transition-colors hover:bg-white/[0.04]",
+                "group border-t border-white/5 transition-colors hover:bg-white/[0.04]",
                 onRowClick && "cursor-pointer",
                 i % 2 === 1 && "bg-white/[0.015]",
               )}
@@ -288,6 +295,16 @@ function TicketQueue({
         );
       },
     },
+    {
+      key: "drill",
+      header: "",
+      align: "right",
+      render: () => (
+        <span className="flex justify-end">
+          <DrillCue label="Open" />
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -296,13 +313,14 @@ function TicketQueue({
       rows={rows}
       rowKey={(r) => r.id}
       onRowClick={onRowClick}
+      rowAriaLabel={(t) => `Open ticket ${t.code} ${t.title}`}
     />
   );
 }
 
 export function SupportTicketView() {
   const [baseline, setBaseline] = useState<TicketSLAOverview | null>(null);
-  const [drillId, setDrillId] = useState<string | null>(null);
+  const [drillId, setDrillId] = useDrillState("support");
 
   const storeTickets = useTicketsStore((s) => s.items);
   const hydrate = useTicketsStore((s) => s.hydrate);
@@ -409,9 +427,11 @@ export function SupportTicketView() {
 
       {drillTicket ? (
         <>
-          <DrillBreadcrumb
+          <DrillHeader
             crumbs={crumbs}
             onJump={(i) => i === 0 && setDrillId(null)}
+            onBack={() => setDrillId(null)}
+            backLabel="Back to queue"
             ariaLabel="Ticket drill-down"
           />
           <TicketDetailView ticket={drillTicket} />

@@ -29,7 +29,10 @@ import { SourcePerformanceChart } from "./SourcePerformanceChart";
 import { ProjectCommercialPanel } from "./ProjectCommercialPanel";
 import { LeadDetailView } from "./LeadDetailView";
 import { CRMView } from "@/presentation/modules/crm/CRMView";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { DrillCue } from "@/presentation/shared/DrillCue";
+import { useDrillState } from "@/state/drill.store";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { cn } from "@/lib/cn";
@@ -96,7 +99,7 @@ export function LeadsView() {
   const [query, setQuery] = useState("");
   const [filterQual, setFilterQual] = useState<LeadQualification | "all">("all");
   const [tab, setTab] = useState<"pipeline" | "kanban" | "commercial">("pipeline");
-  const [drillId, setDrillId] = useState<string | null>(null);
+  const [drillId, setDrillId] = useDrillState("leads");
 
   // CRUD layer: store is the source of truth for the lead list; the use-case
   // run still provides static context (source metrics, scoring rules, activity
@@ -242,6 +245,20 @@ export function LeadsView() {
       header: "Follow-up",
       render: (l) => <span className="text-[11px] text-zinc-300">{l.followUpDate}</span>,
     },
+    {
+      key: "open",
+      header: "",
+      align: "right",
+      render: (l) => (
+        <span
+          className="group inline-flex justify-end"
+          role="button"
+          aria-label={`Open ${l.companyName}`}
+        >
+          <DrillCue label="Open" />
+        </span>
+      ),
+    },
   ];
 
   // Live aggregates from the store so metric cards stay accurate after CRUD.
@@ -336,9 +353,11 @@ export function LeadsView() {
         <CRMView compact />
       ) : drillLead ? (
         <>
-          <DrillBreadcrumb
+          <DrillHeader
             crumbs={crumbs}
             onJump={(i) => i === 0 && setDrillId(null)}
+            onBack={() => setDrillId(null)}
+            backLabel="Back to leads"
             ariaLabel="Lead drill-down"
           />
           <LeadDetailView lead={drillLead} />

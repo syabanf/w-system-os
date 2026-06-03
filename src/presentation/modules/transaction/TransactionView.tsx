@@ -21,7 +21,10 @@ import { formatIDR, formatIDRCompact } from "@/lib/currency";
 import { formatDate } from "@/lib/date";
 import { cn } from "@/lib/cn";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { DrillCue } from "@/presentation/shared/DrillCue";
+import { useDrillState } from "@/state/drill.store";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { TransactionDetailView, type DocRef } from "./TransactionDetailView";
 import { PaymentFormDialog } from "./PaymentFormDialog";
@@ -66,11 +69,13 @@ function SortableTable<T>({
   rows,
   rowKey,
   onRowClick,
+  rowAriaLabel,
 }: {
   columns: SortableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
+  rowAriaLabel?: (row: T) => string;
 }) {
   const [sort, setSort] = useState<SortState>(null);
 
@@ -154,8 +159,10 @@ function SortableTable<T>({
             <tr
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
+              role={onRowClick ? "button" : undefined}
+              aria-label={onRowClick ? rowAriaLabel?.(row) : undefined}
               className={cn(
-                "border-t border-white/5 transition-colors hover:bg-white/[0.04]",
+                "group border-t border-white/5 transition-colors hover:bg-white/[0.04]",
                 onRowClick && "cursor-pointer",
                 i % 2 === 1 && "bg-white/[0.015]",
               )}
@@ -243,7 +250,7 @@ function docLabel(ref: DocRef): { label: string; sublabel: string } {
 export function TransactionView() {
   const [data, setData] = useState<TransactionOverviewDTO | null>(null);
   const [tab, setTab] = useState<Tab>("invoices");
-  const [drillId, setDrillId] = useState<string | null>(null);
+  const [drillId, setDrillId] = useDrillState("transactions");
 
   // Payments + Invoices CRUD via stores. PO + Expenses still use the DTO.
   const storePayments = usePaymentsStore((s) => s.items);
@@ -384,9 +391,11 @@ export function TransactionView() {
 
       {docRef ? (
         <>
-          <DrillBreadcrumb
+          <DrillHeader
             crumbs={crumbs}
             onJump={(i) => i === 0 && setDrillId(null)}
+            onBack={() => setDrillId(null)}
+            backLabel="Back to documents"
             ariaLabel="Transaction drill-down"
           />
           <TransactionDetailView ref={docRef} />
@@ -699,23 +708,26 @@ function InvoicesTab({
           notes: r.notes,
         };
         return (
-          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => onEdit(fullRow)}
-              aria-label="Edit invoice"
-              className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-            >
-              <Pencil className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(fullRow)}
-              aria-label="Delete invoice"
-              className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
+          <div className="flex items-center justify-end gap-2">
+            <DrillCue label="Open" />
+            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => onEdit(fullRow)}
+                aria-label="Edit invoice"
+                className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(fullRow)}
+                aria-label="Delete invoice"
+                className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         );
       },
@@ -743,6 +755,7 @@ function InvoicesTab({
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
+        rowAriaLabel={(r) => `Open invoice ${r.number} for ${r.clientName}`}
       />
     </div>
   );
@@ -799,23 +812,26 @@ function PaymentsTab({
     header: "",
     align: "right",
     render: (r) => (
-      <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onEdit(r)}
-          aria-label="Edit payment"
-          className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-        >
-          <Pencil className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(r)}
-          aria-label="Delete payment"
-          className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
+      <div className="flex items-center justify-end gap-2">
+        <DrillCue label="Open" />
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => onEdit(r)}
+            aria-label="Edit payment"
+            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(r)}
+            aria-label="Delete payment"
+            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     ),
   };
@@ -841,6 +857,7 @@ function PaymentsTab({
         columns={[...cols, actionCol]}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
+        rowAriaLabel={(r) => `Open payment ${r.number}`}
       />
     </div>
   );
@@ -883,23 +900,26 @@ function POTab({
       header: "",
       align: "right",
       render: (r) => (
-        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => onEdit(r)}
-            aria-label="Edit purchase order"
-            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-          >
-            <Pencil className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(r)}
-            aria-label="Delete purchase order"
-            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          <DrillCue label="Open" />
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => onEdit(r)}
+              aria-label="Edit purchase order"
+              className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(r)}
+              aria-label="Delete purchase order"
+              className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
         </div>
       ),
     },
@@ -926,6 +946,7 @@ function POTab({
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
+        rowAriaLabel={(r) => `Open purchase order ${r.number} from ${r.vendor}`}
       />
     </div>
   );
@@ -967,23 +988,26 @@ function ExpenseTab({
       header: "",
       align: "right",
       render: (r) => (
-        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => onEdit(r)}
-            aria-label="Edit claim"
-            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-          >
-            <Pencil className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(r)}
-            aria-label="Delete claim"
-            className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          <DrillCue label="Open" />
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => onEdit(r)}
+              aria-label="Edit claim"
+              className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(r)}
+              aria-label="Delete claim"
+              className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
         </div>
       ),
     },
@@ -1010,6 +1034,7 @@ function ExpenseTab({
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
+        rowAriaLabel={(r) => `Open expense claim ${r.number} for ${r.employeeName}`}
       />
     </div>
   );

@@ -20,7 +20,10 @@ import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { SearchInput } from "@/presentation/shared/SearchInput";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { DrillCue } from "@/presentation/shared/DrillCue";
+import { useDrillState } from "@/state/drill.store";
 import { cn } from "@/lib/cn";
 import {
   CATEGORY_TONE,
@@ -66,7 +69,7 @@ const CATEGORIES: ("All" | Category)[] = [
 export function ReportsView() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | Category>("All");
-  const [drillId, setDrillId] = useState<string | null>(null);
+  const [drillId, setDrillId] = useDrillState("reports");
 
   const runs = useReportRunsStore((s) => s.items);
   const hydrateRuns = useReportRunsStore((s) => s.hydrate);
@@ -132,9 +135,11 @@ export function ReportsView() {
 
       {drillTemplate ? (
         <>
-          <DrillBreadcrumb
+          <DrillHeader
             crumbs={crumbs}
             onJump={(i) => i === 0 && setDrillId(null)}
+            onBack={() => setDrillId(null)}
+            backLabel="Back to library"
             ariaLabel="Report drill-down"
           />
           <ReportDetailView template={drillTemplate} />
@@ -220,15 +225,18 @@ export function ReportsView() {
                 {runs.map((r) => (
                   <li
                     key={r.id}
-                    className="grid grid-cols-12 items-center gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2 transition-colors hover:bg-white/[0.04]"
+                    className="group grid grid-cols-12 items-center gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2 transition-colors hover:bg-white/[0.04]"
                   >
                     <span className="col-span-1 grid place-items-center">{STATUS_ICON[r.status]}</span>
                     <button
                       type="button"
                       onClick={() => setDrillId(r.templateId)}
-                      className="col-span-4 truncate text-left text-[11px] font-semibold text-zinc-100 hover:text-white"
+                      role="button"
+                      aria-label={`Open ${r.templateName} report detail`}
+                      className="col-span-4 flex min-w-0 items-center gap-1.5 text-left text-[11px] font-semibold text-zinc-100 hover:text-white"
                     >
-                      {r.templateName}
+                      <span className="truncate">{r.templateName}</span>
+                      <DrillCue label="Open" />
                     </button>
                     <span className="col-span-2">
                       <CategoryPill category={r.category} />
@@ -270,14 +278,17 @@ export function ReportsView() {
               />
               <ul className="space-y-2">
                 {schedules.map((s) => (
-                  <li key={s.id} className="glass-soft rounded-xl border border-white/6 p-3">
+                  <li key={s.id} className="group glass-soft rounded-xl border border-white/6 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <button
                         type="button"
                         onClick={() => setDrillId(s.templateId)}
-                        className="truncate text-left text-xs font-semibold text-zinc-100 hover:text-white"
+                        role="button"
+                        aria-label={`Open ${s.templateName} report detail`}
+                        className="flex min-w-0 items-center gap-1.5 truncate text-left text-xs font-semibold text-zinc-100 hover:text-white"
                       >
-                        {s.templateName}
+                        <span className="truncate">{s.templateName}</span>
+                        <DrillCue label="Open" />
                       </button>
                       {s.paused ? (
                         <StatusBadge tone="neutral">paused</StatusBadge>
@@ -317,6 +328,8 @@ function ReportCard({
     <button
       type="button"
       onClick={onOpen}
+      role="button"
+      aria-label={`Open ${template.name} report detail`}
       className="glass-soft group flex flex-col gap-3 rounded-2xl border border-white/8 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/20"
     >
       <header className="flex items-start gap-3">
@@ -347,9 +360,7 @@ function ReportCard({
           {template.cadence}
           {template.lastRun ? <span className="ml-1.5">· last {template.lastRun}</span> : null}
         </span>
-        <span className="text-zinc-400 transition-colors group-hover:text-zinc-200">
-          Open →
-        </span>
+        <DrillCue label="Open" />
       </footer>
     </button>
   );

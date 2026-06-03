@@ -19,7 +19,10 @@ import { EmployeeFormDialog } from "./EmployeeFormDialog";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { ResourceManagementView } from "@/presentation/modules/resources/ResourceManagementView";
 import { ContractProposalView } from "@/presentation/modules/contracts/ContractProposalView";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { DrillCue } from "@/presentation/shared/DrillCue";
+import { useDrillState } from "@/state/drill.store";
 import { useEmployeesStore } from "@/state/employees.store";
 import type { Employee } from "@/domain/entities/Employee";
 import { Pencil, Trash2, UserPlus } from "lucide-react";
@@ -155,7 +158,7 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
     hydrate();
   }, [hydrate]);
 
-  const [drillId, setDrillId] = useState<string | null>(null);
+  const [drillId, setDrillId] = useDrillState("hr");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Employee | null>(null);
@@ -232,6 +235,13 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
       align: "right",
       render: (e) => (
         <div className="flex items-center justify-end gap-1">
+          <span
+            className="group mr-1 inline-flex"
+            role="button"
+            aria-label={`Open ${e.firstName} ${e.lastName}`}
+          >
+            <DrillCue label="Open" />
+          </span>
           <button
             type="button"
             onClick={(ev) => {
@@ -262,9 +272,11 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
   if (drillEmp) {
     return (
       <div className="space-y-4">
-        <DrillBreadcrumb
+        <DrillHeader
           crumbs={crumbs}
           onJump={(i) => i === 0 && setDrillId(null)}
+          onBack={() => setDrillId(null)}
+          backLabel="Back to people"
           ariaLabel="Employee drill-down"
         />
         <div className="flex flex-wrap items-center justify-end gap-2">

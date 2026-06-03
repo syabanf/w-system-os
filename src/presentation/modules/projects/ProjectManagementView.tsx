@@ -25,7 +25,9 @@ import { ProjectFormDialog } from "./ProjectFormDialog";
 import { EpicFormDialog } from "./EpicFormDialog";
 import { StoryFormDialog } from "./StoryFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
-import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { useDrillState } from "@/state/drill.store";
 import { ProjectDetailView } from "./ProjectDetailView";
 import { EpicDetailView } from "./EpicDetailView";
 import { StoryDetailView } from "./StoryDetailView";
@@ -49,7 +51,35 @@ export function ProjectManagementView() {
   const [view, setView] = useState<View>("table");
   const [query, setQuery] = useState("");
   const [section, setSection] = useState<Section>("portfolio");
-  const [drill, setDrill] = useState<Drill>({ level: "portfolio" });
+  // Drill position persisted per level so a drill-down survives reloads /
+  // app switches. The `Drill` union below is derived from these ids; the
+  // deepest non-null id wins, mirroring the original portfolio→story logic.
+  const [drillProjectId, setDrillProjectId] = useDrillState("projects.project");
+  const [drillEpicId, setDrillEpicId] = useDrillState("projects.epic");
+  const [drillStoryId, setDrillStoryId] = useDrillState("projects.story");
+
+  const drill: Drill = useMemo(() => {
+    if (!drillProjectId) return { level: "portfolio" };
+    if (!drillEpicId) return { level: "project", projectId: drillProjectId };
+    if (!drillStoryId)
+      return { level: "epic", projectId: drillProjectId, epicId: drillEpicId };
+    return {
+      level: "story",
+      projectId: drillProjectId,
+      epicId: drillEpicId,
+      storyId: drillStoryId,
+    };
+  }, [drillProjectId, drillEpicId, drillStoryId]);
+
+  // Set the whole drill position from a `Drill` value, keeping the persisted
+  // ids consistent (clearing deeper ids when stepping up).
+  const setDrill = (next: Drill) => {
+    setDrillProjectId(next.level === "portfolio" ? null : next.projectId);
+    setDrillEpicId(
+      next.level === "epic" || next.level === "story" ? next.epicId : null,
+    );
+    setDrillStoryId(next.level === "story" ? next.storyId : null);
+  };
 
   const storeProjects = useProjectsStore((s) => s.items);
   const hydrate = useProjectsStore((s) => s.hydrate);
@@ -156,18 +186,14 @@ export function ProjectManagementView() {
 
   const openProject = (projectId: string) =>
     setDrill({ level: "project", projectId });
-  const openEpic = (epicId: string) =>
-    setDrill((prev) =>
-      prev.level === "portfolio"
-        ? prev
-        : { level: "epic", projectId: prev.projectId, epicId },
-    );
-  const openStory = (storyId: string) =>
-    setDrill((prev) =>
-      prev.level === "epic" || prev.level === "story"
-        ? { level: "story", projectId: prev.projectId, epicId: prev.epicId, storyId }
-        : prev,
-    );
+  const openEpic = (epicId: string) => {
+    if (drill.level === "portfolio") return;
+    setDrill({ level: "epic", projectId: drill.projectId, epicId });
+  };
+  const openStory = (storyId: string) => {
+    if (drill.level === "epic" || drill.level === "story")
+      setDrill({ level: "story", projectId: drill.projectId, epicId: drill.epicId, storyId });
+  };
   const jumpToLevel = (idx: number) => {
     if (idx === 0) setDrill({ level: "portfolio" });
     else if (idx === 1 && drill.level !== "portfolio")
@@ -175,6 +201,24 @@ export function ProjectManagementView() {
     else if (idx === 2 && (drill.level === "epic" || drill.level === "story"))
       setDrill({ level: "epic", projectId: drill.projectId, epicId: drill.epicId });
   };
+
+  // Step up exactly one level (clear the deepest active drill id). Powers the
+  // DrillHeader back button + Esc / ⌘[ shortcuts.
+  const drillBack = () => {
+    if (drill.level === "story")
+      setDrill({ level: "epic", projectId: drill.projectId, epicId: drill.epicId });
+    else if (drill.level === "epic")
+      setDrill({ level: "project", projectId: drill.projectId });
+    else if (drill.level === "project") setDrill({ level: "portfolio" });
+  };
+
+  // Context-aware label for the back button: name the level we'll land on.
+  const backLabel =
+    drill.level === "story"
+      ? "Back to epic"
+      : drill.level === "epic"
+        ? "Back to project"
+        : "Back to portfolio";
 
   const drillProject =
     drill.level !== "portfolio"
@@ -349,7 +393,13 @@ export function ProjectManagementView() {
         <SprintTaskView compact />
       ) : showDrill ? (
         <>
-          <DrillBreadcrumb crumbs={crumbs} onJump={jumpToLevel} ariaLabel="Project drill-down" />
+          <DrillHeader
+            crumbs={crumbs}
+            onJump={jumpToLevel}
+            onBack={drillBack}
+            backLabel={backLabel}
+            ariaLabel="Project drill-down"
+          />
           {drill.level === "project" && drillProject ? (
             <ProjectDetailView
               project={drillProject}

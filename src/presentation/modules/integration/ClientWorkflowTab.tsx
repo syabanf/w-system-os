@@ -28,9 +28,10 @@ import type { Client } from "@/domain/entities/Client";
 import type { Project } from "@/domain/entities/Project";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { SearchInput } from "@/presentation/shared/SearchInput";
-import { DrillBreadcrumb } from "@/presentation/shared/DrillBreadcrumb";
+import { DrillHeader } from "@/presentation/shared/DrillHeader";
 import { useToast } from "@/state/toast.store";
 import { useClientsStore } from "@/state/clients.store";
+import { useDrillState } from "@/state/drill.store";
 import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { cn } from "@/lib/cn";
 import { formatIDRCompact } from "@/lib/currency";
@@ -349,7 +350,16 @@ export function ClientWorkflowTab({
                     <tr
                       key={c.id}
                       onClick={() => setDrillId(c.id)}
-                      className="animate-fade-in cursor-pointer border-t border-white/5 transition-colors hover:bg-white/[0.04]"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View ${c.name}`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setDrillId(c.id);
+                        }
+                      }}
+                      className="animate-fade-in cursor-pointer border-t border-white/5 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:bg-white/[0.06]"
                     >
                       <Td>
                         <div className="flex items-center gap-2">
@@ -483,10 +493,10 @@ function DrillView({
   // Step-by-step drill: Clients → Projects → Data.
   // `selectedProjectId === null` means we're on the PROJECTS step (list all
   // projects for this client). Picking one advances to the DATA step (the
-  // milestone tracker / calendar / invoices). DrillView is keyed by client.id
-  // at the call site, so this state remounts fresh per client.
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
+  // milestone tracker / calendar / invoices). Persisted per client so
+  // returning to a client restores the open project across reloads.
+  const [selectedProjectId, setSelectedProjectId] = useDrillState(
+    `client.${client.id}`,
   );
   const selectedProject =
     projects.find((p) => p.id === selectedProjectId) ?? null;
@@ -507,49 +517,42 @@ function DrillView({
 
   return (
     <div className="animate-slide-in-right space-y-4">
-      <div className="flex items-start justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            // On the DATA step, step back to PROJECTS; on the PROJECTS step,
-            // step back out to the all-clients list.
-            if (selectedProject) {
-              setSelectedProjectId(null);
-              onCloseFilterMenu();
-            } else {
-              onBack();
-            }
-          }}
-          className="press inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-300 hover:bg-white/10 hover:text-zinc-50"
-        >
-          <ChevronLeft className="h-3 w-3" />
-          {selectedProject ? "Back to projects" : "Back to clients"}
-        </button>
-        <DrillBreadcrumb
-          crumbs={[
-            { id: "mgmt", label: "Management" },
-            { id: "client", label: "Client Data" },
-            {
-              id: client.id,
-              label: client.name,
-              sublabel: `${projects.length} ${projects.length === 1 ? "project" : "projects"}`,
-            },
-            ...(selectedProject
-              ? [{ id: selectedProject.id, label: selectedProject.name }]
-              : []),
-          ]}
-          onJump={(level) => {
-            // 0=Management, 1=Client Data → all-clients list.
-            // 2=client name → PROJECTS step (clear the selected project).
-            if (level < 2) {
-              onBack();
-            } else if (level === 2) {
-              setSelectedProjectId(null);
-              onCloseFilterMenu();
-            }
-          }}
-        />
-      </div>
+      <DrillHeader
+        crumbs={[
+          { id: "mgmt", label: "Management" },
+          { id: "client", label: "Client Data" },
+          {
+            id: client.id,
+            label: client.name,
+            sublabel: `${projects.length} ${projects.length === 1 ? "project" : "projects"}`,
+          },
+          ...(selectedProject
+            ? [{ id: selectedProject.id, label: selectedProject.name }]
+            : []),
+        ]}
+        onJump={(level) => {
+          // 0=Management, 1=Client Data → all-clients list.
+          // 2=client name → PROJECTS step (clear the selected project).
+          if (level < 2) {
+            onBack();
+          } else if (level === 2) {
+            setSelectedProjectId(null);
+            onCloseFilterMenu();
+          }
+        }}
+        onBack={() => {
+          // On the DATA step, step back to PROJECTS; on the PROJECTS step,
+          // step back out to the all-clients list. (Also bound to Esc / ⌘[.)
+          if (selectedProject) {
+            setSelectedProjectId(null);
+            onCloseFilterMenu();
+          } else {
+            onBack();
+          }
+        }}
+        backLabel={selectedProject ? "Back to projects" : "Back to clients"}
+        ariaLabel="Client drill-down"
+      />
 
       <div className="glass flex flex-wrap items-center gap-3 rounded-[20px] p-4">
         <Avatar name={client.name} color={client.logoColor} size="lg" />
@@ -651,6 +654,7 @@ function DrillView({
               <button
                 key={p.id}
                 type="button"
+                aria-label={`View all data for ${p.name}`}
                 onClick={() => {
                   setSelectedProjectId(p.id);
                   onChangeView("board");
