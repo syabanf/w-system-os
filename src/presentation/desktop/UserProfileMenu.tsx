@@ -6,10 +6,12 @@ import { useDesktopStore } from "@/state/desktop.store";
 import { useAuthStore } from "@/state/auth.store";
 import { useToast } from "@/state/toast.store";
 import { Avatar } from "@/presentation/shared/Avatar";
+import { DismissLayer } from "@/presentation/shared/DismissLayer";
 
 export function UserProfileMenu() {
   const isProfileOpen = useDesktopStore((s) => s.isProfileOpen);
   const toggleProfile = useDesktopStore((s) => s.toggleProfile);
+  const closeAllPanels = useDesktopStore((s) => s.closeAllPanels);
   const signOut = useAuthStore((s) => s.signOut);
   const toast = useToast();
 
@@ -20,7 +22,9 @@ export function UserProfileMenu() {
   };
 
   return (
-    <AnimatePresence>
+    <>
+      {isProfileOpen ? <DismissLayer onDismiss={closeAllPanels} /> : null}
+      <AnimatePresence>
       {isProfileOpen ? (
         <motion.aside
           initial={{ x: 360, opacity: 0 }}
@@ -61,7 +65,8 @@ export function UserProfileMenu() {
           </div>
         </motion.aside>
       ) : null}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
 

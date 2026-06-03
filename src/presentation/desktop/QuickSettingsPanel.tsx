@@ -15,17 +15,21 @@ import {
 import { useDesktopStore } from "@/state/desktop.store";
 import { useThemeStore } from "@/state/theme.store";
 import { useNotificationStore } from "@/state/notification.store";
+import { DismissLayer } from "@/presentation/shared/DismissLayer";
 
 export function QuickSettingsPanel() {
   const isSettingsOpen = useDesktopStore((s) => s.isSettingsOpen);
   const toggleSettings = useDesktopStore((s) => s.toggleSettings);
+  const closeAllPanels = useDesktopStore((s) => s.closeAllPanels);
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggle);
   const dnd = useNotificationStore((s) => s.dnd);
   const setDnd = useNotificationStore((s) => s.setDnd);
 
   return (
-    <AnimatePresence>
+    <>
+      {isSettingsOpen ? <DismissLayer onDismiss={closeAllPanels} /> : null}
+      <AnimatePresence>
       {isSettingsOpen ? (
         <motion.aside
           initial={{ x: 360, opacity: 0 }}
@@ -92,7 +96,8 @@ export function QuickSettingsPanel() {
           </div>
         </motion.aside>
       ) : null}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
 

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useDesktopStore } from "@/state/desktop.store";
 import { useWindowStore } from "@/state/window.store";
+import { DismissLayer } from "@/presentation/shared/DismissLayer";
 import {
   useNotificationStore,
   type NotificationFilter,
@@ -76,6 +77,7 @@ const FILTERS: { id: NotificationFilter; label: string }[] = [
 export function NotificationCenter() {
   const isNotificationsOpen = useDesktopStore((s) => s.isNotificationsOpen);
   const toggleNotifications = useDesktopStore((s) => s.toggleNotifications);
+  const closeAllPanels = useDesktopStore((s) => s.closeAllPanels);
   const notifications = useNotificationStore((s) => s.notifications);
   const unread = useNotificationStore((s) => s.unread);
   const filter = useNotificationStore((s) => s.filter);
@@ -99,7 +101,9 @@ export function NotificationCenter() {
   }, [notifications, filter]);
 
   return (
-    <AnimatePresence>
+    <>
+      {isNotificationsOpen ? <DismissLayer onDismiss={closeAllPanels} /> : null}
+      <AnimatePresence>
       {isNotificationsOpen ? (
         <motion.aside
           initial={{ x: 360, opacity: 0 }}
@@ -289,6 +293,7 @@ export function NotificationCenter() {
           </div>
         </motion.aside>
       ) : null}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
