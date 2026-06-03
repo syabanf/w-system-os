@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { runReddieCommand } from "./reddieCommands";
 
 export type ReddieRole = "user" | "assistant";
 
@@ -34,12 +35,12 @@ const GREETING: ReddieMessage = {
   role: "assistant",
   at: new Date(2026, 4, 19, 8, 0).toISOString(),
   content:
-    "Hi, I'm Reddie. I can answer questions about your sales pipeline, projects, SLAs, finance, or people — and draft updates for you.",
+    "Hi, I'm Reddie. Ask me to open any module, pull live numbers (overdue invoices, at-risk projects, pipeline, SLAs…), or create a record — e.g. “new client Acme”.",
   suggestions: [
     "Summarize this week",
-    "Which deals are at risk?",
+    "Which projects are at risk?",
     "Show overdue invoices",
-    "Draft a sprint update",
+    "New client",
   ],
 };
 
@@ -163,7 +164,9 @@ export const useReddieStore = create<ReddieState>((set, get) => ({
     // Simulated thinking latency for the bot.
     const latency = 600 + Math.min(trimmed.length * 18, 1400);
     setTimeout(() => {
-      const reply = craftReply(trimmed);
+      // Try to handle it as a workspace command (navigate / answer from live
+      // data / create); fall back to the conversational keyword reply.
+      const reply = runReddieCommand(trimmed) ?? craftReply(trimmed);
       const botMsg: ReddieMessage = {
         id: nextId(),
         role: "assistant",

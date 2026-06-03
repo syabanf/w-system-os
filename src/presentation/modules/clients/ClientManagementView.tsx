@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Client } from "@/domain/entities/Client";
 import { useClientsStore } from "@/state/clients.store";
 import { useToast } from "@/state/toast.store";
+import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { ClientFormDialog } from "./ClientFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
@@ -23,18 +24,32 @@ export function ClientManagementView() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
+  const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
 
   // ⌘N / Ctrl-N → quick add client.
   useHotkey("mod+n", (e) => {
     e.preventDefault();
     setEditing(null);
+    setPrefillName(undefined);
     setFormOpen(true);
   });
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Reddie / command-surface intent: open the create form (optionally prefilled).
+  const intent = useCommandIntentStore((s) => s.intent);
+  const clearIntent = useCommandIntentStore((s) => s.clear);
+  useEffect(() => {
+    if (intent?.module === "clients" && intent.action === "create") {
+      setEditing(null);
+      setPrefillName(intent.prefill);
+      setFormOpen(true);
+      clearIntent();
+    }
+  }, [intent, clearIntent]);
 
   return (
     <div className="space-y-5">
@@ -76,7 +91,11 @@ export function ClientManagementView() {
       <ClientFormDialog
         open={formOpen}
         editing={editing}
-        onClose={() => setFormOpen(false)}
+        initialName={prefillName}
+        onClose={() => {
+          setFormOpen(false);
+          setPrefillName(undefined);
+        }}
         onSubmit={(draft, editingId) => {
           if (editingId) {
             updateClient(editingId, draft);

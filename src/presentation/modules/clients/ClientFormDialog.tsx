@@ -25,6 +25,9 @@ interface ClientFormDialogProps {
   open: boolean;
   /** When set, dialog opens in edit mode. Null = create. */
   editing?: Client | null;
+  /** Prefill the name field on a new (create) form — used by Reddie's
+   *  "new client Acme" command. Ignored in edit mode. */
+  initialName?: string;
   onClose: () => void;
   onSubmit: (draft: ClientDraft, editingId?: string) => void;
 }
@@ -56,6 +59,7 @@ function draftFromClient(c: Client): ClientDraft {
 export function ClientFormDialog({
   open,
   editing,
+  initialName,
   onClose,
   onSubmit,
 }: ClientFormDialogProps) {
@@ -63,8 +67,12 @@ export function ClientFormDialog({
 
   useEffect(() => {
     if (!open) return;
-    setDraft(editing ? draftFromClient(editing) : emptyDraft());
-  }, [open, editing]);
+    setDraft(
+      editing
+        ? draftFromClient(editing)
+        : { ...emptyDraft(), name: initialName ?? "" },
+    );
+  }, [open, editing, initialName]);
 
   const [submitted, setSubmitted] = useState(false);
 
