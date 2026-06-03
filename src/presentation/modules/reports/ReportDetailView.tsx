@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   AlertOctagon,
   Calendar,
@@ -36,14 +36,21 @@ import { mockVelocityHistory } from "@/infrastructure/data/velocity.mock";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
+import { useToast } from "@/state/toast.store";
 import { formatIDR, formatIDRCompact, formatPercent } from "@/lib/currency";
 import {
   CATEGORY_TONE,
-  RECENT_RUNS,
-  SCHEDULED,
   type ReportTemplate,
   type RunHistoryItem,
 } from "./reportsData";
+import {
+  downloadReport,
+  makeRunDraft,
+  makeScheduleDraft,
+  nowStamp,
+  useReportRunsStore,
+  useReportSchedulesStore,
+} from "./reports.store";
 
 const FORMAT_ICON: Record<ReportTemplate["format"], React.ReactNode> = {
   PDF: <FileText className="h-3 w-3" />,
@@ -65,14 +72,65 @@ const CHANNEL_ICON: Record<"Email" | "Slack" | "Dashboard", React.ReactNode> = {
 
 export function ReportDetailView({ template }: { template: ReportTemplate }) {
   const tone = CATEGORY_TONE[template.category];
+  const toast = useToast();
+
+  const allRuns = useReportRunsStore((s) => s.items);
+  const hydrateRuns = useReportRunsStore((s) => s.hydrate);
+  const addRun = useReportRunsStore((s) => s.add);
+  const updateRun = useReportRunsStore((s) => s.update);
+
+  const allSchedules = useReportSchedulesStore((s) => s.items);
+  const hydrateSchedules = useReportSchedulesStore((s) => s.hydrate);
+  const addSchedule = useReportSchedulesStore((s) => s.add);
+  const updateSchedule = useReportSchedulesStore((s) => s.update);
+
+  useEffect(() => {
+    hydrateRuns();
+    hydrateSchedules();
+  }, [hydrateRuns, hydrateSchedules]);
+
   const runs = useMemo(
-    () => RECENT_RUNS.filter((r) => r.templateId === template.id),
-    [template.id],
+    () => allRuns.filter((r) => r.templateId === template.id),
+    [allRuns, template.id],
   );
   const schedule = useMemo(
-    () => SCHEDULED.find((s) => s.templateId === template.id) ?? null,
-    [template.id],
+    () => allSchedules.find((s) => s.templateId === template.id) ?? null,
+    [allSchedules, template.id],
   );
+
+  const handleRunNow = () => {
+    addRun(makeRunDraft(template, "Damar Wicaksono"));
+    toast.success("Report generated", `${template.name} ran successfully`);
+    downloadReport(template);
+  };
+
+  const handleDownload = () => {
+    downloadReport(template);
+    toast.info("Download started", `${template.name} · ${template.format}`);
+  };
+
+  const handleSchedule = () => {
+    if (schedule) {
+      updateSchedule(schedule.id, { paused: !schedule.paused });
+      toast.info(
+        schedule.paused ? "Schedule resumed" : "Schedule paused",
+        template.name,
+      );
+    } else {
+      addSchedule(makeScheduleDraft(template));
+      toast.success("Schedule created", `${template.name} · weekly to leadership@wit.id`);
+    }
+  };
+
+  const handleRetry = (run: RunHistoryItem) => {
+    updateRun(run.id, { status: "completed", ranAt: nowStamp(), duration: "7s" });
+    toast.success("Run retried", template.name);
+  };
+
+  const handleDownloadRun = () => {
+    downloadReport(template);
+    toast.info("Download started", template.name);
+  };
 
   return (
     <div className="space-y-5">
@@ -114,6 +172,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
+              onClick={handleRunNow}
               className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
             >
               <Play className="h-3 w-3" />
@@ -121,13 +180,15 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
             </button>
             <button
               type="button"
+              onClick={handleSchedule}
               className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1.5 text-[11px] text-zinc-200 transition-colors hover:bg-white/12"
             >
               <CalendarClock className="h-3 w-3" />
-              Schedule
+              {schedule ? (schedule.paused ? "Resume" : "Pause") : "Schedule"}
             </button>
             <button
               type="button"
+              onClick={handleDownload}
               className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1.5 text-[11px] text-zinc-200 transition-colors hover:bg-white/12"
             >
               <Download className="h-3 w-3" />
@@ -174,6 +235,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
                       <button
                         type="button"
                         aria-label="Download"
+                        onClick={handleDownloadRun}
                         className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                       >
                         <Download className="h-3 w-3" />
@@ -182,6 +244,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
                       <button
                         type="button"
                         aria-label="Retry"
+                        onClick={() => handleRetry(r)}
                         className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                       >
                         <RefreshCw className="h-3 w-3" />
@@ -245,6 +308,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
               <div className="mt-2">
                 <button
                   type="button"
+                  onClick={handleSchedule}
                   className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2.5 py-1 text-[10px] text-zinc-200 hover:bg-white/12"
                 >
                   <CalendarClock className="h-2.5 w-2.5" />

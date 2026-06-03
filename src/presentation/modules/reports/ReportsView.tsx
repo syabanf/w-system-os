@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarClock,
   CheckCircle2,
@@ -24,14 +24,16 @@ import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcru
 import { cn } from "@/lib/cn";
 import {
   CATEGORY_TONE,
-  RECENT_RUNS,
-  SCHEDULED,
   TEMPLATES,
   type Category,
   type ReportTemplate,
   type RunHistoryItem,
 } from "./reportsData";
 import { ReportDetailView } from "./ReportDetailView";
+import {
+  useReportRunsStore,
+  useReportSchedulesStore,
+} from "./reports.store";
 
 const FORMAT_ICON: Record<ReportTemplate["format"], React.ReactNode> = {
   PDF: <FileText className="h-3 w-3" />,
@@ -66,6 +68,16 @@ export function ReportsView() {
   const [filter, setFilter] = useState<"All" | Category>("All");
   const [drillId, setDrillId] = useState<string | null>(null);
 
+  const runs = useReportRunsStore((s) => s.items);
+  const hydrateRuns = useReportRunsStore((s) => s.hydrate);
+  const schedules = useReportSchedulesStore((s) => s.items);
+  const hydrateSchedules = useReportSchedulesStore((s) => s.hydrate);
+
+  useEffect(() => {
+    hydrateRuns();
+    hydrateSchedules();
+  }, [hydrateRuns, hydrateSchedules]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return TEMPLATES.filter((t) => {
@@ -87,8 +99,8 @@ export function ReportsView() {
       ]
     : [{ id: "library", label: "Library" }];
 
-  const scheduledActive = SCHEDULED.filter((s) => !s.paused).length;
-  const failedToday = RECENT_RUNS.filter((r) => r.status === "failed").length;
+  const scheduledActive = schedules.filter((s) => !s.paused).length;
+  const failedToday = runs.filter((r) => r.status === "failed").length;
 
   return (
     <div className="space-y-5">
@@ -142,13 +154,13 @@ export function ReportsView() {
               icon={CalendarClock}
               label="Scheduled"
               value={String(scheduledActive)}
-              delta={`${SCHEDULED.length - scheduledActive} paused`}
+              delta={`${schedules.length - scheduledActive} paused`}
               accent="#3B82F6"
             />
             <MetricCard
               icon={Play}
               label="Runs today"
-              value={String(RECENT_RUNS.length)}
+              value={String(runs.length)}
               accent="#22C55E"
             />
             <MetricCard
@@ -201,11 +213,11 @@ export function ReportsView() {
             <div className="glass rounded-[20px] p-5 xl:col-span-2">
               <SectionHeader
                 eyebrow="History"
-                title={`Recent runs (${RECENT_RUNS.length})`}
+                title={`Recent runs (${runs.length})`}
                 description="Audit trail of every report execution in the last 48 hours."
               />
               <ul className="space-y-1.5">
-                {RECENT_RUNS.map((r) => (
+                {runs.map((r) => (
                   <li
                     key={r.id}
                     className="grid grid-cols-12 items-center gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2 transition-colors hover:bg-white/[0.04]"
@@ -253,11 +265,11 @@ export function ReportsView() {
             <div className="glass rounded-[20px] p-5">
               <SectionHeader
                 eyebrow="Cadence"
-                title={`Scheduled (${SCHEDULED.length})`}
+                title={`Scheduled (${schedules.length})`}
                 description="Recurring deliveries to email and Slack."
               />
               <ul className="space-y-2">
-                {SCHEDULED.map((s) => (
+                {schedules.map((s) => (
                   <li key={s.id} className="glass-soft rounded-xl border border-white/6 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <button
