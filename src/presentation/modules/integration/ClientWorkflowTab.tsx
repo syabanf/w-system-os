@@ -30,9 +30,11 @@ import { Avatar } from "@/presentation/shared/Avatar";
 import { SearchInput } from "@/presentation/shared/SearchInput";
 import { DrillBreadcrumb } from "@/presentation/shared/DrillBreadcrumb";
 import { useToast } from "@/state/toast.store";
+import { useClientsStore } from "@/state/clients.store";
 import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { cn } from "@/lib/cn";
 import { formatIDRCompact } from "@/lib/currency";
+import { ClientFormDialog } from "@/presentation/modules/clients/ClientFormDialog";
 import { ProjectMilestoneTracker } from "@/presentation/modules/projects/ProjectMilestoneTracker";
 import { ProjectMilestoneTable } from "@/presentation/modules/projects/ProjectMilestoneTable";
 import { PastelKPITile } from "./PastelKPITile";
@@ -95,6 +97,22 @@ const PROJECT_HEALTH_DOT: Record<Project["health"], string> = {
 function teamName(id: string | undefined): string {
   if (!id) return "—";
   return mockTeam.find((t) => t.id === id)?.name ?? "—";
+}
+
+/** Trigger a client-side download of arbitrary JSON without a backend. */
+function downloadJSON(filename: string, data: unknown): void {
+  if (typeof window === "undefined") return;
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function formatDate(iso: string): string {
@@ -460,6 +478,7 @@ function DrillView({
 }: DrillViewProps) {
   const toast = useToast();
   const owner = teamName(client.accountOwnerId);
+  const updateClient = useClientsStore((s) => s.update);
 
   // Step-by-step drill: Clients → Projects → Data.
   // `selectedProjectId === null` means we're on the PROJECTS step (list all
@@ -471,6 +490,20 @@ function DrillView({
   );
   const selectedProject =
     projects.find((p) => p.id === selectedProjectId) ?? null;
+
+  // Header action state: inline detail strip, edit dialog, "Action View" menu.
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+
+  const exportDossier = () => {
+    downloadJSON(`${client.name.replace(/\s+/g, "-").toLowerCase()}-dossier.json`, {
+      client,
+      projects,
+      exportedAt: new Date().toISOString(),
+    });
+    toast.success("Dossier exported", `${client.name} · ${projects.length} projects`);
+  };
 
   return (
     <div className="animate-slide-in-right space-y-4">
@@ -535,21 +568,27 @@ function DrillView({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => toast.info("Detail panel", "Demo only")}
-            className="press rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-medium text-zinc-200 hover:bg-white/10"
+            onClick={() => setDetailOpen((o) => !o)}
+            aria-expanded={detailOpen}
+            className={cn(
+              "press rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
+              detailOpen
+                ? "bg-white/15 text-zinc-50"
+                : "bg-white/5 text-zinc-200 hover:bg-white/10",
+            )}
           >
             Detail
           </button>
           <button
             type="button"
-            onClick={() => toast.info("Edit triggered", client.name)}
+            onClick={() => setEditOpen(true)}
             className="press rounded-full bg-[#2563EB] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
           >
             Edit
           </button>
           <button
             type="button"
-            onClick={() => toast.success("Downloading…", client.name)}
+            onClick={exportDossier}
             className="press inline-flex items-center gap-1 rounded-full bg-[#10B981] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#059669]"
           >
             <Download className="h-3 w-3" />
@@ -557,6 +596,37 @@ function DrillView({
           </button>
         </div>
       </div>
+
+      {detailOpen ? (
+        <div className="animate-fade-in-up glass grid grid-cols-2 gap-x-6 gap-y-3 rounded-[20px] p-4 sm:grid-cols-3 lg:grid-cols-4">
+          <DetailStat label="Health" value={client.health} />
+          <DetailStat label="Region" value={client.region} />
+          <DetailStat label="Account owner" value={owner} />
+          <DetailStat
+            label="Contract value"
+            value={formatIDRCompact(client.contractValue)}
+          />
+          <DetailStat label="Contact" value={client.primaryContact} />
+          <DetailStat label="Email" value={client.contactEmail} />
+          <DetailStat label="Renews" value={formatDate(client.renewalDate)} />
+          <DetailStat
+            label="Retainer"
+            value={client.retainerActive ? "Active" : "—"}
+          />
+        </div>
+      ) : null}
+
+      <ClientFormDialog
+        open={editOpen}
+        editing={client}
+        onClose={() => setEditOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateClient(editingId, draft);
+            toast.success("Client updated", draft.name);
+          }
+        }}
+      />
 
       {projects.length === 0 ? (
         <div className="glass rounded-[20px] p-8 text-center text-sm text-zinc-400">
@@ -737,14 +807,50 @@ function DrillView({
                 </div>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={() => toast.info("Action view", "Demo only")}
-              className="press ml-auto inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
-            >
-              Action View
-              <ChevronDown className="h-3 w-3" />
-            </button>
+            <div className="relative ml-auto">
+              <button
+                type="button"
+                onClick={() => setActionMenuOpen((o) => !o)}
+                aria-expanded={actionMenuOpen}
+                className="press inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
+              >
+                Action View
+                <ChevronDown
+                  className={cn(
+                    "h-3 w-3 transition-transform",
+                    actionMenuOpen && "rotate-180",
+                  )}
+                />
+              </button>
+              {actionMenuOpen ? (
+                <div
+                  role="menu"
+                  className="animate-scale-in glass-strong absolute right-0 top-full z-20 mt-1 w-48 origin-top-right overflow-hidden rounded-xl border border-white/10 shadow-xl"
+                  onMouseLeave={() => setActionMenuOpen(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionMenuOpen(false);
+                      setDetailOpen(true);
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-[11px] text-zinc-200 hover:bg-white/8"
+                  >
+                    Show client detail
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionMenuOpen(false);
+                      exportDossier();
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-[11px] text-zinc-200 hover:bg-white/8"
+                  >
+                    Export dossier (JSON)
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div key={`${selectedProject.id}-${view}`} className="animate-fade-in-up">
@@ -889,6 +995,19 @@ function Td({
   className?: string;
 }) {
   return <td className={cn("px-3 py-2.5 text-zinc-200", className)}>{children}</td>;
+}
+
+function DetailStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+        {label}
+      </div>
+      <div className="mt-0.5 truncate text-xs font-medium text-zinc-100">
+        {value}
+      </div>
+    </div>
+  );
 }
 
 interface RowActionProps {

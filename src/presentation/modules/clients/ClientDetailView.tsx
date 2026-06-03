@@ -13,9 +13,11 @@ import {
   Wallet,
 } from "lucide-react";
 import type { ClientPortfolioItem } from "@/application/use-cases/clients/GetClientPortfolio";
-import { mockInvoices } from "@/infrastructure/data/invoices.mock";
-import { mockTickets } from "@/infrastructure/data/tickets.mock";
-import { mockProjects } from "@/infrastructure/data/projects.mock";
+import type { Invoice } from "@/domain/entities/Invoice";
+import type { Ticket } from "@/domain/entities/Ticket";
+import { useInvoicesStore } from "@/state/invoices.store";
+import { useTicketsStore } from "@/state/tickets.store";
+import { useProjectsStore } from "@/state/projects.store";
 import { createProjectService } from "@/application/factories/createProjectService";
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
 import { MetricCard } from "@/presentation/shared/MetricCard";
@@ -54,6 +56,21 @@ export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
   const [projects, setProjects] = useState<ProjectOverviewDTO[]>([]);
   const [tab, setTab] = useState<Tab>("engagements");
 
+  // Source live data from the stores so this view reflects edits made anywhere
+  // else in the app (single source of truth), not a frozen mock snapshot.
+  const allInvoices = useInvoicesStore((s) => s.items);
+  const hydrateInvoices = useInvoicesStore((s) => s.hydrate);
+  const allTickets = useTicketsStore((s) => s.items);
+  const hydrateTickets = useTicketsStore((s) => s.hydrate);
+  const allProjects = useProjectsStore((s) => s.items);
+  const hydrateProjects = useProjectsStore((s) => s.hydrate);
+
+  useEffect(() => {
+    hydrateInvoices();
+    hydrateTickets();
+    hydrateProjects();
+  }, [hydrateInvoices, hydrateTickets, hydrateProjects]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -65,14 +82,19 @@ export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
     };
   }, [client.id]);
 
-  const invoices = useMemo(() => mockInvoices.filter((i) => i.clientId === client.id), [client.id]);
-  const tickets = useMemo(() => mockTickets.filter((t) => t.clientId === client.id), [client.id]);
+  const invoices = useMemo(
+    () => allInvoices.filter((i) => i.clientId === client.id),
+    [allInvoices, client.id],
+  );
+  const tickets = useMemo(
+    () => allTickets.filter((t) => t.clientId === client.id),
+    [allTickets, client.id],
+  );
   // The milestone tracker needs a project anchor. Pick the first project for
-  // this client from the canonical project list (the projects.store may not be
-  // hydrated yet here). Falls back to undefined → empty-state CTA below.
+  // this client from the projects store. Falls back to undefined → empty-state.
   const firstProjectId = useMemo(
-    () => mockProjects.find((p) => p.clientId === client.id)?.id,
-    [client.id],
+    () => allProjects.find((p) => p.clientId === client.id)?.id,
+    [allProjects, client.id],
   );
 
   const outstanding = invoices
@@ -290,7 +312,7 @@ function EngagementsList({ projects }: { projects: ProjectOverviewDTO[] }) {
   );
 }
 
-function InvoicesList({ invoices }: { invoices: typeof mockInvoices }) {
+function InvoicesList({ invoices }: { invoices: Invoice[] }) {
   if (invoices.length === 0)
     return (
       <div className="rounded-xl border border-dashed border-white/8 p-6 text-center text-xs text-zinc-400">
@@ -323,7 +345,7 @@ function InvoicesList({ invoices }: { invoices: typeof mockInvoices }) {
   );
 }
 
-function TicketsList({ tickets }: { tickets: typeof mockTickets }) {
+function TicketsList({ tickets }: { tickets: Ticket[] }) {
   if (tickets.length === 0)
     return (
       <div className="rounded-xl border border-dashed border-white/8 p-6 text-center text-xs text-zinc-400">
@@ -364,8 +386,8 @@ function ActivitySnapshot({
   tickets,
 }: {
   client: ClientPortfolioItem;
-  invoices: typeof mockInvoices;
-  tickets: typeof mockTickets;
+  invoices: Invoice[];
+  tickets: Ticket[];
 }) {
   const lastInvoice = invoices.slice().sort((a, b) => (a.issueDate < b.issueDate ? 1 : -1))[0];
   const lastTicket = tickets

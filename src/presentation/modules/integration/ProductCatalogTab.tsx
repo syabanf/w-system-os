@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { Eye, Pencil, Trash2 } from "lucide-react";
-import { mockKnowledge } from "@/infrastructure/data/knowledge.mock";
+import { useEffect, useMemo, useState } from "react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import type { KnowledgeArticle } from "@/infrastructure/data/knowledge.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { useKnowledgeStore } from "@/state/knowledge.store";
 import { useToast } from "@/state/toast.store";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { ArticleFormDialog } from "@/presentation/modules/knowledge/ArticleFormDialog";
 import { cn } from "@/lib/cn";
 import { PastelKPITile } from "./PastelKPITile";
 
@@ -23,19 +26,46 @@ function formatDate(iso: string): string {
 export function ProductCatalogTab() {
   const toast = useToast();
 
+  // Products are knowledge-base entries — go through the store so edits/deletes
+  // persist and stay in sync with the Knowledge module.
+  const products = useKnowledgeStore((s) => s.items);
+  const hydrate = useKnowledgeStore((s) => s.hydrate);
+  const addProduct = useKnowledgeStore((s) => s.add);
+  const updateProduct = useKnowledgeStore((s) => s.update);
+  const removeProduct = useKnowledgeStore((s) => s.remove);
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<KnowledgeArticle | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<KnowledgeArticle | null>(
+    null,
+  );
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (k: KnowledgeArticle) => {
+    setEditing(k);
+    setFormOpen(true);
+  };
+
   const sorted = useMemo(
-    () => [...mockKnowledge].sort((a, b) => b.readMinutes - a.readMinutes),
-    [],
+    () => [...products].sort((a, b) => b.readMinutes - a.readMinutes),
+    [products],
   );
   const topDealing = sorted.slice(0, 2);
   const topViewed = sorted.slice(2, 4);
 
   // Treat SOP/Templates/Tech Stack/etc. as "products" — same as the source
   // module's mock catalog. Services counted via heuristics on category.
-  const productCount = mockKnowledge.filter(
+  const productCount = products.filter(
     (k) => k.category !== "Onboarding",
   ).length;
-  const serviceCount = mockKnowledge.filter(
+  const serviceCount = products.filter(
     (k) => k.category === "Onboarding" || k.category === "Delivery Checklist",
   ).length || 10;
 
@@ -96,7 +126,7 @@ export function ProductCatalogTab() {
         </div>
 
         <section className="glass rounded-[20px] p-4">
-          <header className="flex items-baseline justify-between">
+          <header className="flex items-baseline justify-between gap-3">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
                 Product List
@@ -105,6 +135,14 @@ export function ProductCatalogTab() {
                 All products
               </div>
             </div>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="press inline-flex items-center gap-1 rounded-full bg-white/8 px-3 py-1.5 text-[11px] font-medium text-zinc-200 hover:bg-white/12"
+            >
+              <Plus className="h-3 w-3" />
+              Add product
+            </button>
           </header>
 
           <div className="mt-3 overflow-hidden rounded-xl border border-white/8">
@@ -121,7 +159,7 @@ export function ProductCatalogTab() {
                 </tr>
               </thead>
               <tbody>
-                {mockKnowledge.map((k) => (
+                {products.map((k) => (
                   <tr
                     key={k.id}
                     className="border-t border-white/5 transition-colors hover:bg-white/[0.04]"
@@ -150,21 +188,19 @@ export function ProductCatalogTab() {
                           label={`View ${k.title}`}
                           icon={Eye}
                           tone="default"
-                          onClick={() => toast.info("Opening product", k.title)}
+                          onClick={() => openEdit(k)}
                         />
                         <RowAction
                           label={`Edit ${k.title}`}
                           icon={Pencil}
                           tone="default"
-                          onClick={() => toast.info("Edit triggered", k.title)}
+                          onClick={() => openEdit(k)}
                         />
                         <RowAction
                           label={`Delete ${k.title}`}
                           icon={Trash2}
                           tone="danger"
-                          onClick={() =>
-                            toast.warning("Delete demo", `${k.title} (no-op)`)
-                          }
+                          onClick={() => setConfirmDelete(k)}
                         />
                       </div>
                     </Td>
@@ -175,6 +211,38 @@ export function ProductCatalogTab() {
           </div>
         </section>
       </div>
+
+      <ArticleFormDialog
+        open={formOpen}
+        editing={editing}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateProduct(editingId, draft);
+            toast.success("Product updated", draft.title);
+          } else {
+            addProduct(draft);
+            toast.success("Product added", draft.title);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        title="Delete product?"
+        description={
+          confirmDelete
+            ? `${confirmDelete.title} will be removed from the catalog. You can re-create it later.`
+            : ""
+        }
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const title = confirmDelete.title;
+          removeProduct(confirmDelete.id);
+          setConfirmDelete(null);
+          toast.info("Product deleted", title);
+        }}
+      />
     </div>
   );
 }
