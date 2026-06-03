@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
+import { formatDemoToday } from "@/lib/date";
 
 const DOCK_IDS: AppModuleId[] = ["dashboard", "leads", "projects", "finance"];
 
@@ -74,7 +75,7 @@ export function MobileHomeScreen() {
         <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/80">Good morning</div>
         <div className="text-2xl font-semibold tracking-tight text-zinc-50">Damar Wicaksono</div>
         <div className="mt-0.5 text-[11px] text-zinc-300/70">
-          Monday, 18 May · 7 signals waiting
+          {formatDemoToday()} · 7 signals waiting
         </div>
       </div>
 

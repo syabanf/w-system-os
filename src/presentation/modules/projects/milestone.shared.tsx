@@ -96,7 +96,7 @@ export function StatusPill({ status }: { status: MilestoneStatus }) {
   return (
     <span
       className={cn(
-        "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ring-1",
+        "ms-pill shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ring-1",
         STATUS_PILL[status],
       )}
     >

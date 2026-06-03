@@ -148,7 +148,7 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
                   style={{ background: accent }}
                 />
                 {CATEGORY_LABEL[cat]}
-                <span className="rounded-full bg-white/10 px-1.5 text-[9px] font-mono text-zinc-300">
+                <span className="rounded-full bg-white/10 px-1.5 text-[10px] font-mono text-zinc-300">
                   {counts[cat].length}
                 </span>
               </button>
@@ -171,7 +171,7 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
       <div className="mt-3 overflow-x-auto">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-white/8 text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+            <tr className="border-b border-white/8 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
               <th className="px-2 py-2 font-semibold">Milestone</th>
               <th className="px-2 py-2 font-semibold">Section</th>
               <th className="px-2 py-2 font-semibold">Status</th>
@@ -228,13 +228,13 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
                           )}
                         </span>
                       </td>
-                      <td className="px-2 py-2 text-[10px] text-zinc-400">
+                      <td className="px-2 py-2 text-[11px] text-zinc-400">
                         {SECTION_TITLE[m.section]}
                       </td>
                       <td className="px-2 py-2">
                         <StatusPill status={m.status} />
                       </td>
-                      <td className="px-2 py-2 text-right font-mono text-[10px] text-zinc-400">
+                      <td className="px-2 py-2 text-right font-mono text-[11px] text-zinc-400">
                         {formatMilestoneDate(m.dueDate)}
                       </td>
                       <td className="px-2 py-2">
@@ -245,11 +245,11 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
                               e.stopPropagation();
                               openEdit(m);
                             }}
-                            className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                            className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                             aria-label={`Edit ${m.label}`}
                             title="Edit"
                           >
-                            <Pencil className="h-3 w-3" />
+                            <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
                             type="button"
@@ -257,11 +257,11 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
                               e.stopPropagation();
                               setConfirmDelete(m);
                             }}
-                            className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+                            className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
                             aria-label={`Delete ${m.label}`}
                             title="Delete"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </td>

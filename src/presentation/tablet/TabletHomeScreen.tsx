@@ -17,6 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
 import { useSpotlightStore } from "@/state/spotlight.store";
+import { formatDemoToday } from "@/lib/date";
 import {
   useNotificationStore,
   type DesktopNotification,
@@ -146,7 +147,7 @@ export function TabletHomeScreen() {
           <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/80">Good morning</div>
           <div className="text-3xl font-semibold tracking-tight text-zinc-50">Damar Wicaksono</div>
           <div className="mt-0.5 text-xs text-zinc-300/70">
-            Monday, 18 May · {unread} {unread === 1 ? "signal" : "signals"} waiting in your inbox
+            {formatDemoToday()} · {unread} {unread === 1 ? "signal" : "signals"} waiting in your inbox
           </div>
         </div>
         <button

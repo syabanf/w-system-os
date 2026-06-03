@@ -336,7 +336,7 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
     <li className="group rounded-lg border border-white/6 bg-white/[0.02] transition-colors hover:bg-white/[0.05]">
       {/* Summary line — clicking it expands the detailed items below. */}
       <div
-        className="flex items-center gap-2 px-2 py-1.5"
+        className="flex items-center gap-2 px-2 py-2"
         onClick={() => setOpen((o) => !o)}
         role="button"
         tabIndex={0}
@@ -373,7 +373,7 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
           )}
         </div>
         <StatusPill status={status} />
-        <span className="w-12 shrink-0 text-right font-mono text-[10px] text-zinc-400">
+        <span className="w-12 shrink-0 text-right font-mono text-[11px] text-zinc-400">
           {formatMilestoneDate(dueDate)}
         </span>
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
@@ -383,11 +383,11 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
               e.stopPropagation();
               onEdit();
             }}
-            className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+            className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
             aria-label={`Edit ${label}`}
             title="Edit"
           >
-            <Pencil className="h-3 w-3" />
+            <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -395,11 +395,11 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
               e.stopPropagation();
               onDelete();
             }}
-            className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+            className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
             aria-label={`Delete ${label}`}
             title="Delete"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -463,10 +463,10 @@ function ProjectTeamSubsection({
                 <div className="truncate text-[11px] font-semibold text-zinc-100">
                   {r.name}
                 </div>
-                <div className="truncate text-[10px] text-zinc-400">
+                <div className="truncate text-[11px] text-zinc-400">
                   {r.role}
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500">
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
                   <span className="inline-flex items-center gap-1 truncate">
                     <Phone className="h-2.5 w-2.5" />
                     <span className="truncate font-mono">{r.phone}</span>
@@ -478,20 +478,20 @@ function ProjectTeamSubsection({
                 <button
                   type="button"
                   onClick={() => onEdit(r)}
-                  className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                  className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                   aria-label={`Edit ${r.name}`}
                   title="Edit"
                 >
-                  <Pencil className="h-3 w-3" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => onDelete(r)}
-                  className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+                  className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
                   aria-label={`Remove ${r.name}`}
                   title="Remove"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </li>
@@ -611,7 +611,7 @@ function TeamRoleFormDialog({
 
         <form onSubmit={handleSubmit} className="space-y-3 px-5 py-4">
           <label className="block">
-            <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-zinc-500">
               Name <span className="text-rose-300"> ·</span>
             </span>
             <input
@@ -624,7 +624,7 @@ function TeamRoleFormDialog({
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-zinc-500">
               Role <span className="text-rose-300"> ·</span>
             </span>
             <input
@@ -636,7 +636,7 @@ function TeamRoleFormDialog({
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-zinc-500">
               Phone
             </span>
             <input
@@ -648,7 +648,7 @@ function TeamRoleFormDialog({
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-zinc-500">
               Email <span className="text-rose-300"> ·</span>
             </span>
             <input
@@ -661,7 +661,7 @@ function TeamRoleFormDialog({
           </label>
 
           <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
-            <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
+            <span className="mr-auto text-[10px] uppercase tracking-wider text-zinc-500">
               Esc to close · Enter to save
             </span>
             <button

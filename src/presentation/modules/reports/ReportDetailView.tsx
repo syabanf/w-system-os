@@ -145,21 +145,21 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider"
                 style={{ background: `${tone}26`, color: tone }}
               >
                 {template.category}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-zinc-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-300">
                 {FORMAT_ICON[template.format]}
                 {template.format}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-zinc-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-300">
                 <CalendarClock className="h-2.5 w-2.5" />
                 {template.cadence}
               </span>
               {template.lastRun ? (
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[11px] text-zinc-500">
                   last run · {template.lastRun}
                 </span>
               ) : null}
@@ -227,7 +227,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
                   <span className="col-span-2 text-[11px] text-zinc-400 capitalize">
                     {r.status}
                   </span>
-                  <span className="col-span-2 text-right font-mono text-[10px] text-zinc-400">
+                  <span className="col-span-2 text-right font-mono text-[11px] text-zinc-400">
                     {r.duration}
                   </span>
                   <span className="col-span-2 text-right">
@@ -236,18 +236,18 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
                         type="button"
                         aria-label="Download"
                         onClick={handleDownloadRun}
-                        className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                        className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3.5 w-3.5" />
                       </button>
                     ) : r.status === "failed" ? (
                       <button
                         type="button"
                         aria-label="Retry"
                         onClick={() => handleRetry(r)}
-                        className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                        className="grid h-8 w-8 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                       >
-                        <RefreshCw className="h-3 w-3" />
+                        <RefreshCw className="h-3.5 w-3.5" />
                       </button>
                     ) : null}
                   </span>
@@ -290,7 +290,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
                 </span>
               </div>
               <div className="border-t border-white/8 pt-2">
-                <div className="text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
                   Recipients
                 </div>
                 <ul className="mt-1 space-y-0.5">
@@ -309,7 +309,7 @@ export function ReportDetailView({ template }: { template: ReportTemplate }) {
                 <button
                   type="button"
                   onClick={handleSchedule}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2.5 py-1 text-[10px] text-zinc-200 hover:bg-white/12"
+                  className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/12"
                 >
                   <CalendarClock className="h-2.5 w-2.5" />
                   Add schedule
@@ -380,7 +380,7 @@ function MiniTable({ rows, columns }: { rows: React.ReactNode[][]; columns: stri
             {columns.map((c) => (
               <th
                 key={c}
-                className="px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-400"
+                className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400"
               >
                 {c}
               </th>
@@ -919,7 +919,7 @@ function BoardPackPreview() {
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
-          <div className="text-[9px] uppercase tracking-[0.18em] text-zinc-500">Wins</div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Wins</div>
           <ul className="mt-2 space-y-1 text-[11px] text-zinc-200">
             <li>· Won 2 lighthouse logos in fintech vertical</li>
             <li>· Sprint velocity up 18% vs prior quarter</li>
@@ -927,7 +927,7 @@ function BoardPackPreview() {
           </ul>
         </div>
         <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">
-          <div className="text-[9px] uppercase tracking-[0.18em] text-zinc-500">Risks</div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Risks</div>
           <ul className="mt-2 space-y-1 text-[11px] text-zinc-200">
             <li>· 2 projects flagged red; recovery plans in flight</li>
             <li>· Backend bench thin; 3 open reqs unfilled &gt;60 days</li>

@@ -11,7 +11,7 @@ import { mockTeam } from "@/infrastructure/data/team.mock";
 import { DashboardMetricGrid } from "./DashboardMetricGrid";
 import { RevenueTrendChart } from "./RevenueTrendChart";
 import { ProjectHealthPanel } from "./ProjectHealthPanel";
-import { relativeFromNow } from "@/lib/date";
+import { formatDemoToday, relativeFromNow } from "@/lib/date";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 
 const teamMap = new Map(mockTeam.map((m) => [m.id, m]));
@@ -37,7 +37,7 @@ export function ExecutiveDashboardView() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-300">
-            Executive Briefing · {new Date("2026-05-18").toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long" })}
+            Executive Briefing · {formatDemoToday()}
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
             Good morning, <span className="headline-gradient">Damar</span>. Here is your firm.

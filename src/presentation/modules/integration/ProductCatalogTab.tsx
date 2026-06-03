@@ -99,7 +99,7 @@ export function ProductCatalogTab() {
                   <div className="truncate text-xs font-semibold text-zinc-100">
                     {k.title}
                   </div>
-                  <div className="mt-1 text-[10px] text-zinc-400">
+                  <div className="mt-1 text-[11px] text-zinc-400">
                     {k.readMinutes * 18} Deal · {k.category}
                   </div>
                 </li>
@@ -116,7 +116,7 @@ export function ProductCatalogTab() {
                   <div className="truncate text-xs font-semibold text-zinc-100">
                     {k.title}
                   </div>
-                  <div className="mt-1 text-[10px] text-zinc-400">
+                  <div className="mt-1 text-[11px] text-zinc-400">
                     {k.readMinutes * 14} View · {Math.max(2, Math.round(k.readMinutes * 2.2))} Download
                   </div>
                 </li>
@@ -308,13 +308,13 @@ function RowAction({ label, icon: Icon, tone, onClick }: RowActionProps) {
       aria-label={label}
       title={label}
       className={cn(
-        "grid h-6 w-6 place-items-center rounded text-zinc-400 transition-colors",
+        "grid h-8 w-8 place-items-center rounded text-zinc-400 transition-colors",
         tone === "danger"
           ? "hover:bg-rose-500/15 hover:text-rose-300"
           : "hover:bg-white/10 hover:text-zinc-100",
       )}
     >
-      <Icon className="h-3 w-3" />
+      <Icon className="h-3.5 w-3.5" />
     </button>
   );
 }
