@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, format, formatDistanceToNowStrict, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, formatDistanceStrict, parseISO } from "date-fns";
 
 export function formatDate(iso: string, pattern = "dd MMM yyyy"): string {
   return format(parseISO(iso), pattern);
@@ -9,11 +9,11 @@ export function formatDateTime(iso: string, pattern = "dd MMM yyyy HH:mm"): stri
 }
 
 export function daysFromNow(iso: string): number {
-  return differenceInCalendarDays(parseISO(iso), new Date());
+  return differenceInCalendarDays(parseISO(iso), DEMO_TODAY);
 }
 
 export function relativeFromNow(iso: string): string {
-  return formatDistanceToNowStrict(parseISO(iso), { addSuffix: true });
+  return formatDistanceStrict(parseISO(iso), DEMO_TODAY, { addSuffix: true });
 }
 
 /**

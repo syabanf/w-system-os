@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Calendar, Mail, Percent, Target, User, Wallet, X } from "lucide-react";
-import type { Lead } from "@/domain/entities/Lead";
+import type { Lead, LeadStage } from "@/domain/entities/Lead";
 import type { PipelineStage } from "@/application/use-cases/crm/GetSalesPipeline";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { useLeadsStore } from "@/state/leads.store";
+import { useToast } from "@/state/toast.store";
 import { formatIDRCompact } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 
@@ -18,18 +20,92 @@ const STAGE_ACCENT: Record<string, string> = {
   Lost: "#EF4444",
 };
 
+/** Recompute a column's aggregate values from its current leads. */
+function withTotals(stage: LeadStage, leads: Lead[]): PipelineStage {
+  const totalValue = leads.reduce((sum, l) => sum + l.dealValue, 0);
+  const weightedValue = leads.reduce(
+    (sum, l) => sum + l.dealValue * (l.probability / 100),
+    0,
+  );
+  return { stage, leads, totalValue, weightedValue };
+}
+
 export function LeadPipelineBoard({ stages }: { stages: PipelineStage[] }) {
   const [selected, setSelected] = useState<Lead | null>(null);
+  // Local board state seeded from the prop. The prop is derived from a service
+  // (not the store), so it won't update after a move — we mutate `board` locally
+  // and persist intent to the store separately.
+  const [board, setBoard] = useState<PipelineStage[]>(stages);
+  // Which column is currently a valid drop target (for the hover highlight).
+  const [dropTarget, setDropTarget] = useState<LeadStage | null>(null);
+
+  const updateLead = useLeadsStore((s) => s.update);
+  const toast = useToast();
+
+  // Re-sync if the upstream prop changes.
+  useEffect(() => setBoard(stages), [stages]);
+
+  const moveLead = (leadId: string, toStage: LeadStage) => {
+    setBoard((prev) => {
+      const fromColumn = prev.find((c) => c.leads.some((l) => l.id === leadId));
+      if (!fromColumn) return prev;
+      const lead = fromColumn.leads.find((l) => l.id === leadId)!;
+      if (fromColumn.stage === toStage) return prev; // no-op drop
+
+      const moved: Lead = { ...lead, stage: toStage };
+      const next = prev.map((column) => {
+        if (column.stage === fromColumn.stage) {
+          return withTotals(
+            column.stage,
+            column.leads.filter((l) => l.id !== leadId),
+          );
+        }
+        if (column.stage === toStage) {
+          return withTotals(column.stage, [...column.leads, moved]);
+        }
+        return column;
+      });
+
+      // Persist intent to the store + notify.
+      updateLead(leadId, { stage: toStage });
+      toast.success("Lead moved", `${lead.companyName} → ${toStage}`);
+
+      return next;
+    });
+  };
 
   return (
     <div className="glass-scroll -mx-1 overflow-x-auto pb-2">
       <div className="flex min-w-max gap-3 px-1">
-        {stages.map((column) => {
+        {board.map((column) => {
           const accent = STAGE_ACCENT[column.stage] ?? "#FAFAF9";
+          const isDropTarget = dropTarget === column.stage;
           return (
             <div
               key={column.stage}
-              className="w-[260px] shrink-0 rounded-2xl border border-white/8 bg-white/[0.025] p-3"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (dropTarget !== column.stage) setDropTarget(column.stage);
+              }}
+              onDragLeave={(e) => {
+                // Only clear when leaving the column itself, not its children.
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                  setDropTarget((cur) => (cur === column.stage ? null : cur));
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDropTarget(null);
+                const leadId = e.dataTransfer.getData("text/lead");
+                if (leadId) moveLead(leadId, column.stage);
+              }}
+              className={cn(
+                "w-[260px] shrink-0 rounded-2xl border p-3 transition-colors",
+                isDropTarget
+                  ? "border-white/30 bg-white/[0.06]"
+                  : "border-white/8 bg-white/[0.025]",
+              )}
             >
               <header className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -46,41 +122,24 @@ export function LeadPipelineBoard({ stages }: { stages: PipelineStage[] }) {
               </header>
               <ul className="space-y-2">
                 {column.leads.length === 0 ? (
-                  <li className="rounded-xl border border-dashed border-white/8 p-3 text-center text-[10px] text-zinc-500">
-                    Empty
+                  <li
+                    className={cn(
+                      "rounded-xl border border-dashed p-3 text-center text-[10px] transition-colors",
+                      isDropTarget
+                        ? "border-white/30 text-zinc-300"
+                        : "border-white/8 text-zinc-500",
+                    )}
+                  >
+                    {isDropTarget ? "Drop here" : "Empty"}
                   </li>
                 ) : (
                   column.leads.map((lead) => (
-                    <li key={lead.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelected(lead)}
-                        className={cn(
-                          "glass-soft block w-full cursor-pointer rounded-xl border border-white/6 p-3 text-left transition-all",
-                          "hover:-translate-y-0.5 hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
-                        )}
-                      >
-                        <div className="text-xs font-semibold text-zinc-100">{lead.companyName}</div>
-                        <div className="mt-0.5 text-[11px] text-zinc-400">{lead.contactPerson}</div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="font-mono text-[11px] text-zinc-200">
-                            {formatIDRCompact(lead.dealValue)}
-                          </span>
-                          <span
-                            className="rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
-                            style={{
-                              background: `${accent}22`,
-                              color: accent,
-                            }}
-                          >
-                            {lead.probability}%
-                          </span>
-                        </div>
-                        <div className="mt-1.5 text-[10px] text-zinc-500">
-                          Follow-up · {lead.followUpDate}
-                        </div>
-                      </button>
-                    </li>
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      accent={accent}
+                      onOpen={() => setSelected(lead)}
+                    />
                   ))
                 )}
               </ul>
@@ -91,6 +150,60 @@ export function LeadPipelineBoard({ stages }: { stages: PipelineStage[] }) {
 
       <LeadQuickView lead={selected} onClose={() => setSelected(null)} />
     </div>
+  );
+}
+
+/** A single draggable kanban card. A plain click (no drag) opens the quick view. */
+function LeadCard({
+  lead,
+  accent,
+  onOpen,
+}: {
+  lead: Lead;
+  accent: string;
+  onOpen: () => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+
+  return (
+    <li>
+      <button
+        type="button"
+        draggable
+        onClick={onOpen}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/lead", lead.id);
+          e.dataTransfer.effectAllowed = "move";
+          setDragging(true);
+        }}
+        onDragEnd={() => setDragging(false)}
+        className={cn(
+          "glass-soft block w-full cursor-pointer rounded-xl border border-white/6 p-3 text-left transition-all",
+          "hover:-translate-y-0.5 hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
+          dragging && "opacity-40",
+        )}
+      >
+        <div className="text-xs font-semibold text-zinc-100">{lead.companyName}</div>
+        <div className="mt-0.5 text-[11px] text-zinc-400">{lead.contactPerson}</div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="font-mono text-[11px] text-zinc-200">
+            {formatIDRCompact(lead.dealValue)}
+          </span>
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+            style={{
+              background: `${accent}22`,
+              color: accent,
+            }}
+          >
+            {lead.probability}%
+          </span>
+        </div>
+        <div className="mt-1.5 text-[10px] text-zinc-500">
+          Follow-up · {lead.followUpDate}
+        </div>
+      </button>
+    </li>
   );
 }
 

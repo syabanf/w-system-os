@@ -7,7 +7,7 @@ import type {
 } from "@/domain/entities/ProjectMilestone";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { Avatar } from "@/presentation/shared/Avatar";
-import { cn } from "@/lib/cn";
+import { StatusBadge, type StatusTone } from "@/presentation/shared/StatusBadge";
 
 /**
  * Shared vocabulary for the project-milestone views (board, table, calendar).
@@ -58,14 +58,15 @@ export const STATUS_LABEL: Record<MilestoneStatus, string> = {
   overdue: "Overdue",
 };
 
-/** Inline pill styling. Milestone-specific palette (incl. the "mint"
- *  already-sent hue) so we don't lean on the generic StatusBadge. */
-export const STATUS_PILL: Record<MilestoneStatus, string> = {
-  "waiting-action": "bg-blue-500/15 text-blue-300 ring-blue-400/30",
-  "already-sent": "bg-teal-500/15 text-teal-200 ring-teal-400/30",
-  "in-progress": "bg-amber-500/15 text-amber-300 ring-amber-400/30",
-  approved: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30",
-  overdue: "bg-rose-500/15 text-rose-300 ring-rose-400/30",
+/** Map each milestone status onto the app-wide StatusBadge tone vocabulary,
+ *  so milestone pills share one theme-adaptive (light + dark) palette with the
+ *  rest of the app instead of a bespoke per-status class list. */
+export const STATUS_TONE: Record<MilestoneStatus, StatusTone> = {
+  "waiting-action": "info",
+  "already-sent": "success",
+  "in-progress": "warning",
+  approved: "success",
+  overdue: "danger",
 };
 
 export const SECTION_TITLE: Record<MilestoneSection, string> = {
@@ -94,14 +95,9 @@ export function formatMilestoneDate(iso?: string): string {
 
 export function StatusPill({ status }: { status: MilestoneStatus }) {
   return (
-    <span
-      className={cn(
-        "ms-pill shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ring-1",
-        STATUS_PILL[status],
-      )}
-    >
+    <StatusBadge tone={STATUS_TONE[status]} className="shrink-0">
       {STATUS_LABEL[status]}
-    </span>
+    </StatusBadge>
   );
 }
 

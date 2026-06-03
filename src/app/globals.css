@@ -546,18 +546,6 @@ html {
 [data-theme="light"] .text-fuchsia-300 { color: #a21caf !important; }
 [data-theme="light"] .text-cyan-300 { color: #0e7490 !important; }
 
-/* Milestone StatusPill (.ms-pill) accent text in light mode.
-   The dark-theme accent shades (blue-300, teal-200, amber-300, emerald-300,
-   rose-300) render light-on-light on the ~15% tinted pill background and fail
-   WCAG AA. These chained selectors carry both the .ms-pill marker and the
-   color utility, so the override is scoped to milestone pills only and darkens
-   each to an AA-passing shade. Dark mode is untouched. */
-[data-theme="light"] .ms-pill.text-blue-300    { color: #1d4ed8 !important; }
-[data-theme="light"] .ms-pill.text-teal-200    { color: #0f766e !important; }
-[data-theme="light"] .ms-pill.text-amber-300   { color: #b45309 !important; }
-[data-theme="light"] .ms-pill.text-emerald-300 { color: #047857 !important; }
-[data-theme="light"] .ms-pill.text-rose-300    { color: #be123c !important; }
-
 /* Reddie chat: pop-in for the panel + typing dots + halo ping on the launcher. */
 @keyframes reddie-pop {
   from { opacity: 0; transform: translateY(12px) scale(0.96); }

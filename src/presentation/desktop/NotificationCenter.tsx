@@ -11,15 +11,18 @@ import {
   Megaphone,
   Receipt,
   ShieldAlert,
+  Undo2,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { useDesktopStore } from "@/state/desktop.store";
+import { useWindowStore } from "@/state/window.store";
 import {
   useNotificationStore,
   type NotificationFilter,
   type NotificationKind,
 } from "@/state/notification.store";
+import type { AppModuleId } from "@/constants/appModules";
 import { relativeFromNow } from "@/lib/date";
 import { cn } from "@/lib/cn";
 
@@ -41,6 +44,24 @@ const KIND_ACCENT: Record<NotificationKind, string> = {
   sla: "#F87171",
 };
 
+// Maps a notification's free-form `appHint` to a desktop module so a click can
+// deep-link into the relevant app. Falls back to "dashboard" for anything
+// unrecognized.
+const APP_HINT_MAP: Record<string, AppModuleId> = {
+  Support: "support",
+  Finance: "finance",
+  Sprints: "projects",
+  Projects: "projects",
+  Timesheets: "timesheet",
+  CRM: "leads",
+  Contracts: "clients",
+};
+
+function resolveAppTarget(appHint?: string): AppModuleId {
+  if (!appHint) return "dashboard";
+  return APP_HINT_MAP[appHint] ?? "dashboard";
+}
+
 const FILTERS: { id: NotificationFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "unread", label: "Unread" },
@@ -61,7 +82,15 @@ export function NotificationCenter() {
   const setFilter = useNotificationStore((s) => s.setFilter);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
   const markRead = useNotificationStore((s) => s.markRead);
+  const markUnread = useNotificationStore((s) => s.markUnread);
   const dismiss = useNotificationStore((s) => s.dismiss);
+  const openApp = useWindowStore((s) => s.openApp);
+
+  const handleOpen = (n: (typeof notifications)[number]) => {
+    markRead(n.id);
+    openApp(resolveAppTarget(n.appHint));
+    toggleNotifications();
+  };
 
   const visible = useMemo(() => {
     if (filter === "all") return notifications;
@@ -161,8 +190,17 @@ export function NotificationCenter() {
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
+                        onClick={() => handleOpen(n)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleOpen(n);
+                          }
+                        }}
                         className={cn(
-                          "glass-soft group relative overflow-hidden rounded-xl border border-white/6 p-3 transition-colors",
+                          "glass-soft group relative cursor-pointer overflow-hidden rounded-xl border border-white/6 p-3 transition-colors",
                           "hover:border-white/12",
                           n.read && "opacity-60",
                         )}
@@ -204,16 +242,34 @@ export function NotificationCenter() {
                               <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                                 {!n.read ? (
                                   <button
-                                    onClick={() => markRead(n.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      markRead(n.id);
+                                    }}
                                     aria-label="Mark as read"
                                     title="Mark as read"
                                     className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-emerald-300"
                                   >
                                     <Check className="h-3 w-3" />
                                   </button>
-                                ) : null}
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      markUnread(n.id);
+                                    }}
+                                    aria-label="Mark as unread"
+                                    title="Mark as unread"
+                                    className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-sky-300"
+                                  >
+                                    <Undo2 className="h-3 w-3" />
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => dismiss(n.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    dismiss(n.id);
+                                  }}
                                   aria-label="Dismiss"
                                   title="Dismiss"
                                   className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-rose-300"

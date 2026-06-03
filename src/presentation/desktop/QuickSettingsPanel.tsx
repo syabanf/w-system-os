@@ -14,12 +14,15 @@ import {
 } from "lucide-react";
 import { useDesktopStore } from "@/state/desktop.store";
 import { useThemeStore } from "@/state/theme.store";
+import { useNotificationStore } from "@/state/notification.store";
 
 export function QuickSettingsPanel() {
   const isSettingsOpen = useDesktopStore((s) => s.isSettingsOpen);
   const toggleSettings = useDesktopStore((s) => s.toggleSettings);
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggle);
+  const dnd = useNotificationStore((s) => s.dnd);
+  const setDnd = useNotificationStore((s) => s.setDnd);
 
   return (
     <AnimatePresence>
@@ -50,7 +53,13 @@ export function QuickSettingsPanel() {
             <div className="glass-soft grid grid-cols-2 gap-2 rounded-xl p-3">
               <Toggle icon={Wifi} label="Wi-Fi" hint="WIT-OFFICE-5G" active />
               <Toggle icon={Bluetooth} label="Bluetooth" hint="Connected" active />
-              <Toggle icon={Focus} label="Focus" hint="Do not disturb" />
+              <Toggle
+                icon={Focus}
+                label="Do Not Disturb"
+                hint={dnd ? "Silencing alerts" : "Alerts on"}
+                active={dnd}
+                onClick={() => setDnd(!dnd)}
+              />
               <Toggle
                 icon={theme === "dark" ? Moon : Sun}
                 label="Theme"

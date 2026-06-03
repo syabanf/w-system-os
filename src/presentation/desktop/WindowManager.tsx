@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useWindowStore } from "@/state/window.store";
 import { AppWindow } from "@/presentation/windows/AppWindow";
@@ -87,6 +88,15 @@ const FOCUS_STYLE = `
 }
 `;
 
+/** True when a keydown originated in an editable field, so app shortcuts must
+ *  yield to normal text editing/navigation. */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable;
+}
+
 export function WindowManager() {
   const windows = useWindowStore((s) => s.windows);
   const order = useWindowStore((s) => s.order);
@@ -94,6 +104,52 @@ export function WindowManager() {
   // highest zIndex). We use `focused` as the single source of truth so chrome
   // here matches AppWindow's own `isFocused` styling.
   const focused = useWindowStore((s) => s.focused);
+  const hydrate = useWindowStore((s) => s.hydrate);
+
+  // Restore the saved window layout once, after mount (client-only).
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  // Global window-management keyboard shortcuts. We read the latest store state
+  // inside the handler (via getState) so the effect can stay mounted for the
+  // component's lifetime without re-subscribing on every focus change.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      const store = useWindowStore.getState();
+      const id = store.focused;
+      if (!id) return;
+
+      const meta = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      if (meta && key === "w") {
+        e.preventDefault();
+        store.closeApp(id);
+        return;
+      }
+      if (meta && key === "m") {
+        e.preventDefault();
+        store.toggleMinimize(id);
+        return;
+      }
+      // Snap uses Ctrl specifically (not ⌘) to avoid clashing with macOS
+      // Mission Control / Spaces left/right gestures bound to ⌘+Arrow.
+      if (e.ctrlKey && !e.metaKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        store.snapLeft(id);
+        return;
+      }
+      if (e.ctrlKey && !e.metaKey && e.key === "ArrowRight") {
+        e.preventDefault();
+        store.snapRight(id);
+        return;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10">

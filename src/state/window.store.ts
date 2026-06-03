@@ -26,6 +26,9 @@ interface WindowState {
   order: AppModuleId[];
   focused: AppModuleId | null;
   nextZ: number;
+  /** True once we've attempted to load the saved layout from localStorage. */
+  isHydrated: boolean;
+  hydrate: () => void;
   openApp: (id: AppModuleId) => void;
   closeApp: (id: AppModuleId) => void;
   focusApp: (id: AppModuleId) => void;
@@ -33,13 +36,81 @@ interface WindowState {
   toggleMaximize: (id: AppModuleId) => void;
   restore: (id: AppModuleId) => void;
   setBounds: (id: AppModuleId, bounds: WindowBounds) => void;
+  snapLeft: (id: AppModuleId) => void;
+  snapRight: (id: AppModuleId) => void;
 }
 
-export const useWindowStore = create<WindowState>((set, get) => ({
+const STORAGE_KEY = "wit-erp-os.windows";
+
+/** Subset of state we persist across reloads. */
+type PersistedWindowState = Pick<
+  WindowState,
+  "windows" | "order" | "focused" | "nextZ"
+>;
+
+/** Workspace insets, mirrored from AppWindow so snapped windows align with
+ *  the same clamping the drag/resize logic applies. */
+const TOP_INSET = 56;
+const BOTTOM_INSET = 116;
+const SIDE_INSET = 12;
+/** Gap between the two snapped halves. */
+const GUTTER = 12;
+
+function persistState(state: PersistedWindowState) {
+  if (typeof window === "undefined") return;
+  try {
+    const { windows, order, focused, nextZ } = state;
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ windows, order, focused, nextZ }),
+    );
+  } catch {
+    // Quota exceeded or storage disabled — the in-memory store still works.
+  }
+}
+
+function loadState(): PersistedWindowState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedWindowState>;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed.windows || !Array.isArray(parsed.order)) return null;
+    return {
+      windows: parsed.windows as Record<AppModuleId, DesktopWindow>,
+      order: parsed.order as AppModuleId[],
+      focused: (parsed.focused ?? null) as AppModuleId | null,
+      nextZ: typeof parsed.nextZ === "number" ? parsed.nextZ : 10,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const useWindowStore = create<WindowState>((set, get) => {
+  /** Serialize the current layout after a mutating action. */
+  const persist = () => {
+    const { windows, order, focused, nextZ } = get();
+    persistState({ windows, order, focused, nextZ });
+  };
+
+  return {
   windows: {} as Record<AppModuleId, DesktopWindow>,
   order: [],
   focused: null,
   nextZ: 10,
+  isHydrated: false,
+
+  hydrate: () => {
+    if (get().isHydrated) return;
+    const stored = loadState();
+    if (stored) {
+      set({ ...stored, isHydrated: true });
+    } else {
+      set({ isHydrated: true });
+    }
+  },
 
   openApp: (id) => {
     const state = get();
@@ -56,6 +127,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
         nextZ: state.nextZ + 1,
         focused: id,
       });
+      persist();
       return;
     }
     set({
@@ -73,6 +145,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
       focused: id,
       nextZ: state.nextZ + 1,
     });
+    persist();
   },
 
   closeApp: (id) => {
@@ -85,6 +158,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
       order,
       focused: order[order.length - 1] ?? null,
     });
+    persist();
   },
 
   focusApp: (id) => {
@@ -99,6 +173,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
       nextZ: state.nextZ + 1,
       focused: id,
     });
+    persist();
   },
 
   toggleMinimize: (id) => {
@@ -112,6 +187,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
         ? state.order.filter((x) => x !== id && !state.windows[x].isMinimized).slice(-1)[0] ?? null
         : id,
     });
+    persist();
   },
 
   toggleMaximize: (id) => {
@@ -126,6 +202,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
       nextZ: state.nextZ + 1,
       focused: id,
     });
+    persist();
   },
 
   restore: (id) => {
@@ -140,6 +217,7 @@ export const useWindowStore = create<WindowState>((set, get) => ({
       nextZ: state.nextZ + 1,
       focused: id,
     });
+    persist();
   },
 
   setBounds: (id, bounds) => {
@@ -149,5 +227,58 @@ export const useWindowStore = create<WindowState>((set, get) => ({
     set({
       windows: { ...state.windows, [id]: { ...win, bounds } },
     });
+    persist();
   },
-}));
+
+  snapLeft: (id) => {
+    const state = get();
+    const win = state.windows[id];
+    if (!win) return;
+    set({
+      windows: {
+        ...state.windows,
+        [id]: {
+          ...win,
+          isMaximized: false,
+          bounds: halfBounds("left"),
+          zIndex: state.nextZ,
+        },
+      },
+      nextZ: state.nextZ + 1,
+      focused: id,
+    });
+    persist();
+  },
+
+  snapRight: (id) => {
+    const state = get();
+    const win = state.windows[id];
+    if (!win) return;
+    set({
+      windows: {
+        ...state.windows,
+        [id]: {
+          ...win,
+          isMaximized: false,
+          bounds: halfBounds("right"),
+          zIndex: state.nextZ,
+        },
+      },
+      nextZ: state.nextZ + 1,
+      focused: id,
+    });
+    persist();
+  },
+  };
+});
+
+/** Compute bounds filling the left or right half of the workspace, leaving
+ *  room for the top menu bar and bottom dock. Guards SSR. */
+function halfBounds(side: "left" | "right"): WindowBounds {
+  const vw = typeof window === "undefined" ? 1440 : window.innerWidth;
+  const vh = typeof window === "undefined" ? 900 : window.innerHeight;
+  const width = Math.round(vw / 2 - SIDE_INSET - GUTTER / 2);
+  const height = vh - TOP_INSET - BOTTOM_INSET;
+  const x = side === "left" ? SIDE_INSET : Math.round(vw / 2 + GUTTER / 2);
+  return { x, y: TOP_INSET, width, height };
+}

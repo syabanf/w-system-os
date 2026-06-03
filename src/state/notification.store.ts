@@ -20,6 +20,9 @@ interface NotificationState {
   notifications: DesktopNotification[];
   unread: number;
   filter: NotificationFilter;
+  dnd: boolean;
+  setDnd: (v: boolean) => void;
+  toggleDnd: () => void;
   setFilter: (f: NotificationFilter) => void;
   markRead: (id: string) => void;
   markUnread: (id: string) => void;
@@ -49,6 +52,9 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: DEFAULTS,
   unread: DEFAULTS.length,
   filter: "all",
+  dnd: false,
+  setDnd: (v) => set({ dnd: v }),
+  toggleDnd: () => set((s) => ({ dnd: !s.dnd })),
   setFilter: (f) => set({ filter: f }),
   markRead: (id) =>
     set((s) => {

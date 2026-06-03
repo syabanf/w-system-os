@@ -5,6 +5,7 @@ import { TopMenuBar } from "./TopMenuBar";
 import { AppDock } from "./AppDock";
 import { WindowManager } from "./WindowManager";
 import { SpotlightSearch } from "./SpotlightSearch";
+import { ShortcutsOverlay } from "./ShortcutsOverlay";
 import { NotificationCenter } from "./NotificationCenter";
 import { QuickSettingsPanel } from "./QuickSettingsPanel";
 import { UserProfileMenu } from "./UserProfileMenu";
@@ -27,6 +28,7 @@ export function DesktopShell() {
       <UserProfileMenu />
       <AppDock />
       <SpotlightSearch />
+      <ShortcutsOverlay />
       <DesktopLauncher />
       <MasterDataDrawer />
     </main>
