@@ -8,6 +8,7 @@ import type {
   Performance360Template,
 } from "@/infrastructure/data/performance360.mock";
 import type { PerformanceTemplateDraft } from "@/state/performanceTemplates.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 type PeriodKind = Performance360Template["periodKind"];
@@ -83,15 +84,26 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.name.trim().length > 0 && draft.periodLabel.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.name.trim().length === 0) errors.name = "Required";
+  if (draft.periodLabel.trim().length === 0) errors.periodLabel = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(
       {
         name: draft.name.trim(),
@@ -153,36 +165,38 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Name" required>
+              <FormField label="Name" required error={submitted ? errors.name : undefined}>
                 <input
                   type="text"
                   value={draft.name}
                   onChange={(e) => set("name", e.target.value)}
                   className={inputCls}
                   placeholder="e.g. H1 2026 360 Review"
+                  aria-invalid={submitted && !!errors.name}
                   autoFocus
                 />
-              </Field>
-              <Field label="Description">
+              </FormField>
+              <FormField label="Description">
                 <textarea
                   value={draft.description}
                   onChange={(e) => set("description", e.target.value)}
                   className={cn(inputCls, "min-h-[56px] resize-y")}
                   placeholder="What this cycle covers."
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Period label" required>
+                <FormField label="Period label" required error={submitted ? errors.periodLabel : undefined}>
                   <input
                     type="text"
                     value={draft.periodLabel}
                     onChange={(e) => set("periodLabel", e.target.value)}
                     className={inputCls}
                     placeholder="H1 2026"
+                    aria-invalid={submitted && !!errors.periodLabel}
                   />
-                </Field>
-                <Field label="Period kind">
+                </FormField>
+                <FormField label="Period kind">
                   <select
                     value={draft.periodKind}
                     onChange={(e) => set("periodKind", e.target.value as PeriodKind)}
@@ -194,42 +208,42 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Period start">
+                </FormField>
+                <FormField label="Period start">
                   <input
                     type="date"
                     value={draft.periodStart}
                     onChange={(e) => set("periodStart", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Period end">
+                </FormField>
+                <FormField label="Period end">
                   <input
                     type="date"
                     value={draft.periodEnd}
                     onChange={(e) => set("periodEnd", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Year">
+                </FormField>
+                <FormField label="Year">
                   <input
                     type="number"
                     value={draft.periodYear}
                     onChange={(e) => set("periodYear", e.target.value)}
                     className={cn(inputCls, "font-mono")}
                   />
-                </Field>
-                <Field label="Rating scale max">
+                </FormField>
+                <FormField label="Rating scale max">
                   <input
                     type="number"
                     value={draft.ratingScaleMax}
                     onChange={(e) => set("ratingScaleMax", e.target.value)}
                     className={cn(inputCls, "font-mono")}
                   />
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Status">
+              <FormField label="Status">
                 <select
                   value={draft.status}
                   onChange={(e) =>
@@ -243,7 +257,7 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
                     </option>
                   ))}
                 </select>
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
@@ -258,13 +272,7 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create template"}
                 </button>
@@ -279,23 +287,3 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

@@ -11,6 +11,7 @@ import type {
   KpiPillar,
   KpiUnit,
 } from "@/state/kpis.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const PILLARS: KpiPillar[] = ["Growth", "Delivery", "People", "Finance", "Customer"];
@@ -85,22 +86,33 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
   const current = Number(draft.current);
   const target = Number(draft.target);
-  const isValid =
-    draft.name.trim().length > 0 &&
-    draft.owner.trim().length > 0 &&
-    Number.isFinite(current) &&
-    draft.current.trim() !== "" &&
-    Number.isFinite(target) &&
-    draft.target.trim() !== "";
+
+  const errors: Record<string, string> = {};
+  if (draft.name.trim().length === 0) errors.name = "Required";
+  if (draft.owner.trim().length === 0) errors.owner = "Required";
+  if (draft.current.trim() === "") errors.current = "Required";
+  else if (!Number.isFinite(current)) errors.current = "Enter a number";
+  if (draft.target.trim() === "") errors.target = "Required";
+  else if (!Number.isFinite(target)) errors.target = "Enter a number";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     // Preserve the historical series when editing; seed a flat 12-period series
     // anchored on `current` for brand-new KPIs so the sparkline renders.
     const history =
@@ -168,19 +180,20 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Name" required>
+              <FormField label="Name" required error={submitted ? errors.name : undefined}>
                 <input
                   type="text"
                   value={draft.name}
                   onChange={(e) => set("name", e.target.value)}
                   className={inputCls}
                   placeholder="e.g. Monthly Revenue"
+                  aria-invalid={submitted && !!errors.name}
                   autoFocus
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Pillar">
+                <FormField label="Pillar">
                   <select
                     value={draft.pillar}
                     onChange={(e) => set("pillar", e.target.value as KpiPillar)}
@@ -192,8 +205,8 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Unit">
+                </FormField>
+                <FormField label="Unit">
                   <select
                     value={draft.unit}
                     onChange={(e) => set("unit", e.target.value as KpiUnit)}
@@ -205,8 +218,8 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Current" required>
+                </FormField>
+                <FormField label="Current" required error={submitted ? errors.current : undefined}>
                   <input
                     type="number"
                     step="any"
@@ -214,9 +227,10 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     onChange={(e) => set("current", e.target.value)}
                     className={cn(inputCls, "font-mono")}
                     placeholder="0"
+                    aria-invalid={submitted && !!errors.current}
                   />
-                </Field>
-                <Field label="Target" required>
+                </FormField>
+                <FormField label="Target" required error={submitted ? errors.target : undefined}>
                   <input
                     type="number"
                     step="any"
@@ -224,9 +238,10 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     onChange={(e) => set("target", e.target.value)}
                     className={cn(inputCls, "font-mono")}
                     placeholder="0"
+                    aria-invalid={submitted && !!errors.target}
                   />
-                </Field>
-                <Field label="Direction">
+                </FormField>
+                <FormField label="Direction">
                   <select
                     value={draft.direction}
                     onChange={(e) =>
@@ -240,8 +255,8 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Cadence">
+                </FormField>
+                <FormField label="Cadence">
                   <select
                     value={draft.cadence}
                     onChange={(e) => set("cadence", e.target.value as KpiCadence)}
@@ -253,18 +268,19 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Owner" required>
+              <FormField label="Owner" required error={submitted ? errors.owner : undefined}>
                 <input
                   type="text"
                   value={draft.owner}
                   onChange={(e) => set("owner", e.target.value)}
                   className={inputCls}
                   placeholder="Accountable person"
+                  aria-invalid={submitted && !!errors.owner}
                 />
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
@@ -279,13 +295,7 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create KPI"}
                 </button>
@@ -300,23 +310,3 @@ export function KPIFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

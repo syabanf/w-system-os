@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Briefcase, Gauge, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, Briefcase, Gauge, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { createProjectService } from "@/application/factories/createProjectService";
 import { createSprintService } from "@/application/factories/createSprintService";
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
@@ -25,6 +25,7 @@ import { ProjectFormDialog } from "./ProjectFormDialog";
 import { EpicFormDialog } from "./EpicFormDialog";
 import { StoryFormDialog } from "./StoryFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
 import { DrillHeader } from "@/presentation/shared/DrillHeader";
 import { useDrillState } from "@/state/drill.store";
@@ -273,32 +274,24 @@ export function ProjectManagementView() {
                 className="w-full sm:w-auto md:w-72"
               />
               <ViewSwitch view={view} onChange={setView} />
-              <button
-                type="button"
+              <NewButton
+                label="New project"
                 onClick={() => {
                   setEditing(null);
                   setFormOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-              >
-                <Plus className="h-3 w-3" />
-                New project
-              </button>
+              />
             </>
           ) : null}
           {section === "portfolio" && drill.level === "project" && drillProject ? (
             <>
-              <button
-                type="button"
+              <NewButton
+                label="New epic"
                 onClick={() => {
                   setEditingEpic(null);
                   setEpicFormOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-              >
-                <Plus className="h-3 w-3" />
-                Add epic
-              </button>
+              />
               <button
                 type="button"
                 onClick={() => {
@@ -322,17 +315,13 @@ export function ProjectManagementView() {
           ) : null}
           {section === "portfolio" && drill.level === "epic" && drillEpic ? (
             <>
-              <button
-                type="button"
+              <NewButton
+                label="New story"
                 onClick={() => {
                   setEditingStory(null);
                   setStoryFormOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-              >
-                <Plus className="h-3 w-3" />
-                Add story
-              </button>
+              />
               <button
                 type="button"
                 onClick={() => {

@@ -9,6 +9,7 @@ import type {
   ExpenseStatus,
 } from "@/domain/entities/Transaction";
 import type { ExpenseClaimDraft } from "@/state/expenseClaims.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const CATEGORIES: ExpenseCategory[] = ["Travel", "Meals", "Software", "Equipment", "Marketing", "Other"];
@@ -42,23 +43,33 @@ function fromClaim(c: ExpenseClaim): ExpenseClaimDraft {
 
 export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<ExpenseClaimDraft>(emptyDraft);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromClaim(editing) : emptyDraft());
+    setSubmitted(false);
   }, [open, editing]);
 
   const set = <K extends keyof ExpenseClaimDraft>(key: K, value: ExpenseClaimDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.employeeName.trim().length > 0 &&
-    draft.amount > 0 &&
-    draft.description.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (!draft.employeeName.trim()) errors.employeeName = "Required";
+  if (!(draft.amount > 0)) errors.amount = "Enter a number";
+  if (!draft.description.trim()) errors.description = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -108,24 +119,25 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Employee" required>
+                <FormField label="Employee" required error={submitted ? errors.employeeName : undefined}>
                   <input
                     type="text"
                     value={draft.employeeName}
                     onChange={(e) => set("employeeName", e.target.value)}
                     className={inputCls}
                     autoFocus
+                    aria-invalid={submitted && !!errors.employeeName}
                   />
-                </Field>
-                <Field label="Date">
+                </FormField>
+                <FormField label="Date">
                   <input
                     type="date"
                     value={draft.date.slice(0, 10)}
                     onChange={(e) => set("date", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Category">
+                </FormField>
+                <FormField label="Category">
                   <select
                     value={draft.category}
                     onChange={(e) => set("category", e.target.value as ExpenseCategory)}
@@ -137,8 +149,8 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Amount" required>
+                </FormField>
+                <FormField label="Amount" required error={submitted ? errors.amount : undefined}>
                   <input
                     type="number"
                     value={draft.amount}
@@ -146,9 +158,10 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     min={0}
                     step={10_000}
+                    aria-invalid={submitted && !!errors.amount}
                   />
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as ExpenseStatus)}
@@ -160,8 +173,8 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Approver">
+                </FormField>
+                <FormField label="Approver">
                   <input
                     type="text"
                     value={draft.approverName ?? ""}
@@ -169,17 +182,18 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     placeholder="Optional"
                   />
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Description" required>
+              <FormField label="Description" required error={submitted ? errors.description : undefined}>
                 <textarea
                   value={draft.description}
                   onChange={(e) => set("description", e.target.value)}
                   className={cn(inputCls, "min-h-[60px] resize-y")}
                   placeholder="Business purpose + receipt reference"
+                  aria-invalid={submitted && !!errors.description}
                 />
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
@@ -194,13 +208,7 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Submit claim"}
                 </button>
@@ -215,23 +223,3 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

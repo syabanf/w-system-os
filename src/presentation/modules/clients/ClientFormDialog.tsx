@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Building2, X } from "lucide-react";
 import type { AccountHealth, Client } from "@/domain/entities/Client";
 import type { ClientDraft } from "@/state/clients.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const HEALTH_OPTIONS: AccountHealth[] = ["excellent", "stable", "at-risk", "churn-risk"];
@@ -65,18 +66,30 @@ export function ClientFormDialog({
     setDraft(editing ? draftFromClient(editing) : emptyDraft());
   }, [open, editing]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const set = <K extends keyof ClientDraft>(key: K, value: ClientDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.name.trim().length > 0 &&
-    draft.industry.trim().length > 0 &&
-    draft.primaryContact.trim().length > 0 &&
-    draft.contactEmail.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.name.trim().length === 0) errors.name = "Required";
+  if (draft.industry.trim().length === 0) errors.industry = "Required";
+  if (draft.primaryContact.trim().length === 0) errors.primaryContact = "Required";
+  if (draft.contactEmail.trim().length === 0) errors.contactEmail = "Required";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.contactEmail.trim()))
+    errors.contactEmail = "Enter a valid email";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -128,26 +141,28 @@ export function ClientFormDialog({
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Account name" required>
+                <FormField label="Account name" required error={submitted ? errors.name : undefined}>
                   <input
                     type="text"
                     value={draft.name}
                     onChange={(e) => set("name", e.target.value)}
                     className={inputCls}
                     placeholder="Garuda Finansial"
+                    aria-invalid={submitted && !!errors.name}
                     autoFocus
                   />
-                </Field>
-                <Field label="Industry" required>
+                </FormField>
+                <FormField label="Industry" required error={submitted ? errors.industry : undefined}>
                   <input
                     type="text"
                     value={draft.industry}
                     onChange={(e) => set("industry", e.target.value)}
                     className={inputCls}
                     placeholder="Banking & Finance"
+                    aria-invalid={submitted && !!errors.industry}
                   />
-                </Field>
-                <Field label="Region">
+                </FormField>
+                <FormField label="Region">
                   <select
                     value={draft.region}
                     onChange={(e) => set("region", e.target.value)}
@@ -159,8 +174,8 @@ export function ClientFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Account owner ID">
+                </FormField>
+                <FormField label="Account owner ID">
                   <input
                     type="text"
                     value={draft.accountOwnerId}
@@ -168,24 +183,34 @@ export function ClientFormDialog({
                     className={inputCls}
                     placeholder="tm-damar"
                   />
-                </Field>
-                <Field label="Primary contact" required>
+                </FormField>
+                <FormField
+                  label="Primary contact"
+                  required
+                  error={submitted ? errors.primaryContact : undefined}
+                >
                   <input
                     type="text"
                     value={draft.primaryContact}
                     onChange={(e) => set("primaryContact", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.primaryContact}
                   />
-                </Field>
-                <Field label="Contact email" required>
+                </FormField>
+                <FormField
+                  label="Contact email"
+                  required
+                  error={submitted ? errors.contactEmail : undefined}
+                >
                   <input
                     type="email"
                     value={draft.contactEmail}
                     onChange={(e) => set("contactEmail", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.contactEmail}
                   />
-                </Field>
-                <Field label="Contract value (IDR)">
+                </FormField>
+                <FormField label="Contract value (IDR)">
                   <input
                     type="number"
                     value={draft.contractValue}
@@ -193,8 +218,8 @@ export function ClientFormDialog({
                     className={inputCls}
                     step={1_000_000}
                   />
-                </Field>
-                <Field label="Active projects">
+                </FormField>
+                <FormField label="Active projects">
                   <input
                     type="number"
                     value={draft.activeProjects}
@@ -202,8 +227,8 @@ export function ClientFormDialog({
                     className={inputCls}
                     min={0}
                   />
-                </Field>
-                <Field label="Satisfaction (0–100)">
+                </FormField>
+                <FormField label="Satisfaction (0–100)">
                   <input
                     type="number"
                     value={draft.satisfactionScore}
@@ -214,8 +239,8 @@ export function ClientFormDialog({
                     min={0}
                     max={100}
                   />
-                </Field>
-                <Field label="Health">
+                </FormField>
+                <FormField label="Health">
                   <select
                     value={draft.health}
                     onChange={(e) => set("health", e.target.value as AccountHealth)}
@@ -227,16 +252,16 @@ export function ClientFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Renewal date">
+                </FormField>
+                <FormField label="Renewal date">
                   <input
                     type="date"
                     value={draft.renewalDate.slice(0, 10)}
                     onChange={(e) => set("renewalDate", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Logo color">
+                </FormField>
+                <FormField label="Logo color">
                   <div className="flex flex-wrap gap-1.5">
                     {LOGO_COLORS.map((c) => (
                       <button
@@ -252,7 +277,7 @@ export function ClientFormDialog({
                       />
                     ))}
                   </div>
-                </Field>
+                </FormField>
               </div>
 
               <label className="flex items-center gap-2 text-[11px] text-zinc-300">
@@ -275,13 +300,7 @@ export function ClientFormDialog({
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create client"}
                 </button>
@@ -296,23 +315,3 @@ export function ClientFormDialog({
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

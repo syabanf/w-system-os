@@ -7,6 +7,7 @@ import type { Epic, EpicStatus } from "@/domain/entities/Epic";
 import type { EpicDraft } from "@/state/epics.store";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const STATUSES: EpicStatus[] = ["Discovery", "In Progress", "At Risk", "Done", "Cancelled"];
@@ -62,23 +63,32 @@ export function EpicFormDialog({
   onSubmit,
 }: Props) {
   const [draft, setDraft] = useState<EpicDraft>(() => emptyDraft(defaultProjectId));
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromEpic(editing) : emptyDraft(defaultProjectId));
+    setSubmitted(false);
   }, [open, editing, defaultProjectId]);
 
   const set = <K extends keyof EpicDraft>(key: K, value: EpicDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.name.trim().length > 0 &&
-    draft.description.trim().length > 0 &&
-    draft.startDate < draft.targetDate;
+  const errors: Record<string, string> = {};
+  if (draft.name.trim().length === 0) errors.name = "Required";
+  if (draft.description.trim().length === 0) errors.description = "Required";
+  if (!(draft.startDate < draft.targetDate)) errors.targetDate = "Must be after start date";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      const form = e.currentTarget as HTMLFormElement;
+      requestAnimationFrame(() =>
+        form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -130,28 +140,30 @@ export function EpicFormDialog({
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Epic name" required>
+              <FormField label="Epic name" required error={submitted ? errors.name : undefined}>
                 <input
                   type="text"
                   value={draft.name}
                   onChange={(e) => set("name", e.target.value)}
                   className={inputCls}
                   placeholder="Patient onboarding flow"
+                  aria-invalid={submitted && !!errors.name}
                   autoFocus
                 />
-              </Field>
+              </FormField>
 
-              <Field label="Description" required>
+              <FormField label="Description" required error={submitted ? errors.description : undefined}>
                 <textarea
                   value={draft.description}
                   onChange={(e) => set("description", e.target.value)}
                   className={cn(inputCls, "min-h-[72px] resize-y")}
                   placeholder="What does this epic deliver and why does it matter?"
+                  aria-invalid={submitted && !!errors.description}
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Project" required>
+                <FormField label="Project" required>
                   <select
                     value={draft.projectId}
                     onChange={(e) => set("projectId", e.target.value)}
@@ -163,8 +175,8 @@ export function EpicFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Owner">
+                </FormField>
+                <FormField label="Owner">
                   <select
                     value={draft.ownerId}
                     onChange={(e) => set("ownerId", e.target.value)}
@@ -176,8 +188,8 @@ export function EpicFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as EpicStatus)}
@@ -189,8 +201,8 @@ export function EpicFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Accent color">
+                </FormField>
+                <FormField label="Accent color">
                   <div className="flex flex-wrap gap-1.5">
                     {ACCENT_PALETTE.map((c) => (
                       <button
@@ -206,24 +218,25 @@ export function EpicFormDialog({
                       />
                     ))}
                   </div>
-                </Field>
-                <Field label="Start date">
+                </FormField>
+                <FormField label="Start date">
                   <input
                     type="date"
                     value={draft.startDate.slice(0, 10)}
                     onChange={(e) => set("startDate", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Target date">
+                </FormField>
+                <FormField label="Target date" error={submitted ? errors.targetDate : undefined}>
                   <input
                     type="date"
                     value={draft.targetDate.slice(0, 10)}
                     onChange={(e) => set("targetDate", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.targetDate}
                   />
-                </Field>
-                <Field label="Committed points">
+                </FormField>
+                <FormField label="Committed points">
                   <input
                     type="number"
                     value={draft.committedPoints}
@@ -231,8 +244,8 @@ export function EpicFormDialog({
                     className={inputCls}
                     min={0}
                   />
-                </Field>
-                <Field label="Completed points">
+                </FormField>
+                <FormField label="Completed points">
                   <input
                     type="number"
                     value={draft.completedPoints}
@@ -243,7 +256,7 @@ export function EpicFormDialog({
                     min={0}
                     max={draft.committedPoints}
                   />
-                </Field>
+                </FormField>
               </div>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
@@ -259,13 +272,7 @@ export function EpicFormDialog({
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create epic"}
                 </button>
@@ -280,23 +287,3 @@ export function EpicFormDialog({
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

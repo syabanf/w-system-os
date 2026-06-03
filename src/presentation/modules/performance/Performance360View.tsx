@@ -15,7 +15,6 @@ import {
   Hourglass,
   ListChecks,
   Pencil,
-  Plus,
   Sparkles,
   Star,
   Trash2,
@@ -36,6 +35,7 @@ import {
 import { usePerformanceTemplatesStore } from "@/state/performanceTemplates.store";
 import { useToast } from "@/state/toast.store";
 import { MetricCard } from "@/presentation/shared/MetricCard";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { Avatar } from "@/presentation/shared/Avatar";
@@ -170,14 +170,7 @@ export function Performance360View() {
             <TabSwitch tab={tab} onChange={setTab} />
           ) : null}
           {!drillTemplate && !drillEmployee && tab === "templates" ? (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="press inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-zinc-100 hover:bg-white/15"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add template
-            </button>
+            <NewButton label="New template" onClick={openCreate} />
           ) : null}
           <ManageMasterDataButton moduleId="hr" />
         </div>
@@ -399,13 +392,13 @@ function TemplateCard({
           </span>
         </footer>
       </button>
-      <div className="absolute right-3 top-3 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="absolute right-3 top-3 flex items-center gap-0.5">
         <button
           type="button"
           onClick={onEdit}
           aria-label={`Edit ${template.name}`}
           title="Edit"
-          className="grid h-6 w-6 place-items-center rounded bg-black/20 text-zinc-300 backdrop-blur hover:bg-white/15 hover:text-zinc-50"
+          className="grid h-6 w-6 place-items-center rounded bg-black/20 text-zinc-400 backdrop-blur hover:bg-white/15 hover:text-zinc-50"
         >
           <Pencil className="h-3 w-3" />
         </button>
@@ -414,7 +407,7 @@ function TemplateCard({
           onClick={onDelete}
           aria-label={`Delete ${template.name}`}
           title="Delete"
-          className="grid h-6 w-6 place-items-center rounded bg-black/20 text-zinc-300 backdrop-blur hover:bg-rose-500/20 hover:text-rose-300"
+          className="grid h-6 w-6 place-items-center rounded bg-black/20 text-zinc-400 backdrop-blur hover:bg-rose-500/20 hover:text-rose-300"
         >
           <Trash2 className="h-3 w-3" />
         </button>

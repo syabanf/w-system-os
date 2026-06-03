@@ -10,6 +10,7 @@ import type {
   PaymentType,
 } from "@/domain/entities/Transaction";
 import type { PaymentDraft } from "@/state/payments.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const TYPES: PaymentType[] = ["incoming", "outgoing"];
@@ -47,23 +48,33 @@ function fromPayment(p: Payment): PaymentDraft {
 
 export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<PaymentDraft>(emptyDraft);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromPayment(editing) : emptyDraft());
+    setSubmitted(false);
   }, [open, editing]);
 
   const set = <K extends keyof PaymentDraft>(key: K, value: PaymentDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.amount > 0 &&
-    draft.reference.trim().length > 0 &&
-    draft.bankAccount.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (!(draft.amount > 0)) errors.amount = "Enter a number";
+  if (!draft.bankAccount.trim()) errors.bankAccount = "Required";
+  if (!draft.reference.trim()) errors.reference = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -112,7 +123,7 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Direction">
+                <FormField label="Direction">
                   <select
                     value={draft.type}
                     onChange={(e) => set("type", e.target.value as PaymentType)}
@@ -124,16 +135,16 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Date">
+                </FormField>
+                <FormField label="Date">
                   <input
                     type="date"
                     value={draft.date.slice(0, 10)}
                     onChange={(e) => set("date", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Amount (IDR)" required>
+                </FormField>
+                <FormField label="Amount (IDR)" required error={submitted ? errors.amount : undefined}>
                   <input
                     type="number"
                     value={draft.amount}
@@ -142,9 +153,10 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     min={0}
                     step={100_000}
                     autoFocus
+                    aria-invalid={submitted && !!errors.amount}
                   />
-                </Field>
-                <Field label="Method">
+                </FormField>
+                <FormField label="Method">
                   <select
                     value={draft.method}
                     onChange={(e) => set("method", e.target.value as PaymentMethod)}
@@ -156,25 +168,27 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Bank account" required>
+                </FormField>
+                <FormField label="Bank account" required error={submitted ? errors.bankAccount : undefined}>
                   <input
                     type="text"
                     value={draft.bankAccount}
                     onChange={(e) => set("bankAccount", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.bankAccount}
                   />
-                </Field>
-                <Field label="Reference" required>
+                </FormField>
+                <FormField label="Reference" required error={submitted ? errors.reference : undefined}>
                   <input
                     type="text"
                     value={draft.reference}
                     onChange={(e) => set("reference", e.target.value)}
                     className={inputCls}
                     placeholder="Bank ref / cheque no / receipt"
+                    aria-invalid={submitted && !!errors.reference}
                   />
-                </Field>
-                <Field label={draft.type === "incoming" ? "Client ID" : "Vendor"}>
+                </FormField>
+                <FormField label={draft.type === "incoming" ? "Client ID" : "Vendor"}>
                   {draft.type === "incoming" ? (
                     <input
                       type="text"
@@ -190,8 +204,8 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       className={inputCls}
                     />
                   )}
-                </Field>
-                <Field label="Applied to invoice ID">
+                </FormField>
+                <FormField label="Applied to invoice ID">
                   <input
                     type="text"
                     value={draft.appliedToInvoiceId ?? ""}
@@ -199,8 +213,8 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     placeholder="Optional"
                   />
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as PaymentStatus)}
@@ -212,16 +226,16 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Notes">
+              <FormField label="Notes">
                 <textarea
                   value={draft.notes ?? ""}
                   onChange={(e) => set("notes", e.target.value)}
                   className={cn(inputCls, "min-h-[60px] resize-y")}
                 />
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <button
@@ -233,13 +247,7 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Record payment"}
                 </button>
@@ -254,23 +262,3 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

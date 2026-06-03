@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BookOpenCheck, X } from "lucide-react";
 import type { KnowledgeArticle } from "@/infrastructure/data/knowledge.mock";
 import type { KnowledgeDraft } from "@/state/knowledge.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const CATEGORIES: KnowledgeArticle["category"][] = [
@@ -60,15 +61,26 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
     setDraft(editing ? fromArticle(editing) : emptyDraft());
   }, [open, editing]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const set = <K extends keyof KnowledgeDraft>(key: K, value: KnowledgeDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.title.trim().length > 0 && draft.excerpt.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.title.trim().length === 0) errors.title = "Required";
+  if (draft.excerpt.trim().length === 0) errors.excerpt = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -116,18 +128,19 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Title" required>
+              <FormField label="Title" required error={submitted ? errors.title : undefined}>
                 <input
                   type="text"
                   value={draft.title}
                   onChange={(e) => set("title", e.target.value)}
                   className={inputCls}
+                  aria-invalid={submitted && !!errors.title}
                   autoFocus
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Category">
+                <FormField label="Category">
                   <select
                     value={draft.category}
                     onChange={(e) =>
@@ -141,16 +154,16 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Author ID">
+                </FormField>
+                <FormField label="Author ID">
                   <input
                     type="text"
                     value={draft.authorId}
                     onChange={(e) => set("authorId", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Read minutes">
+                </FormField>
+                <FormField label="Read minutes">
                   <input
                     type="number"
                     value={draft.readMinutes}
@@ -158,7 +171,7 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     min={1}
                   />
-                </Field>
+                </FormField>
                 <label className="mt-5 flex items-center gap-2 text-[11px] text-zinc-300">
                   <input
                     type="checkbox"
@@ -170,16 +183,17 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </label>
               </div>
 
-              <Field label="Excerpt" required>
+              <FormField label="Excerpt" required error={submitted ? errors.excerpt : undefined}>
                 <textarea
                   value={draft.excerpt}
                   onChange={(e) => set("excerpt", e.target.value)}
                   className={cn(inputCls, "min-h-[60px] resize-y")}
                   placeholder="One-sentence summary shown in the article list."
+                  aria-invalid={submitted && !!errors.excerpt}
                 />
-              </Field>
+              </FormField>
 
-              <Field label="Tags (comma-separated)">
+              <FormField label="Tags (comma-separated)">
                 <input
                   type="text"
                   value={(draft.tags ?? []).join(", ")}
@@ -195,9 +209,9 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   className={inputCls}
                   placeholder="onboarding, hiring"
                 />
-              </Field>
+              </FormField>
 
-              <Field label="Body (markdown)">
+              <FormField label="Body (markdown)">
                 <textarea
                   value={draft.body ?? ""}
                   onChange={(e) => set("body", e.target.value)}
@@ -211,7 +225,7 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   Supports headings (#, ##, ###), lists, **bold**, *italic*, `code`, and ``` fenced
                   blocks. Plain markdown, no HTML.
                 </p>
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <button
@@ -223,13 +237,7 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Publish article"}
                 </button>
@@ -244,23 +252,3 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

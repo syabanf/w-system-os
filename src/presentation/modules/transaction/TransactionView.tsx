@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronsUpDown, ChevronUp, FileSignature, Pencil, Plus, ReceiptText, Trash2 } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronsUpDown, ChevronUp, FileSignature, Pencil, ReceiptText, Trash2 } from "lucide-react";
 import { createTransactionService } from "@/application/factories/createTransactionService";
 import type { TransactionOverviewDTO } from "@/application/use-cases/transaction/GetTransactionOverview";
 import type { ExpenseClaim, Payment, PurchaseOrder } from "@/domain/entities/Transaction";
@@ -32,6 +32,7 @@ import { InvoiceFormDialog } from "./InvoiceFormDialog";
 import { POFormDialog } from "./POFormDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { NewButton } from "@/presentation/shared/NewButton";
 
 type Tab = "invoices" | "payments" | "po" | "expenses";
 
@@ -739,16 +740,7 @@ function InvoicesTab({
         eyebrow="AR"
         title={`Invoices (${data.invoices.length})`}
         description="Click any row to inspect linked payments + status."
-        action={
-          <button
-            type="button"
-            onClick={onAdd}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-          >
-            <Plus className="h-3 w-3" />
-            New invoice
-          </button>
-        }
+        action={<NewButton label="New invoice" onClick={onAdd} />}
       />
       <SortableTable
         rows={data.invoices}
@@ -841,16 +833,7 @@ function PaymentsTab({
         eyebrow="Cash"
         title={`Payments (${data.payments.length})`}
         description="Click any row to inspect the linked invoice."
-        action={
-          <button
-            type="button"
-            onClick={onAdd}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-          >
-            <Plus className="h-3 w-3" />
-            Record payment
-          </button>
-        }
+        action={<NewButton label="New payment" onClick={onAdd} />}
       />
       <SortableTable
         rows={data.payments}
@@ -930,16 +913,7 @@ function POTab({
         eyebrow="AP"
         title={`Purchase orders (${data.purchaseOrders.length})`}
         description="Click any row to inspect approval workflow + delivery."
-        action={
-          <button
-            type="button"
-            onClick={onAdd}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-          >
-            <Plus className="h-3 w-3" />
-            New PO
-          </button>
-        }
+        action={<NewButton label="New PO" onClick={onAdd} />}
       />
       <SortableTable
         rows={data.purchaseOrders}
@@ -1018,16 +992,7 @@ function ExpenseTab({
         eyebrow="Reimbursement"
         title={`Expense claims (${data.expenseClaims.length})`}
         description="Click any row to inspect approval state + reimbursement."
-        action={
-          <button
-            type="button"
-            onClick={onAdd}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-          >
-            <Plus className="h-3 w-3" />
-            New claim
-          </button>
-        }
+        action={<NewButton label="New claim" onClick={onAdd} />}
       />
       <SortableTable
         rows={data.expenseClaims}

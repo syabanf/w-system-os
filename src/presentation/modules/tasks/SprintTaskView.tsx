@@ -8,7 +8,6 @@ import {
   LineChart as LineChartIcon,
   ListChecks,
   Pencil,
-  Plus,
   ShieldAlert,
   Target,
   Trash2,
@@ -20,6 +19,7 @@ import type { ProjectBoardDTO } from "@/application/use-cases/tasks/GetProjectBo
 import type { Sprint } from "@/domain/entities/Sprint";
 import type { Task } from "@/domain/entities/Task";
 import { MetricCard } from "@/presentation/shared/MetricCard";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { ChartCard } from "@/presentation/shared/ChartCard";
 import { SprintKanbanBoard } from "./SprintKanbanBoard";
@@ -151,30 +151,23 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <TabSwitch tab={tab} onChange={setTab} />
-          <button
-            type="button"
+          <NewButton
+            label="New sprint"
+            size="sm"
             onClick={() => {
               setEditingSprint(null);
               setSprintFormOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-            title="Plan sprint (⌘N)"
-          >
-            <Plus className="h-3 w-3" />
-            Plan sprint
-          </button>
+          />
           {tab === "board" && activeId ? (
-            <button
-              type="button"
+            <NewButton
+              label="New task"
+              size="sm"
               onClick={() => {
                 setEditingTask(null);
                 setTaskFormOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
-            >
-              <Plus className="h-3 w-3" />
-              Add task
-            </button>
+            />
           ) : null}
           <ManageMasterDataButton moduleId="projects" />
         </div>
@@ -182,17 +175,14 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
       ) : (
         <div className="flex justify-end gap-2">
           <TabSwitch tab={tab} onChange={setTab} />
-          <button
-            type="button"
+          <NewButton
+            label="New sprint"
+            size="sm"
             onClick={() => {
               setEditingSprint(null);
               setSprintFormOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/12"
-          >
-            <Plus className="h-3 w-3" />
-            Plan sprint
-          </button>
+          />
         </div>
       )}
 
@@ -283,7 +273,7 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
                   </span>
                 </div>
               </button>
-              <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute right-2 top-2 flex gap-1">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -292,7 +282,7 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
                     setSprintFormOpen(true);
                   }}
                   aria-label="Edit sprint"
-                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-white/80 hover:bg-white/10 hover:text-white"
+                  className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
                 >
                   <Pencil className="h-3 w-3" />
                 </button>
@@ -303,7 +293,7 @@ export function SprintTaskView({ compact = false }: { compact?: boolean } = {}) 
                     setConfirmDeleteSprint(s);
                   }}
                   aria-label="Delete sprint"
-                  className="grid h-6 w-6 place-items-center rounded-md bg-black/30 text-white/80 hover:bg-rose-500/15 hover:text-rose-300"
+                  className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>

@@ -329,7 +329,7 @@ function MilestoneSubsection({
         className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-white/12 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400 transition-colors hover:border-white/25 hover:bg-white/[0.04] hover:text-zinc-100"
       >
         <Plus className="h-3 w-3" />
-        Add milestone
+        New milestone
       </button>
     </div>
   );
@@ -388,7 +388,7 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
         <span className="w-12 shrink-0 text-right font-mono text-[11px] text-zinc-400">
           {formatMilestoneDate(dueDate)}
         </span>
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
             onClick={(e) => {
@@ -486,7 +486,7 @@ function ProjectTeamSubsection({
                   <span className="truncate">{r.email}</span>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
                   onClick={() => onEdit(r)}
@@ -516,7 +516,7 @@ function ProjectTeamSubsection({
         className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-white/12 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400 transition-colors hover:border-white/25 hover:bg-white/[0.04] hover:text-zinc-100"
       >
         <UserPlus className="h-3 w-3" />
-        Add team member
+        New team member
       </button>
     </div>
   );

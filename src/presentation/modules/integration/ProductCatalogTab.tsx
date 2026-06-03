@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { KnowledgeArticle } from "@/infrastructure/data/knowledge.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useKnowledgeStore } from "@/state/knowledge.store";
 import { useToast } from "@/state/toast.store";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { ArticleFormDialog } from "@/presentation/modules/knowledge/ArticleFormDialog";
 import { cn } from "@/lib/cn";
@@ -135,14 +136,7 @@ export function ProductCatalogTab() {
                 All products
               </div>
             </div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="press inline-flex items-center gap-1 rounded-full bg-white/8 px-3 py-1.5 text-[11px] font-medium text-zinc-200 hover:bg-white/12"
-            >
-              <Plus className="h-3 w-3" />
-              Add product
-            </button>
+            <NewButton label="New product" onClick={openCreate} size="sm" />
           </header>
 
           <div className="mt-3 overflow-hidden rounded-xl border border-white/8">
@@ -184,12 +178,6 @@ export function ProductCatalogTab() {
                     </Td>
                     <Td className="text-right">
                       <div className="inline-flex items-center gap-0.5">
-                        <RowAction
-                          label={`View ${k.title}`}
-                          icon={Eye}
-                          tone="default"
-                          onClick={() => openEdit(k)}
-                        />
                         <RowAction
                           label={`Edit ${k.title}`}
                           icon={Pencil}

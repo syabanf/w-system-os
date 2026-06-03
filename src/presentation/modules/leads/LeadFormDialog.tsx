@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import { LEAD_STAGES, type Lead, type LeadSource, type LeadStage } from "@/domain/entities/Lead";
 import type { LeadDraft } from "@/state/leads.store";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const SOURCES: LeadSource[] = ["Referral", "Website", "Outbound", "Event", "Partner", "Inbound"];
@@ -45,17 +46,29 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
     setDraft(editing ? fromLead(editing) : emptyDraft());
   }, [open, editing]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const set = <K extends keyof LeadDraft>(key: K, value: LeadDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.companyName.trim().length > 0 &&
-    draft.contactPerson.trim().length > 0 &&
-    draft.contactEmail.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.companyName.trim().length === 0) errors.companyName = "Required";
+  if (draft.contactPerson.trim().length === 0) errors.contactPerson = "Required";
+  if (draft.contactEmail.trim().length === 0) errors.contactEmail = "Required";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.contactEmail.trim()))
+    errors.contactEmail = "Enter a valid email";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -104,32 +117,39 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Company" required>
+                <FormField label="Company" required error={submitted ? errors.companyName : undefined}>
                   <input
                     type="text"
                     value={draft.companyName}
                     onChange={(e) => set("companyName", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.companyName}
                     autoFocus
                   />
-                </Field>
-                <Field label="Contact person" required>
+                </FormField>
+                <FormField
+                  label="Contact person"
+                  required
+                  error={submitted ? errors.contactPerson : undefined}
+                >
                   <input
                     type="text"
                     value={draft.contactPerson}
                     onChange={(e) => set("contactPerson", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.contactPerson}
                   />
-                </Field>
-                <Field label="Email" required>
+                </FormField>
+                <FormField label="Email" required error={submitted ? errors.contactEmail : undefined}>
                   <input
                     type="email"
                     value={draft.contactEmail}
                     onChange={(e) => set("contactEmail", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.contactEmail}
                   />
-                </Field>
-                <Field label="Deal value (IDR)">
+                </FormField>
+                <FormField label="Deal value (IDR)">
                   <input
                     type="number"
                     value={draft.dealValue}
@@ -137,8 +157,8 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     step={50_000_000}
                   />
-                </Field>
-                <Field label="Stage">
+                </FormField>
+                <FormField label="Stage">
                   <select
                     value={draft.stage}
                     onChange={(e) => set("stage", e.target.value as LeadStage)}
@@ -150,8 +170,8 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Source">
+                </FormField>
+                <FormField label="Source">
                   <select
                     value={draft.source}
                     onChange={(e) => set("source", e.target.value as LeadSource)}
@@ -163,8 +183,8 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Probability (0–100)">
+                </FormField>
+                <FormField label="Probability (0–100)">
                   <input
                     type="number"
                     value={draft.probability}
@@ -175,33 +195,33 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     min={0}
                     max={100}
                   />
-                </Field>
-                <Field label="Follow-up date">
+                </FormField>
+                <FormField label="Follow-up date">
                   <input
                     type="date"
                     value={draft.followUpDate.slice(0, 10)}
                     onChange={(e) => set("followUpDate", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Owner ID">
+                </FormField>
+                <FormField label="Owner ID">
                   <input
                     type="text"
                     value={draft.ownerId}
                     onChange={(e) => set("ownerId", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Notes">
+              <FormField label="Notes">
                 <textarea
                   value={draft.notes ?? ""}
                   onChange={(e) => set("notes", e.target.value)}
                   className={cn(inputCls, "min-h-[68px] resize-y")}
                   placeholder="Context, qualification questions, next steps…"
                 />
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <button
@@ -213,13 +233,7 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create lead"}
                 </button>
@@ -234,23 +248,3 @@ export function LeadFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

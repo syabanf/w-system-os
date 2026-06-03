@@ -7,6 +7,7 @@ import type { ApprovalStatus, TimesheetEntry } from "@/domain/entities/Timesheet
 import type { TimeEntryDraft } from "@/state/timesheet.store";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const APPROVAL_STATUSES: ApprovalStatus[] = ["draft", "submitted", "approved", "rejected"];
@@ -38,24 +39,33 @@ function fromEntry(e: TimesheetEntry): TimeEntryDraft {
 
 export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<TimeEntryDraft>(emptyDraft);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromEntry(editing) : emptyDraft());
+    setSubmitted(false);
   }, [open, editing]);
 
   const set = <K extends keyof TimeEntryDraft>(key: K, value: TimeEntryDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.memberId.trim().length > 0 &&
-    draft.projectId.trim().length > 0 &&
-    draft.hours > 0 &&
-    draft.hours <= 24;
+  const errors: Record<string, string> = {};
+  if (!draft.memberId.trim()) errors.memberId = "Required";
+  if (!draft.projectId.trim()) errors.projectId = "Required";
+  if (!(draft.hours > 0 && draft.hours <= 24)) errors.hours = "Enter a number";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -105,11 +115,12 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Member" required>
+                <FormField label="Member" required error={submitted ? errors.memberId : undefined}>
                   <select
                     value={draft.memberId}
                     onChange={(e) => set("memberId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.memberId}
                   >
                     {mockTeam.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -117,12 +128,13 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Project" required>
+                </FormField>
+                <FormField label="Project" required error={submitted ? errors.projectId : undefined}>
                   <select
                     value={draft.projectId}
                     onChange={(e) => set("projectId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.projectId}
                   >
                     {mockProjects.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -130,8 +142,8 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Date" required>
+                </FormField>
+                <FormField label="Date" required>
                   <input
                     type="date"
                     value={draft.date.slice(0, 10)}
@@ -139,8 +151,8 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                     className={inputCls}
                     autoFocus
                   />
-                </Field>
-                <Field label="Hours (0.25 step)" required>
+                </FormField>
+                <FormField label="Hours (0.25 step)" required error={submitted ? errors.hours : undefined}>
                   <input
                     type="number"
                     value={draft.hours}
@@ -151,9 +163,10 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                     min={0}
                     max={24}
                     step={0.25}
+                    aria-invalid={submitted && !!errors.hours}
                   />
-                </Field>
-                <Field label="Approval status">
+                </FormField>
+                <FormField label="Approval status">
                   <select
                     value={draft.approvalStatus}
                     onChange={(e) => set("approvalStatus", e.target.value as ApprovalStatus)}
@@ -165,7 +178,7 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                       </option>
                     ))}
                   </select>
-                </Field>
+                </FormField>
                 <label className="mt-5 flex items-center gap-2 text-[11px] text-zinc-300">
                   <input
                     type="checkbox"
@@ -177,14 +190,14 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                 </label>
               </div>
 
-              <Field label="Description / notes">
+              <FormField label="Description / notes">
                 <textarea
                   value={draft.description}
                   onChange={(e) => set("description", e.target.value)}
                   className={cn(inputCls, "min-h-[60px] resize-y")}
                   placeholder="What did you work on?"
                 />
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
@@ -199,13 +212,7 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Log entry"}
                 </button>
@@ -220,23 +227,3 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

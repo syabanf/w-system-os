@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronRight, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import type {
   MilestoneSection,
   ProjectMilestone,
@@ -13,6 +13,7 @@ import {
 } from "@/state/milestones.store";
 import { useToast } from "@/state/toast.store";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { cn } from "@/lib/cn";
 import { MilestoneFormDialog } from "./MilestoneFormDialog";
 import {
@@ -163,14 +164,7 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
         </div>
         <div className="flex items-center gap-3">
           <span className="font-mono text-[10px] text-zinc-400">{pct}% done</span>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="press inline-flex items-center gap-1 rounded-full bg-white/8 px-3 py-1.5 text-[11px] font-medium text-zinc-200 hover:bg-white/12"
-          >
-            <Plus className="h-3 w-3" />
-            Add milestone
-          </button>
+          <NewButton label="New milestone" size="sm" onClick={openCreate} />
         </div>
       </div>
 
@@ -244,7 +238,7 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
                         {formatMilestoneDate(m.dueDate)}
                       </td>
                       <td className="px-2 py-2">
-                        <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <div className="flex items-center justify-end gap-0.5">
                           <button
                             type="button"
                             onClick={(e) => {

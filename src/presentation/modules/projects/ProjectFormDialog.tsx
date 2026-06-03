@@ -7,7 +7,7 @@ import type { Project } from "@/domain/entities/Project";
 import { PROJECT_STATUSES, type ProjectStatus } from "@/domain/value-objects/ProjectStatus";
 import type { RiskLevel } from "@/domain/value-objects/RiskLevel";
 import type { ProjectDraft } from "@/state/projects.store";
-import { cn } from "@/lib/cn";
+import { FormField } from "@/presentation/shared/FormField";
 
 const RISKS: RiskLevel[] = ["low", "medium", "high", "critical"];
 const HEALTHS: Project["health"][] = ["green", "amber", "red"];
@@ -50,20 +50,22 @@ function fromProject(p: Project): ProjectDraft {
 export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<ProjectDraft>(emptyDraft);
   const [techInput, setTechInput] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromProject(editing) : emptyDraft());
     setTechInput("");
+    setSubmitted(false);
   }, [open, editing]);
 
   const set = <K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.name.trim().length > 0 &&
-    draft.clientId.trim().length > 0 &&
-    draft.projectManagerId.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.name.trim().length === 0) errors.name = "Required";
+  if (draft.clientId.trim().length === 0) errors.clientId = "Required";
+  if (draft.projectManagerId.trim().length === 0) errors.projectManagerId = "Required";
 
   const addTech = () => {
     const t = techInput.trim();
@@ -81,7 +83,14 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      const form = e.currentTarget as HTMLFormElement;
+      requestAnimationFrame(() =>
+        form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -129,34 +138,37 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Project name" required>
+              <FormField label="Project name" required error={submitted ? errors.name : undefined}>
                 <input
                   type="text"
                   value={draft.name}
                   onChange={(e) => set("name", e.target.value)}
                   className={inputCls}
+                  aria-invalid={submitted && !!errors.name}
                   autoFocus
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Client ID" required>
+                <FormField label="Client ID" required error={submitted ? errors.clientId : undefined}>
                   <input
                     type="text"
                     value={draft.clientId}
                     onChange={(e) => set("clientId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.clientId}
                   />
-                </Field>
-                <Field label="PM ID" required>
+                </FormField>
+                <FormField label="PM ID" required error={submitted ? errors.projectManagerId : undefined}>
                   <input
                     type="text"
                     value={draft.projectManagerId}
                     onChange={(e) => set("projectManagerId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.projectManagerId}
                   />
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as ProjectStatus)}
@@ -168,8 +180,8 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Health">
+                </FormField>
+                <FormField label="Health">
                   <select
                     value={draft.health}
                     onChange={(e) => set("health", e.target.value as Project["health"])}
@@ -181,8 +193,8 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Progress (%)">
+                </FormField>
+                <FormField label="Progress (%)">
                   <input
                     type="number"
                     value={draft.progress}
@@ -193,8 +205,8 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     min={0}
                     max={100}
                   />
-                </Field>
-                <Field label="Risk">
+                </FormField>
+                <FormField label="Risk">
                   <select
                     value={draft.riskLevel}
                     onChange={(e) => set("riskLevel", e.target.value as RiskLevel)}
@@ -206,8 +218,8 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Budget (IDR)">
+                </FormField>
+                <FormField label="Budget (IDR)">
                   <input
                     type="number"
                     value={draft.budget}
@@ -215,8 +227,8 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     step={10_000_000}
                   />
-                </Field>
-                <Field label="Actual cost (IDR)">
+                </FormField>
+                <FormField label="Actual cost (IDR)">
                   <input
                     type="number"
                     value={draft.actualCost}
@@ -224,26 +236,26 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     className={inputCls}
                     step={10_000_000}
                   />
-                </Field>
-                <Field label="Start date">
+                </FormField>
+                <FormField label="Start date">
                   <input
                     type="date"
                     value={draft.startDate.slice(0, 10)}
                     onChange={(e) => set("startDate", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="End date">
+                </FormField>
+                <FormField label="End date">
                   <input
                     type="date"
                     value={draft.endDate.slice(0, 10)}
                     onChange={(e) => set("endDate", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Tech stack">
+              <FormField label="Tech stack">
                 <div className="space-y-1.5">
                   <div className="flex gap-1.5">
                     <input
@@ -283,7 +295,7 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     </div>
                   ) : null}
                 </div>
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <button
@@ -295,13 +307,7 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create project"}
                 </button>
@@ -316,23 +322,3 @@ export function ProjectFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

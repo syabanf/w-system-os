@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Flame, Pencil, Plus, Sparkles, Trash2, TrendingUp } from "lucide-react";
+import { Activity, Flame, Pencil, Sparkles, Trash2, TrendingUp } from "lucide-react";
 import { createLeadService } from "@/application/factories/createLeadService";
 import type {
   LeadInsightsDTO,
@@ -15,6 +15,7 @@ import { useToast } from "@/state/toast.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { LeadFormDialog } from "./LeadFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { ChartCard } from "@/presentation/shared/ChartCard";
@@ -314,14 +315,7 @@ export function LeadsView() {
             />
           ) : null}
           {tab === "pipeline" && !drillLead ? (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-            >
-              <Plus className="h-3 w-3" />
-              Add lead
-            </button>
+            <NewButton label="New lead" onClick={openCreate} />
           ) : null}
           {drillLead ? (
             <>

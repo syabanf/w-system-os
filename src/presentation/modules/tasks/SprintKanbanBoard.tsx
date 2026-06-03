@@ -72,7 +72,7 @@ export function SprintKanbanBoard({ tasks, onEdit, onDelete }: KanbanProps) {
                                   onDelete(t);
                                 }}
                                 aria-label="Delete task"
-                                className="grid h-5 w-5 place-items-center rounded-md text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-rose-500/15 hover:text-rose-300"
+                                className="grid h-5 w-5 place-items-center rounded-md text-zinc-400 transition-all hover:bg-rose-500/15 hover:text-rose-300"
                               >
                                 ×
                               </button>

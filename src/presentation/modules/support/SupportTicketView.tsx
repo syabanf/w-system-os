@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlarmClock, AlertOctagon, ChevronDown, ChevronsUpDown, ChevronUp, GitPullRequest, LifeBuoy, Pencil, Plus, Trash2 } from "lucide-react";
+import { AlarmClock, AlertOctagon, ChevronDown, ChevronsUpDown, ChevronUp, GitPullRequest, LifeBuoy, Pencil, Trash2 } from "lucide-react";
 import { createSupportService } from "@/application/factories/createSupportService";
 import type {
   EnrichedTicket,
@@ -24,6 +24,7 @@ import { TicketDetailView } from "./TicketDetailView";
 import { SLARiskPanel } from "./SLARiskPanel";
 import { TicketFormDialog } from "./TicketFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
@@ -474,16 +475,7 @@ export function SupportTicketView() {
                 eyebrow="Queue"
                 title={`Tickets (${enriched.length})`}
                 description="Sorted by SLA urgency. Click a row to drill into ticket detail."
-                action={
-                  <button
-                    type="button"
-                    onClick={openCreate}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-                  >
-                    <Plus className="h-3 w-3" />
-                    New ticket
-                  </button>
-                }
+                action={<NewButton label="New ticket" onClick={openCreate} />}
               />
               <TicketQueue rows={enriched} onRowClick={(t) => setDrillId(t.id)} />
             </div>

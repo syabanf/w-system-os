@@ -15,13 +15,13 @@ import {
   CircleDot,
   Minus,
   Pencil,
-  Plus,
   Target,
   Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import { MetricCard } from "@/presentation/shared/MetricCard";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
@@ -142,14 +142,7 @@ export function KPIsView() {
             strategic pillars.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="press inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-[11px] font-semibold text-zinc-100 hover:bg-white/15"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add KPI
-        </button>
+        <NewButton label="New KPI" onClick={openCreate} />
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -360,7 +353,7 @@ function KPICard({
           <h3 className="mt-1 truncate text-sm font-semibold text-zinc-50">{kpi.name}</h3>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={onEdit}

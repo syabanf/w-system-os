@@ -10,7 +10,7 @@ import {
   type TicketStatus,
 } from "@/domain/value-objects/TicketSeverity";
 import type { TicketDraft } from "@/state/tickets.store";
-import { cn } from "@/lib/cn";
+import { FormField } from "@/presentation/shared/FormField";
 
 const SEVERITIES: TicketSeverity[] = ["low", "medium", "high", "critical"];
 
@@ -42,24 +42,33 @@ function fromTicket(t: Ticket): TicketDraft {
 
 export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<TicketDraft>(emptyDraft);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromTicket(editing) : emptyDraft());
+    setSubmitted(false);
   }, [open, editing]);
 
   const set = <K extends keyof TicketDraft>(key: K, value: TicketDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.title.trim().length > 0 &&
-    draft.clientId.trim().length > 0 &&
-    draft.projectId.trim().length > 0 &&
-    draft.assignedToId.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.title.trim().length === 0) errors.title = "Required";
+  if (draft.clientId.trim().length === 0) errors.clientId = "Required";
+  if (draft.projectId.trim().length === 0) errors.projectId = "Required";
+  if (draft.assignedToId.trim().length === 0) errors.assignedToId = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      const form = e.currentTarget as HTMLFormElement;
+      requestAnimationFrame(() =>
+        form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -107,35 +116,38 @@ export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Title" required>
+              <FormField label="Title" required error={submitted ? errors.title : undefined}>
                 <input
                   type="text"
                   value={draft.title}
                   onChange={(e) => set("title", e.target.value)}
                   className={inputCls}
                   placeholder="Short summary of the issue"
+                  aria-invalid={submitted && !!errors.title}
                   autoFocus
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Client ID" required>
+                <FormField label="Client ID" required error={submitted ? errors.clientId : undefined}>
                   <input
                     type="text"
                     value={draft.clientId}
                     onChange={(e) => set("clientId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.clientId}
                   />
-                </Field>
-                <Field label="Project ID" required>
+                </FormField>
+                <FormField label="Project ID" required error={submitted ? errors.projectId : undefined}>
                   <input
                     type="text"
                     value={draft.projectId}
                     onChange={(e) => set("projectId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.projectId}
                   />
-                </Field>
-                <Field label="Severity">
+                </FormField>
+                <FormField label="Severity">
                   <select
                     value={draft.severity}
                     onChange={(e) => set("severity", e.target.value as TicketSeverity)}
@@ -147,8 +159,8 @@ export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as TicketStatus)}
@@ -160,16 +172,17 @@ export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Assignee ID" required>
+                </FormField>
+                <FormField label="Assignee ID" required error={submitted ? errors.assignedToId : undefined}>
                   <input
                     type="text"
                     value={draft.assignedToId}
                     onChange={(e) => set("assignedToId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.assignedToId}
                   />
-                </Field>
-                <Field label="Estimated effort (h)">
+                </FormField>
+                <FormField label="Estimated effort (h)">
                   <input
                     type="number"
                     value={draft.estimatedEffortHours ?? 0}
@@ -180,7 +193,7 @@ export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
                     min={0}
                     step={0.5}
                   />
-                </Field>
+                </FormField>
               </div>
 
               <label className="flex items-center gap-2 text-[11px] text-zinc-300">
@@ -203,13 +216,7 @@ export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create ticket"}
                 </button>
@@ -224,23 +231,3 @@ export function TicketFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

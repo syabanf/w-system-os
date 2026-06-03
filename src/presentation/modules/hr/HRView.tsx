@@ -17,6 +17,7 @@ import { AttendanceChart } from "./AttendanceChart";
 import { EmployeeDetailView } from "./EmployeeDetailView";
 import { EmployeeFormDialog } from "./EmployeeFormDialog";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
+import { NewButton } from "@/presentation/shared/NewButton";
 import { ResourceManagementView } from "@/presentation/modules/resources/ResourceManagementView";
 import { ContractProposalView } from "@/presentation/modules/contracts/ContractProposalView";
 import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
@@ -25,7 +26,7 @@ import { DrillCue } from "@/presentation/shared/DrillCue";
 import { useDrillState } from "@/state/drill.store";
 import { useEmployeesStore } from "@/state/employees.store";
 import type { Employee } from "@/domain/entities/Employee";
-import { Pencil, Trash2, UserPlus } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { useToast } from "@/state/toast.store";
 
@@ -334,16 +335,7 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
           eyebrow="Roster"
           title={`Employees (${employees.length})`}
           description="Click a row to drill in; use the actions column to edit or remove."
-          action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
-            >
-              <UserPlus className="h-3 w-3" />
-              Add employee
-            </button>
-          }
+          action={<NewButton label="New employee" onClick={openCreate} />}
         />
         <DataTable
           rows={employees}

@@ -12,7 +12,7 @@ import type { UserStoryDraft } from "@/state/userStories.store";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockEpics } from "@/infrastructure/data/epics.mock";
-import { cn } from "@/lib/cn";
+import { FormField } from "@/presentation/shared/FormField";
 
 const STATUSES: UserStoryStatus[] = ["Backlog", "Ready", "In Progress", "Review", "Done"];
 const PRIORITIES: UserStoryPriority[] = ["low", "medium", "high", "critical"];
@@ -64,26 +64,35 @@ export function StoryFormDialog({
 }: Props) {
   const [draft, setDraft] = useState<UserStoryDraft>(() => emptyDraft(defaultEpicId, defaultProjectId));
   const [acInput, setAcInput] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromStory(editing) : emptyDraft(defaultEpicId, defaultProjectId));
     setAcInput("");
+    setSubmitted(false);
   }, [open, editing, defaultEpicId, defaultProjectId]);
 
   const set = <K extends keyof UserStoryDraft>(key: K, value: UserStoryDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.title.trim().length > 0 &&
-    draft.asA.trim().length > 0 &&
-    draft.iWant.trim().length > 0 &&
-    draft.soThat.trim().length > 0 &&
-    draft.epicId.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.title.trim().length === 0) errors.title = "Required";
+  if (draft.asA.trim().length === 0) errors.asA = "Required";
+  if (draft.iWant.trim().length === 0) errors.iWant = "Required";
+  if (draft.soThat.trim().length === 0) errors.soThat = "Required";
+  if (draft.epicId.trim().length === 0) errors.epicId = "Pick an epic";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      const form = e.currentTarget as HTMLFormElement;
+      requestAnimationFrame(() =>
+        form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -149,16 +158,17 @@ export function StoryFormDialog({
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Story title" required>
+              <FormField label="Story title" required error={submitted ? errors.title : undefined}>
                 <input
                   type="text"
                   value={draft.title}
                   onChange={(e) => set("title", e.target.value)}
                   className={inputCls}
+                  aria-invalid={submitted && !!errors.title}
                   autoFocus
                   placeholder="Search filter for unread tickets"
                 />
-              </Field>
+              </FormField>
 
               {/* Classic "As a … I want … so that …" template */}
               <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
@@ -174,6 +184,7 @@ export function StoryFormDialog({
                       onChange={(e) => set("asA", e.target.value)}
                       className={inputCls}
                       placeholder="support agent"
+                      aria-invalid={submitted && !!errors.asA}
                     />
                   </label>
                   <label className="flex items-baseline gap-2 text-[11px] text-zinc-400">
@@ -184,6 +195,7 @@ export function StoryFormDialog({
                       onChange={(e) => set("iWant", e.target.value)}
                       className={inputCls}
                       placeholder="to filter the queue by unread"
+                      aria-invalid={submitted && !!errors.iWant}
                     />
                   </label>
                   <label className="flex items-baseline gap-2 text-[11px] text-zinc-400">
@@ -194,13 +206,19 @@ export function StoryFormDialog({
                       onChange={(e) => set("soThat", e.target.value)}
                       className={inputCls}
                       placeholder="I can triage faster after lunch"
+                      aria-invalid={submitted && !!errors.soThat}
                     />
                   </label>
                 </div>
+                {submitted && (errors.asA || errors.iWant || errors.soThat) ? (
+                  <span role="alert" className="mt-2 block text-[10px] font-medium text-rose-300">
+                    Complete the As a / I want / So that statement
+                  </span>
+                ) : null}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Project" required>
+                <FormField label="Project" required>
                   <select
                     value={draft.projectId}
                     onChange={(e) => set("projectId", e.target.value)}
@@ -212,12 +230,13 @@ export function StoryFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Epic" required>
+                </FormField>
+                <FormField label="Epic" required error={submitted ? errors.epicId : undefined}>
                   <select
                     value={draft.epicId}
                     onChange={(e) => set("epicId", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.epicId}
                   >
                     {projectEpics.length === 0 ? (
                       <option value="">— No epics in this project</option>
@@ -229,8 +248,8 @@ export function StoryFormDialog({
                       ))
                     )}
                   </select>
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as UserStoryStatus)}
@@ -242,8 +261,8 @@ export function StoryFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Priority">
+                </FormField>
+                <FormField label="Priority">
                   <select
                     value={draft.priority}
                     onChange={(e) => set("priority", e.target.value as UserStoryPriority)}
@@ -255,8 +274,8 @@ export function StoryFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Story points">
+                </FormField>
+                <FormField label="Story points">
                   <input
                     type="number"
                     value={draft.storyPoints}
@@ -265,8 +284,8 @@ export function StoryFormDialog({
                     min={0}
                     step={1}
                   />
-                </Field>
-                <Field label="Owner">
+                </FormField>
+                <FormField label="Owner">
                   <select
                     value={draft.ownerId}
                     onChange={(e) => set("ownerId", e.target.value)}
@@ -278,10 +297,10 @@ export function StoryFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Acceptance criteria">
+              <FormField label="Acceptance criteria">
                 <div className="space-y-1.5">
                   <div className="flex gap-1.5">
                     <input
@@ -317,7 +336,7 @@ export function StoryFormDialog({
                           <button
                             type="button"
                             onClick={() => removeCriterion(i)}
-                            className="text-zinc-500 opacity-0 transition-opacity hover:text-rose-300 group-hover:opacity-100"
+                            className="text-zinc-400 transition-colors hover:text-rose-300"
                             aria-label="Remove criterion"
                           >
                             <X className="h-2.5 w-2.5" />
@@ -327,7 +346,7 @@ export function StoryFormDialog({
                     </ul>
                   ) : null}
                 </div>
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
@@ -342,13 +361,7 @@ export function StoryFormDialog({
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create story"}
                 </button>
@@ -363,23 +376,3 @@ export function StoryFormDialog({
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

@@ -9,7 +9,7 @@ import type {
   EmploymentType,
 } from "@/domain/entities/Employee";
 import type { EmployeeDraft } from "@/state/employees.store";
-import { cn } from "@/lib/cn";
+import { FormField } from "@/presentation/shared/FormField";
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ["Permanent", "Contract", "Probation", "Intern"];
 const STATUSES: EmployeeStatus[] = ["active", "probation", "on-leave", "resigned", "terminated"];
@@ -72,18 +72,30 @@ export function EmployeeFormDialog({
     setDraft(editing ? draftFromEmployee(editing) : emptyDraft());
   }, [open, editing]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const set = <K extends keyof EmployeeDraft>(key: K, value: EmployeeDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.firstName.trim().length > 0 &&
-    draft.lastName.trim().length > 0 &&
-    draft.email.trim().length > 0 &&
-    draft.position.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (draft.firstName.trim().length === 0) errors.firstName = "Required";
+  if (draft.lastName.trim().length === 0) errors.lastName = "Required";
+  if (draft.email.trim().length === 0) errors.email = "Required";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim()))
+    errors.email = "Enter a valid email";
+  if (draft.position.trim().length === 0) errors.position = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -134,40 +146,43 @@ export function EmployeeFormDialog({
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="First name" required>
+                <FormField label="First name" required error={submitted ? errors.firstName : undefined}>
                   <input
                     type="text"
                     value={draft.firstName}
                     onChange={(e) => set("firstName", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.firstName}
                     autoFocus
                   />
-                </Field>
-                <Field label="Last name" required>
+                </FormField>
+                <FormField label="Last name" required error={submitted ? errors.lastName : undefined}>
                   <input
                     type="text"
                     value={draft.lastName}
                     onChange={(e) => set("lastName", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.lastName}
                   />
-                </Field>
-                <Field label="Email" required>
+                </FormField>
+                <FormField label="Email" required error={submitted ? errors.email : undefined}>
                   <input
                     type="email"
                     value={draft.email}
                     onChange={(e) => set("email", e.target.value)}
                     className={inputCls}
+                    aria-invalid={submitted && !!errors.email}
                   />
-                </Field>
-                <Field label="Phone">
+                </FormField>
+                <FormField label="Phone">
                   <input
                     type="tel"
                     value={draft.phone}
                     onChange={(e) => set("phone", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Department">
+                </FormField>
+                <FormField label="Department">
                   <select
                     value={draft.department}
                     onChange={(e) => set("department", e.target.value)}
@@ -179,17 +194,18 @@ export function EmployeeFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Position" required>
+                </FormField>
+                <FormField label="Position" required error={submitted ? errors.position : undefined}>
                   <input
                     type="text"
                     value={draft.position}
                     onChange={(e) => set("position", e.target.value)}
                     className={inputCls}
                     placeholder="Senior Backend Engineer"
+                    aria-invalid={submitted && !!errors.position}
                   />
-                </Field>
-                <Field label="Employment type">
+                </FormField>
+                <FormField label="Employment type">
                   <select
                     value={draft.employmentType}
                     onChange={(e) =>
@@ -203,8 +219,8 @@ export function EmployeeFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value as EmployeeStatus)}
@@ -216,24 +232,24 @@ export function EmployeeFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Join date">
+                </FormField>
+                <FormField label="Join date">
                   <input
                     type="date"
                     value={draft.joinDate}
                     onChange={(e) => set("joinDate", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Manager">
+                </FormField>
+                <FormField label="Manager">
                   <input
                     type="text"
                     value={draft.managerName}
                     onChange={(e) => set("managerName", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Basic salary (IDR)">
+                </FormField>
+                <FormField label="Basic salary (IDR)">
                   <input
                     type="number"
                     value={draft.basicSalary}
@@ -243,15 +259,15 @@ export function EmployeeFormDialog({
                     className={inputCls}
                     step={100000}
                   />
-                </Field>
-                <Field label="Bank account">
+                </FormField>
+                <FormField label="Bank account">
                   <input
                     type="text"
                     value={draft.bankAccount}
                     onChange={(e) => set("bankAccount", e.target.value)}
                     className={inputCls}
                   />
-                </Field>
+                </FormField>
               </div>
 
               <fieldset className="grid grid-cols-2 gap-3 rounded-xl border border-white/8 bg-white/[0.025] px-3 py-2">
@@ -288,13 +304,7 @@ export function EmployeeFormDialog({
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create employee"}
                 </button>
@@ -309,23 +319,3 @@ export function EmployeeFormDialog({
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

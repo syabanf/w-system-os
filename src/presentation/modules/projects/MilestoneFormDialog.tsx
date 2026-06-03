@@ -10,6 +10,7 @@ import type {
 } from "@/domain/entities/ProjectMilestone";
 import type { ProjectMilestoneDraft } from "@/state/milestones.store";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
 const STATUSES: ReadonlyArray<{ value: MilestoneStatus; label: string }> = [
@@ -84,6 +85,7 @@ export function MilestoneFormDialog({
   // Track whether the user has hand-edited `kind`; if they haven't we keep it
   // synced with the slug of `label`. Reset on dialog open.
   const [kindTouched, setKindTouched] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -94,6 +96,7 @@ export function MilestoneFormDialog({
       setDraft(emptyDraft(projectId, defaultSection));
       setKindTouched(false);
     }
+    setSubmitted(false);
   }, [open, editing, projectId, defaultSection]);
 
   // Esc closes the dialog (Enter is handled natively by <form> onSubmit).
@@ -126,14 +129,21 @@ export function MilestoneFormDialog({
   const isValidDriveLink =
     driveLink.length === 0 || /^https?:\/\/\S+/i.test(driveLink);
 
-  const isValid =
-    draft.label.trim().length > 0 &&
-    draft.kind.trim().length > 0 &&
-    isValidDriveLink;
+  const errors: Record<string, string> = {};
+  if (draft.label.trim().length === 0) errors.label = "Required";
+  if (draft.kind.trim().length === 0) errors.kind = "Required";
+  if (!isValidDriveLink) errors.driveLink = "Enter a valid URL";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      const form = e.currentTarget as HTMLFormElement;
+      requestAnimationFrame(() =>
+        form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+      );
+      return;
+    }
     // Strip empty optional string fields so downstream code can `if (m.driveLink)` cleanly.
     const cleaned: ProjectMilestoneDraft = {
       ...draft,
@@ -190,19 +200,20 @@ export function MilestoneFormDialog({
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Label" required>
+              <FormField label="Label" required error={submitted ? errors.label : undefined}>
                 <input
                   type="text"
                   value={draft.label}
                   onChange={(e) => setLabel(e.target.value)}
                   className={inputCls}
                   placeholder="e.g. Project Brief"
+                  aria-invalid={submitted && !!errors.label}
                   autoFocus
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Section" required>
+                <FormField label="Section" required>
                   <select
                     value={draft.section}
                     onChange={(e) =>
@@ -216,8 +227,8 @@ export function MilestoneFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Kind (slug)" required>
+                </FormField>
+                <FormField label="Kind (slug)" required error={submitted ? errors.kind : undefined}>
                   <input
                     type="text"
                     value={draft.kind}
@@ -227,9 +238,10 @@ export function MilestoneFormDialog({
                     }}
                     className={cn(inputCls, "font-mono")}
                     placeholder="project-brief"
+                    aria-invalid={submitted && !!errors.kind}
                   />
-                </Field>
-                <Field label="Status">
+                </FormField>
+                <FormField label="Status">
                   <select
                     value={draft.status}
                     onChange={(e) =>
@@ -243,8 +255,8 @@ export function MilestoneFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Due date">
+                </FormField>
+                <FormField label="Due date">
                   <input
                     type="date"
                     value={draft.dueDate ?? ""}
@@ -253,8 +265,8 @@ export function MilestoneFormDialog({
                     }
                     className={inputCls}
                   />
-                </Field>
-                <Field label="Drive link">
+                </FormField>
+                <FormField label="Drive link" error={submitted ? errors.driveLink : undefined}>
                   <input
                     type="url"
                     value={driveLink}
@@ -266,9 +278,10 @@ export function MilestoneFormDialog({
                     )}
                     placeholder="https://drive.google.com/..."
                     pattern="https?://.+"
+                    aria-invalid={submitted && !!errors.driveLink}
                   />
-                </Field>
-                <Field label="Owner">
+                </FormField>
+                <FormField label="Owner">
                   <select
                     value={draft.ownerId ?? ""}
                     onChange={(e) =>
@@ -283,17 +296,17 @@ export function MilestoneFormDialog({
                       </option>
                     ))}
                   </select>
-                </Field>
+                </FormField>
               </div>
 
-              <Field label="Notes">
+              <FormField label="Notes">
                 <textarea
                   value={draft.notes ?? ""}
                   onChange={(e) => set("notes", e.target.value)}
                   className={cn(inputCls, "min-h-[64px] resize-y")}
                   placeholder="Optional context for this milestone."
                 />
-              </Field>
+              </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <span className="mr-auto text-[9px] uppercase tracking-wider text-zinc-500">
@@ -308,13 +321,7 @@ export function MilestoneFormDialog({
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create milestone"}
                 </button>
@@ -329,23 +336,3 @@ export function MilestoneFormDialog({
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { KeyRound, X } from "lucide-react";
 import type { Role, UserAccount } from "@/domain/entities/User";
 import type { UserDraft } from "@/state/users.store";
-import { cn } from "@/lib/cn";
+import { FormField } from "@/presentation/shared/FormField";
 
 const ROLES: Role[] = [
   "Super Admin",
@@ -42,21 +42,33 @@ function fromUser(u: UserAccount): UserDraft {
 
 export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
   const [draft, setDraft] = useState<UserDraft>(emptyDraft);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(editing ? fromUser(editing) : emptyDraft());
+    setSubmitted(false);
   }, [open, editing]);
 
   const set = <K extends keyof UserDraft>(key: K, value: UserDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  const isValid =
-    draft.email.trim().length > 0 && draft.email.includes("@") && draft.memberId.trim().length > 0;
+  const errors: Record<string, string> = {};
+  if (!draft.email.trim()) errors.email = "Required";
+  else if (!/\S+@\S+\.\S+/.test(draft.email)) errors.email = "Enter a valid email";
+  if (!draft.memberId.trim()) errors.memberId = "Required";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    setSubmitted(true);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() =>
+        (e.currentTarget as HTMLFormElement)
+          .querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus(),
+      );
+      return;
+    }
     onSubmit(draft, editing?.id);
     onClose();
   };
@@ -104,7 +116,7 @@ export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
-              <Field label="Email" required>
+              <FormField label="Email" required error={submitted ? errors.email : undefined}>
                 <input
                   type="email"
                   value={draft.email}
@@ -112,20 +124,22 @@ export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   className={inputCls}
                   autoFocus
                   placeholder="user@wit.id"
+                  aria-invalid={submitted && !!errors.email}
                 />
-              </Field>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Team member ID" required>
+                <FormField label="Team member ID" required error={submitted ? errors.memberId : undefined}>
                   <input
                     type="text"
                     value={draft.memberId}
                     onChange={(e) => set("memberId", e.target.value)}
                     className={inputCls}
                     placeholder="tm-001"
+                    aria-invalid={submitted && !!errors.memberId}
                   />
-                </Field>
-                <Field label="Role">
+                </FormField>
+                <FormField label="Role">
                   <select
                     value={draft.role}
                     onChange={(e) => set("role", e.target.value as Role)}
@@ -137,7 +151,7 @@ export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
                       </option>
                     ))}
                   </select>
-                </Field>
+                </FormField>
               </div>
 
               <label className="flex items-center gap-2 text-[11px] text-zinc-300">
@@ -160,13 +174,7 @@ export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!isValid}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
-                    isValid
-                      ? "bg-white/85 text-zinc-900 hover:bg-white"
-                      : "cursor-not-allowed bg-white/10 text-zinc-500",
-                  )}
+                  className="rounded-full bg-white/85 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-900 transition-colors hover:bg-white"
                 >
                   {editing ? "Save changes" : "Create account"}
                 </button>
@@ -181,23 +189,3 @@ export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-white/30 focus:bg-white/[0.06]";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-        {label}
-        {required ? <span className="text-rose-300"> ·</span> : null}
-      </span>
-      {children}
-    </label>
-  );
-}
