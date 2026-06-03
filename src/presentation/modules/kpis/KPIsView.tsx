@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -14,181 +14,30 @@ import {
   CheckCircle2,
   CircleDot,
   Minus,
+  Pencil,
+  Plus,
   Target,
+  Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import {
+  useKpisStore,
+  type KPI,
+  type KpiPillar,
+  type KpiUnit,
+} from "@/state/kpis.store";
+import { useToast } from "@/state/toast.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 import { cn } from "@/lib/cn";
+import { KPIFormDialog } from "./KPIFormDialog";
 
-type Unit = "IDR" | "%" | "h" | "count";
-type Pillar = "Growth" | "Delivery" | "People" | "Finance" | "Customer";
-type Direction = "higher" | "lower";
-
-interface KPI {
-  id: string;
-  name: string;
-  pillar: Pillar;
-  unit: Unit;
-  current: number;
-  target: number;
-  /** "higher" → current ≥ target is good. "lower" → current ≤ target is good. */
-  direction: Direction;
-  /** Last 12 periods, oldest → newest. */
-  history: number[];
-  owner: string;
-  cadence: "Daily" | "Weekly" | "Monthly" | "Quarterly";
-}
-
-const KPIS: KPI[] = [
-  {
-    id: "kpi-001",
-    name: "Monthly Revenue",
-    pillar: "Finance",
-    unit: "IDR",
-    current: 2_180_000_000,
-    target: 2_000_000_000,
-    direction: "higher",
-    history: [1_650, 1_720, 1_810, 1_890, 1_780, 1_920, 2_010, 1_950, 2_040, 2_120, 2_080, 2_180].map((n) => n * 1_000_000),
-    owner: "Damar Wicaksono",
-    cadence: "Monthly",
-  },
-  {
-    id: "kpi-002",
-    name: "Gross Margin",
-    pillar: "Finance",
-    unit: "%",
-    current: 38,
-    target: 35,
-    direction: "higher",
-    history: [29, 31, 30, 33, 34, 32, 36, 35, 37, 36, 39, 38],
-    owner: "Hana Wijaya",
-    cadence: "Monthly",
-  },
-  {
-    id: "kpi-003",
-    name: "Sales Win Rate",
-    pillar: "Growth",
-    unit: "%",
-    current: 67,
-    target: 60,
-    direction: "higher",
-    history: [52, 55, 58, 56, 60, 61, 59, 63, 62, 65, 66, 67],
-    owner: "Citra Anggraini",
-    cadence: "Monthly",
-  },
-  {
-    id: "kpi-004",
-    name: "Pipeline Coverage",
-    pillar: "Growth",
-    unit: "count",
-    current: 3,
-    target: 3,
-    direction: "higher",
-    history: [2.1, 2.4, 2.6, 2.5, 2.8, 2.9, 2.7, 3.1, 3.0, 3.2, 3.1, 3.0],
-    owner: "Citra Anggraini",
-    cadence: "Weekly",
-  },
-  {
-    id: "kpi-005",
-    name: "Utilization Rate",
-    pillar: "Delivery",
-    unit: "%",
-    current: 85.6,
-    target: 80,
-    direction: "higher",
-    history: [76, 78, 81, 79, 82, 84, 83, 85, 86, 84, 85, 85.6],
-    owner: "Bagas Adhitya",
-    cadence: "Weekly",
-  },
-  {
-    id: "kpi-006",
-    name: "Sprint Velocity",
-    pillar: "Delivery",
-    unit: "count",
-    current: 58,
-    target: 55,
-    direction: "higher",
-    history: [42, 48, 51, 54, 52, 56, 53, 57, 55, 60, 59, 58],
-    owner: "Damar Wicaksono",
-    cadence: "Monthly",
-  },
-  {
-    id: "kpi-007",
-    name: "Avg SLA Resolution",
-    pillar: "Customer",
-    unit: "h",
-    current: 14.6,
-    target: 16,
-    direction: "lower",
-    history: [22, 21, 19, 20, 18, 19, 17, 18, 16, 15, 15.5, 14.6],
-    owner: "Aulia Kurniawan",
-    cadence: "Weekly",
-  },
-  {
-    id: "kpi-008",
-    name: "CSAT",
-    pillar: "Customer",
-    unit: "%",
-    current: 88,
-    target: 85,
-    direction: "higher",
-    history: [80, 82, 81, 83, 84, 82, 85, 86, 84, 87, 88, 88],
-    owner: "Aulia Kurniawan",
-    cadence: "Monthly",
-  },
-  {
-    id: "kpi-009",
-    name: "Outstanding Invoices",
-    pillar: "Finance",
-    unit: "count",
-    current: 6,
-    target: 5,
-    direction: "lower",
-    history: [12, 11, 10, 9, 10, 8, 9, 7, 8, 6, 7, 6],
-    owner: "Hana Wijaya",
-    cadence: "Weekly",
-  },
-  {
-    id: "kpi-010",
-    name: "Attrition Rate",
-    pillar: "People",
-    unit: "%",
-    current: 4.2,
-    target: 5,
-    direction: "lower",
-    history: [6.0, 5.8, 5.5, 5.6, 5.2, 5.0, 5.1, 4.8, 4.5, 4.6, 4.3, 4.2],
-    owner: "Sekar Wulandari",
-    cadence: "Quarterly",
-  },
-  {
-    id: "kpi-011",
-    name: "Time to Hire",
-    pillar: "People",
-    unit: "h",
-    current: 312,
-    target: 360,
-    direction: "lower",
-    history: [420, 410, 395, 380, 388, 365, 372, 350, 355, 330, 318, 312],
-    owner: "Sekar Wulandari",
-    cadence: "Quarterly",
-  },
-  {
-    id: "kpi-012",
-    name: "Project On-Time %",
-    pillar: "Delivery",
-    unit: "%",
-    current: 78,
-    target: 80,
-    direction: "higher",
-    history: [70, 72, 71, 74, 75, 73, 76, 75, 77, 79, 76, 78],
-    owner: "Indra Setiawan",
-    cadence: "Monthly",
-  },
-];
+type Unit = KpiUnit;
+type Pillar = KpiPillar;
 
 const PILLAR_COLOR: Record<Pillar, string> = {
   Growth: "#FBCFE8",
@@ -236,23 +85,47 @@ const STATUS_TONE: Record<"on-track" | "at-risk" | "off-track", "success" | "war
 export function KPIsView() {
   const [filter, setFilter] = useState<"All" | Pillar>("All");
 
+  const kpis = useKpisStore((s) => s.items);
+  const hydrate = useKpisStore((s) => s.hydrate);
+  const addKpi = useKpisStore((s) => s.add);
+  const updateKpi = useKpisStore((s) => s.update);
+  const removeKpi = useKpisStore((s) => s.remove);
+  const toast = useToast();
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<KPI | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<KPI | null>(null);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (k: KPI) => {
+    setEditing(k);
+    setFormOpen(true);
+  };
+
   const filtered = useMemo(
-    () => (filter === "All" ? KPIS : KPIS.filter((k) => k.pillar === filter)),
-    [filter],
+    () => (filter === "All" ? kpis : kpis.filter((k) => k.pillar === filter)),
+    [kpis, filter],
   );
 
   const counts = useMemo(() => {
     let on = 0;
     let at = 0;
     let off = 0;
-    KPIS.forEach((k) => {
+    kpis.forEach((k) => {
       const s = statusOf(k);
       if (s === "on-track") on++;
       else if (s === "at-risk") at++;
       else off++;
     });
     return { on, at, off };
-  }, []);
+  }, [kpis]);
 
   return (
     <div className="space-y-5">
@@ -269,6 +142,14 @@ export function KPIsView() {
             strategic pillars.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="press inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-[11px] font-semibold text-zinc-100 hover:bg-white/15"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add KPI
+        </button>
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -276,7 +157,7 @@ export function KPIsView() {
           emphasis
           icon={Target}
           label="KPIs tracked"
-          value={String(KPIS.length)}
+          value={String(kpis.length)}
           delta={`${PILLARS.length - 1} pillars`}
           trend="up"
         />
@@ -284,7 +165,7 @@ export function KPIsView() {
           icon={CheckCircle2}
           label="On track"
           value={String(counts.on)}
-          trend={counts.on > KPIS.length / 2 ? "up" : "flat"}
+          trend={counts.on > kpis.length / 2 ? "up" : "flat"}
           accent="#22C55E"
         />
         <MetricCard
@@ -329,7 +210,12 @@ export function KPIsView() {
         />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((k) => (
-            <KPICard key={k.id} kpi={k} />
+            <KPICard
+              key={k.id}
+              kpi={k}
+              onEdit={() => openEdit(k)}
+              onDelete={() => setConfirmDelete(k)}
+            />
           ))}
         </div>
       </div>
@@ -342,7 +228,7 @@ export function KPIsView() {
         />
         <ul className="space-y-2 text-[11px]">
           {(PILLARS.filter((p) => p !== "All") as Pillar[]).map((pillar) => {
-            const inPillar = KPIS.filter((k) => k.pillar === pillar);
+            const inPillar = kpis.filter((k) => k.pillar === pillar);
             const on = inPillar.filter((k) => statusOf(k) === "on-track").length;
             const at = inPillar.filter((k) => statusOf(k) === "at-risk").length;
             const off = inPillar.filter((k) => statusOf(k) === "off-track").length;
@@ -393,11 +279,51 @@ export function KPIsView() {
           })}
         </ul>
       </div>
+
+      <KPIFormDialog
+        open={formOpen}
+        editing={editing}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateKpi(editingId, draft);
+            toast.success("KPI updated", draft.name);
+          } else {
+            addKpi(draft);
+            toast.success("KPI created", draft.name);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        title="Delete KPI?"
+        description={
+          confirmDelete
+            ? `${confirmDelete.name} will be removed from the scoreboard. You can re-create it later.`
+            : ""
+        }
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const name = confirmDelete.name;
+          removeKpi(confirmDelete.id);
+          setConfirmDelete(null);
+          toast.info("KPI deleted", name);
+        }}
+      />
     </div>
   );
 }
 
-function KPICard({ kpi }: { kpi: KPI }) {
+function KPICard({
+  kpi,
+  onEdit,
+  onDelete,
+}: {
+  kpi: KPI;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const status = statusOf(kpi);
   const trend = trendOf(kpi);
   const TrendIcon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : Minus;
@@ -411,7 +337,7 @@ function KPICard({ kpi }: { kpi: KPI }) {
   const gapPct = kpi.target !== 0 ? (gap / Math.abs(kpi.target)) * 100 : 0;
 
   return (
-    <article className="glass-soft flex flex-col gap-3 rounded-2xl border border-white/8 p-4 transition-all hover:-translate-y-0.5 hover:border-white/20">
+    <article className="group glass-soft flex flex-col gap-3 rounded-2xl border border-white/8 p-4 transition-all hover:-translate-y-0.5 hover:border-white/20">
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
@@ -428,9 +354,31 @@ function KPICard({ kpi }: { kpi: KPI }) {
           </div>
           <h3 className="mt-1 truncate text-sm font-semibold text-zinc-50">{kpi.name}</h3>
         </div>
-        <StatusBadge tone={STATUS_TONE[status]} dot>
-          {status.replace("-", " ")}
-        </StatusBadge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={`Edit ${kpi.name}`}
+              title="Edit"
+              className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label={`Delete ${kpi.name}`}
+              title="Delete"
+              className="grid h-6 w-6 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+          <StatusBadge tone={STATUS_TONE[status]} dot>
+            {status.replace("-", " ")}
+          </StatusBadge>
+        </div>
       </header>
 
       <div className="flex items-end justify-between gap-2">

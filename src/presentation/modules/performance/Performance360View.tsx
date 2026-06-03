@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -14,8 +14,11 @@ import {
   ClipboardList,
   Hourglass,
   ListChecks,
+  Pencil,
+  Plus,
   Sparkles,
   Star,
+  Trash2,
   Users2,
 } from "lucide-react";
 import { mockEmployees } from "@/infrastructure/data/employees.mock";
@@ -24,20 +27,23 @@ import {
   mockPerformanceAnswers,
   mockPerformanceQuestions,
   mockPerformanceSubmissions,
-  mockPerformanceTemplates,
   mockRaterSettings,
   type Performance360Status,
   type Performance360Submission,
   type Performance360Template,
   type RaterRole,
 } from "@/infrastructure/data/performance360.mock";
+import { usePerformanceTemplatesStore } from "@/state/performanceTemplates.store";
+import { useToast } from "@/state/toast.store";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { DrillBreadcrumb, type Crumb } from "@/presentation/shared/DrillBreadcrumb";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
+import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { cn } from "@/lib/cn";
+import { TemplateFormDialog } from "./TemplateFormDialog";
 
 const STATUS_TONE: Record<Performance360Status, "neutral" | "success" | "warning" | "danger" | "info" | "wit"> = {
   draft: "neutral",
@@ -75,9 +81,35 @@ export function Performance360View() {
   const [drillTemplateId, setDrillTemplateId] = useState<string | null>(null);
   const [drillEmployeeId, setDrillEmployeeId] = useState<string | null>(null);
 
+  const templates = usePerformanceTemplatesStore((s) => s.items);
+  const hydrateTemplates = usePerformanceTemplatesStore((s) => s.hydrate);
+  const addTemplate = usePerformanceTemplatesStore((s) => s.add);
+  const updateTemplate = usePerformanceTemplatesStore((s) => s.update);
+  const removeTemplate = usePerformanceTemplatesStore((s) => s.remove);
+  const toast = useToast();
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] =
+    useState<Performance360Template | null>(null);
+  const [confirmDelete, setConfirmDelete] =
+    useState<Performance360Template | null>(null);
+
+  useEffect(() => {
+    hydrateTemplates();
+  }, [hydrateTemplates]);
+
+  const openCreate = () => {
+    setEditingTemplate(null);
+    setFormOpen(true);
+  };
+  const openEdit = (t: Performance360Template) => {
+    setEditingTemplate(t);
+    setFormOpen(true);
+  };
+
   const activeTemplate = useMemo(
-    () => mockPerformanceTemplates.find((t) => t.status === "active") ?? null,
-    [],
+    () => templates.find((t) => t.status === "active") ?? null,
+    [templates],
   );
 
   const totalSubs = mockPerformanceSubmissions.length;
@@ -86,7 +118,7 @@ export function Performance360View() {
   const activeRatees = new Set(mockPerformanceSubmissions.map((s) => s.rateeEmployeeId)).size;
 
   const drillTemplate = drillTemplateId
-    ? mockPerformanceTemplates.find((t) => t.id === drillTemplateId) ?? null
+    ? templates.find((t) => t.id === drillTemplateId) ?? null
     : null;
   const drillEmployee = drillEmployeeId
     ? mockEmployees.find((e) => e.id === drillEmployeeId) ?? null
@@ -134,6 +166,16 @@ export function Performance360View() {
           {!drillTemplate && !drillEmployee ? (
             <TabSwitch tab={tab} onChange={setTab} />
           ) : null}
+          {!drillTemplate && !drillEmployee && tab === "templates" ? (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="press inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-zinc-100 hover:bg-white/15"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add template
+            </button>
+          ) : null}
           <ManageMasterDataButton moduleId="hr" />
         </div>
       </header>
@@ -155,8 +197,8 @@ export function Performance360View() {
             emphasis
             icon={Sparkles}
             label="Templates"
-            value={String(mockPerformanceTemplates.length)}
-            delta={`${mockPerformanceTemplates.filter((t) => t.status === "active").length} active`}
+            value={String(templates.length)}
+            delta={`${templates.filter((t) => t.status === "active").length} active`}
             trend="up"
           />
           <MetricCard
@@ -187,12 +229,49 @@ export function Performance360View() {
       ) : drillEmployee ? (
         <EmployeeDashboard employeeId={drillEmployee.id} />
       ) : tab === "templates" ? (
-        <TemplatesList onOpen={setDrillTemplateId} />
+        <TemplatesList
+          templates={templates}
+          onOpen={setDrillTemplateId}
+          onEdit={openEdit}
+          onDelete={setConfirmDelete}
+        />
       ) : tab === "submissions" ? (
         <SubmissionsTable activeTemplate={activeTemplate} />
       ) : (
         <DashboardList onOpen={setDrillEmployeeId} />
       )}
+
+      <TemplateFormDialog
+        open={formOpen}
+        editing={editingTemplate}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft, editingId) => {
+          if (editingId) {
+            updateTemplate(editingId, draft);
+            toast.success("Template updated", draft.name);
+          } else {
+            addTemplate(draft);
+            toast.success("Template created", draft.name);
+          }
+        }}
+      />
+      <DeleteConfirmDialog
+        open={confirmDelete}
+        title="Delete template?"
+        description={
+          confirmDelete
+            ? `${confirmDelete.name} will be removed. Its questions and submissions stay in the demo dataset.`
+            : ""
+        }
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const name = confirmDelete.name;
+          removeTemplate(confirmDelete.id);
+          setConfirmDelete(null);
+          toast.info("Template deleted", name);
+        }}
+      />
     </div>
   );
 }
@@ -221,19 +300,41 @@ function TabSwitch({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
   );
 }
 
-function TemplatesList({ onOpen }: { onOpen: (id: string) => void }) {
+function TemplatesList({
+  templates,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  templates: Performance360Template[];
+  onOpen: (id: string) => void;
+  onEdit: (t: Performance360Template) => void;
+  onDelete: (t: Performance360Template) => void;
+}) {
   return (
     <div className="glass rounded-[20px] p-5">
       <SectionHeader
         eyebrow="Library"
-        title={`Templates (${mockPerformanceTemplates.length})`}
+        title={`Templates (${templates.length})`}
         description="Click any template to inspect its questions and submission progress."
       />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {mockPerformanceTemplates.map((t) => (
-          <TemplateCard key={t.id} template={t} onOpen={() => onOpen(t.id)} />
-        ))}
-      </div>
+      {templates.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-xs text-zinc-400">
+          No templates yet. Use “Add template” to create one.
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {templates.map((t) => (
+            <TemplateCard
+              key={t.id}
+              template={t}
+              onOpen={() => onOpen(t.id)}
+              onEdit={() => onEdit(t)}
+              onDelete={() => onDelete(t)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -241,45 +342,71 @@ function TemplatesList({ onOpen }: { onOpen: (id: string) => void }) {
 function TemplateCard({
   template,
   onOpen,
+  onEdit,
+  onDelete,
 }: {
   template: Performance360Template;
   onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const qCount = mockPerformanceQuestions.filter((q) => q.templateId === template.id).length;
   const subs = mockPerformanceSubmissions.filter((s) => s.templateId === template.id);
   const done = subs.filter((s) => s.status === "submitted").length;
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="glass-soft group flex flex-col gap-3 rounded-2xl border border-white/8 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/20"
-    >
-      <header className="flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-300">
-          <Sparkles className="h-4 w-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge tone={STATUS_TONE[template.status]} dot>
-              {template.status}
-            </StatusBadge>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-400">
-              {template.periodLabel}
-            </span>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="glass-soft flex w-full flex-col gap-3 rounded-2xl border border-white/8 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/20"
+      >
+        <header className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-300">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1 pr-12">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <StatusBadge tone={STATUS_TONE[template.status]} dot>
+                {template.status}
+              </StatusBadge>
+              <span className="text-[10px] uppercase tracking-wider text-zinc-400">
+                {template.periodLabel}
+              </span>
+            </div>
+            <h3 className="mt-1 truncate text-sm font-semibold text-zinc-50">{template.name}</h3>
           </div>
-          <h3 className="mt-1 truncate text-sm font-semibold text-zinc-50">{template.name}</h3>
-        </div>
-      </header>
-      <p className="line-clamp-2 text-[11px] text-zinc-400">{template.description}</p>
-      <footer className="mt-auto flex items-center justify-between gap-2 text-[10px] text-zinc-500">
-        <span>
-          {qCount} questions · {subs.length} submissions
-        </span>
-        <span className="font-mono text-zinc-300">
-          {subs.length > 0 ? `${Math.round((done / subs.length) * 100)}% done` : "—"}
-        </span>
-      </footer>
-    </button>
+        </header>
+        <p className="line-clamp-2 text-[11px] text-zinc-400">{template.description}</p>
+        <footer className="mt-auto flex items-center justify-between gap-2 text-[10px] text-zinc-500">
+          <span>
+            {qCount} questions · {subs.length} submissions
+          </span>
+          <span className="font-mono text-zinc-300">
+            {subs.length > 0 ? `${Math.round((done / subs.length) * 100)}% done` : "—"}
+          </span>
+        </footer>
+      </button>
+      <div className="absolute right-3 top-3 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Edit ${template.name}`}
+          title="Edit"
+          className="grid h-6 w-6 place-items-center rounded bg-black/20 text-zinc-300 backdrop-blur hover:bg-white/15 hover:text-zinc-50"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label={`Delete ${template.name}`}
+          title="Delete"
+          className="grid h-6 w-6 place-items-center rounded bg-black/20 text-zinc-300 backdrop-blur hover:bg-rose-500/20 hover:text-rose-300"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
   );
 }
 
