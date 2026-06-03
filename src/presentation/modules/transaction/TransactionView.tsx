@@ -18,6 +18,9 @@ import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { type Column } from "@/presentation/shared/DataTable";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
+import { useRowSelection } from "@/hooks/useRowSelection";
 import { formatIDR, formatIDRCompact } from "@/lib/currency";
 import { formatDate } from "@/lib/date";
 import { cn } from "@/lib/cn";
@@ -72,12 +75,21 @@ function SortableTable<T>({
   rowKey,
   onRowClick,
   rowAriaLabel,
+  selectable,
+  selectedIds,
+  onToggleRow,
+  onToggleAll,
 }: {
   columns: SortableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   rowAriaLabel?: (row: T) => string;
+  /** Enable a leading checkbox column for bulk selection (opt-in per table). */
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleRow?: (id: string) => void;
+  onToggleAll?: (visibleIds: string[]) => void;
 }) {
   const [sort, setSort] = useState<SortState>(null);
 
@@ -100,6 +112,11 @@ function SortableTable<T>({
         : { key, dir: "asc" },
     );
 
+  const showSelect = !!selectable && !!selectedIds && !!onToggleRow;
+  const visibleIds = showSelect ? rows.map(rowKey) : [];
+  const allOn = showSelect && visibleIds.length > 0 && visibleIds.every((id) => selectedIds!.has(id));
+  const someOn = showSelect && visibleIds.some((id) => selectedIds!.has(id));
+
   if (rows.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-zinc-400">
@@ -113,6 +130,21 @@ function SortableTable<T>({
       <table className="w-full text-left text-sm">
         <thead className="sticky top-0 z-10 bg-white/[0.03] backdrop-blur supports-[backdrop-filter]:bg-zinc-950/70">
           <tr>
+            {showSelect ? (
+              <th className="w-10 px-4 py-3" style={{ width: "2.5rem" }}>
+                <input
+                  type="checkbox"
+                  aria-label="Select all rows"
+                  checked={allOn}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someOn && !allOn;
+                  }}
+                  onChange={() => onToggleAll?.(visibleIds)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                />
+              </th>
+            ) : null}
             {columns.map((col) => {
               const active = sort?.key === col.key;
               const sortable = Boolean(col.sortValue);
@@ -157,9 +189,12 @@ function SortableTable<T>({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map((row, i) => (
+          {sortedRows.map((row, i) => {
+            const id = rowKey(row);
+            const selected = showSelect && selectedIds!.has(id);
+            return (
             <tr
-              key={rowKey(row)}
+              key={id}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               role={onRowClick ? "button" : undefined}
               aria-label={onRowClick ? rowAriaLabel?.(row) : undefined}
@@ -167,8 +202,21 @@ function SortableTable<T>({
                 "group border-t border-white/5 transition-colors hover:bg-white/[0.04]",
                 onRowClick && "cursor-pointer",
                 i % 2 === 1 && "bg-white/[0.015]",
+                selected && "bg-blue-500/10 hover:bg-blue-500/15",
               )}
             >
+              {showSelect ? (
+                <td className="px-4" style={{ width: "2.5rem" }}>
+                  <input
+                    type="checkbox"
+                    aria-label="Select row"
+                    checked={!!selected}
+                    onChange={() => onToggleRow?.(id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                  />
+                </td>
+              ) : null}
               {columns.map((col) => (
                 <td
                   key={col.key}
@@ -182,7 +230,8 @@ function SortableTable<T>({
                 </td>
               ))}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -686,6 +735,10 @@ function InvoicesTab({
   onDelete: (i: Invoice) => void;
 }) {
   type Row = TransactionOverviewDTO["invoices"][number];
+  // Bulk-selection + inline-edit wiring is scoped to the invoices table only.
+  const invSel = useRowSelection();
+  const updateInvoice = useInvoicesStore((s) => s.update);
+  const removeInvoice = useInvoicesStore((s) => s.remove);
   const cols: SortableColumn<Row>[] = [
     {
       key: "no",
@@ -700,10 +753,10 @@ function InvoicesTab({
     },
     { key: "issue", header: "Issued", sortValue: (r) => r.issueDate, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.issueDate)}</span> },
     { key: "due", header: "Due", sortValue: (r) => r.dueDate, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.dueDate)}</span> },
-    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <span className="font-mono text-xs">{formatIDR(r.amount)}</span> },
+    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <EditableCell value={r.amount} type="currencyCompact" onSave={(v) => updateInvoice(r.id, { amount: v as number })} /> },
     { key: "paid", header: "Paid", align: "right", sortValue: (r) => r.paidAmount, render: (r) => <span className={`font-mono text-xs ${r.paidAmount >= r.amount ? "text-emerald-300" : r.paidAmount > 0 ? "text-amber-300" : "text-rose-300"}`}>{formatIDR(r.paidAmount)}</span> },
     { key: "balance", header: "Balance", align: "right", sortValue: (r) => Math.max(0, r.amount - r.paidAmount), render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(Math.max(0, r.amount - r.paidAmount))}</span> },
-    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <StatusBadge tone={INVOICE_TONE[r.status]}>{r.status}</StatusBadge> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <EditableCell value={r.status} type="select" options={["draft", "sent", "paid", "overdue", "void"]} onSave={(v) => updateInvoice(r.id, { status: v as Invoice["status"] })} /> },
     {
       key: "actions",
       header: "",
@@ -757,12 +810,39 @@ function InvoicesTab({
         description="Click any row to inspect linked payments + status."
         action={<NewButton label="New invoice" onClick={onAdd} />}
       />
+      <BulkActionBar
+        count={invSel.count}
+        noun="invoice"
+        onClear={invSel.clear}
+        actions={[
+          {
+            label: "Delete",
+            icon: Trash2,
+            tone: "danger",
+            onClick: () => {
+              [...invSel.selectedIds].forEach((id) => removeInvoice(id));
+              invSel.clear();
+            },
+          },
+          {
+            label: "Mark Paid",
+            onClick: () => {
+              [...invSel.selectedIds].forEach((id) => updateInvoice(id, { status: "paid" }));
+              invSel.clear();
+            },
+          },
+        ]}
+      />
       <SortableTable
         rows={data.invoices}
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
         rowAriaLabel={(r) => `Open invoice ${r.number} for ${r.clientName}`}
+        selectable
+        selectedIds={invSel.selectedIds}
+        onToggleRow={invSel.toggle}
+        onToggleAll={invSel.toggleAll}
       />
     </div>
   );

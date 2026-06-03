@@ -16,6 +16,9 @@ import { useTicketsStore } from "@/state/tickets.store";
 import { useToast } from "@/state/toast.store";
 import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useHotkey } from "@/hooks/useHotkey";
+import { useRowSelection } from "@/hooks/useRowSelection";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
@@ -102,12 +105,20 @@ function SortableTable<T>({
   rowKey,
   onRowClick,
   rowAriaLabel,
+  selectable,
+  selectedIds,
+  onToggleRow,
+  onToggleAll,
 }: {
   columns: SortableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   rowAriaLabel?: (row: T) => string;
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleRow?: (id: string) => void;
+  onToggleAll?: (visibleIds: string[]) => void;
 }) {
   const [sort, setSort] = useState<SortState>(null);
 
@@ -130,6 +141,12 @@ function SortableTable<T>({
         : { key, dir: "asc" },
     );
 
+  const showSelect = !!selectable && !!selectedIds && !!onToggleRow;
+  // Select-all reflects the *sorted* (visible) rows so it respects ordering.
+  const visibleIds = showSelect ? sortedRows.map(rowKey) : [];
+  const allOn = showSelect && visibleIds.length > 0 && visibleIds.every((id) => selectedIds!.has(id));
+  const someOn = showSelect && !allOn && visibleIds.some((id) => selectedIds!.has(id));
+
   if (rows.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-zinc-400">
@@ -143,6 +160,21 @@ function SortableTable<T>({
       <table className="w-full text-left text-sm">
         <thead className="sticky top-0 z-10 bg-white/[0.03] backdrop-blur supports-[backdrop-filter]:bg-zinc-950/70">
           <tr>
+            {showSelect ? (
+              <th className="px-4 py-3" style={{ width: "2.5rem" }}>
+                <input
+                  type="checkbox"
+                  aria-label="Select all rows"
+                  checked={allOn}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someOn;
+                  }}
+                  onChange={() => onToggleAll?.(visibleIds)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                />
+              </th>
+            ) : null}
             {columns.map((col) => {
               const active = sort?.key === col.key;
               const sortable = Boolean(col.sortValue);
@@ -187,9 +219,12 @@ function SortableTable<T>({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map((row, i) => (
+          {sortedRows.map((row, i) => {
+            const id = rowKey(row);
+            const selected = showSelect && selectedIds!.has(id);
+            return (
             <tr
-              key={rowKey(row)}
+              key={id}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               role={onRowClick ? "button" : undefined}
               aria-label={onRowClick ? rowAriaLabel?.(row) : undefined}
@@ -197,8 +232,21 @@ function SortableTable<T>({
                 "group border-t border-white/5 transition-colors hover:bg-white/[0.04]",
                 onRowClick && "cursor-pointer",
                 i % 2 === 1 && "bg-white/[0.015]",
+                selected && "bg-blue-500/10 hover:bg-blue-500/15",
               )}
             >
+              {showSelect ? (
+                <td className="px-4" style={{ width: "2.5rem" }}>
+                  <input
+                    type="checkbox"
+                    aria-label="Select row"
+                    checked={!!selected}
+                    onChange={() => onToggleRow?.(id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                  />
+                </td>
+              ) : null}
               {columns.map((col) => (
                 <td
                   key={col.key}
@@ -212,7 +260,8 @@ function SortableTable<T>({
                 </td>
               ))}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -228,10 +277,15 @@ function SortableTable<T>({
 function TicketQueue({
   rows,
   onRowClick,
+  selection,
+  onUpdate,
 }: {
   rows: EnrichedTicket[];
   onRowClick?: (t: EnrichedTicket) => void;
+  selection?: ReturnType<typeof useRowSelection>;
+  onUpdate?: (id: string, patch: Partial<Ticket>) => void;
 }) {
+  const update = onUpdate ?? (() => {});
   const columns: SortableColumn<EnrichedTicket>[] = [
     {
       key: "title",
@@ -243,7 +297,13 @@ function TicketQueue({
             <span className="font-mono text-[10px] text-zinc-400">{t.code}</span>
             {t.isChangeRequest ? <StatusBadge tone="info">CR</StatusBadge> : null}
           </div>
-          <div className="mt-0.5 text-xs font-semibold text-zinc-100">{t.title}</div>
+          <div className="mt-0.5 text-xs font-semibold text-zinc-100">
+            <EditableCell
+              value={t.title}
+              type="text"
+              onSave={(v) => update(t.id, { title: v as string })}
+            />
+          </div>
           <div className="text-[10px] text-zinc-400">
             {t.clientName} · {t.projectName}
           </div>
@@ -254,13 +314,27 @@ function TicketQueue({
       key: "severity",
       header: "Severity",
       sortValue: (t) => SEVERITY_RANK[t.severity] ?? -1,
-      render: (t) => <StatusBadge tone={SEVERITY_TONE[t.severity]} dot>{t.severity}</StatusBadge>,
+      render: (t) => (
+        <EditableCell
+          value={t.severity}
+          type="select"
+          options={["critical", "high", "medium", "low"]}
+          onSave={(v) => update(t.id, { severity: v as Ticket["severity"] })}
+        />
+      ),
     },
     {
       key: "status",
       header: "Status",
       sortValue: (t) => t.status,
-      render: (t) => <StatusBadge tone={STATUS_TONE[t.status]}>{t.status}</StatusBadge>,
+      render: (t) => (
+        <EditableCell
+          value={t.status}
+          type="select"
+          options={["Open", "Investigating", "In Progress", "Waiting Client", "Resolved", "Closed"]}
+          onSave={(v) => update(t.id, { status: v as Ticket["status"] })}
+        />
+      ),
     },
     {
       key: "assignee",
@@ -316,6 +390,10 @@ function TicketQueue({
       rowKey={(r) => r.id}
       onRowClick={onRowClick}
       rowAriaLabel={(t) => `Open ticket ${t.code} ${t.title}`}
+      selectable={!!selection}
+      selectedIds={selection?.selectedIds}
+      onToggleRow={selection?.toggle}
+      onToggleAll={selection?.toggleAll}
     />
   );
 }
@@ -330,6 +408,7 @@ export function SupportTicketView() {
   const updateTicket = useTicketsStore((s) => s.update);
   const removeTicket = useTicketsStore((s) => s.remove);
   const toast = useToast();
+  const sel = useRowSelection();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ticket | null>(null);
@@ -492,7 +571,39 @@ export function SupportTicketView() {
                 description="Sorted by SLA urgency. Click a row to drill into ticket detail."
                 action={<NewButton label="New ticket" onClick={openCreate} />}
               />
-              <TicketQueue rows={enriched} onRowClick={(t) => setDrillId(t.id)} />
+              {sel.count > 0 ? (
+                <div className="mb-3">
+                  <BulkActionBar
+                    count={sel.count}
+                    noun="ticket"
+                    onClear={sel.clear}
+                    actions={[
+                      {
+                        label: "Delete",
+                        icon: Trash2,
+                        tone: "danger",
+                        onClick: () => {
+                          [...sel.selectedIds].forEach((id) => removeTicket(id));
+                          sel.clear();
+                        },
+                      },
+                      {
+                        label: "Mark Resolved",
+                        onClick: () => {
+                          [...sel.selectedIds].forEach((id) => updateTicket(id, { status: "Resolved" }));
+                          sel.clear();
+                        },
+                      },
+                    ]}
+                  />
+                </div>
+              ) : null}
+              <TicketQueue
+                rows={enriched}
+                onRowClick={(t) => setDrillId(t.id)}
+                selection={sel}
+                onUpdate={updateTicket}
+              />
             </div>
             <div className="glass rounded-[20px] p-5">
               <SectionHeader eyebrow="SLA radar" title="Risk surface" />

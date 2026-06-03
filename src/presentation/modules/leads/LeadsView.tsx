@@ -8,6 +8,7 @@ import type {
   LeadInsight,
 } from "@/application/use-cases/leads/GetLeadInsights";
 import type { Lead } from "@/domain/entities/Lead";
+import { LEAD_STAGES, type LeadStage } from "@/domain/entities/Lead";
 import type { LeadQualification } from "@/domain/entities/LeadSource";
 import { QUALIFICATION_ORDER } from "@/domain/entities/LeadSource";
 import { useLeadsStore } from "@/state/leads.store";
@@ -23,6 +24,9 @@ import { ChartCard } from "@/presentation/shared/ChartCard";
 import { SearchInput } from "@/presentation/shared/SearchInput";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { DataTable, type Column } from "@/presentation/shared/DataTable";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
+import { useRowSelection } from "@/hooks/useRowSelection";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
@@ -111,6 +115,7 @@ export function LeadsView() {
   const addLead = useLeadsStore((s) => s.add);
   const updateLead = useLeadsStore((s) => s.update);
   const removeLead = useLeadsStore((s) => s.remove);
+  const sel = useRowSelection();
   const toast = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -244,13 +249,25 @@ export function LeadsView() {
       header: "Deal value",
       align: "right",
       render: (l) => (
-        <span className="font-mono text-xs text-zinc-200">{formatIDRCompact(l.dealValue)}</span>
+        <EditableCell
+          value={l.dealValue}
+          type="currencyCompact"
+          onSave={(v) => updateLead(l.id, { dealValue: v as number })}
+          displayClassName="font-mono text-xs text-zinc-200"
+        />
       ),
     },
     {
       key: "stage",
       header: "Stage",
-      render: (l) => <StatusBadge tone={STAGE_TONE[l.stage]}>{l.stage}</StatusBadge>,
+      render: (l) => (
+        <EditableCell
+          value={l.stage}
+          type="select"
+          options={LEAD_STAGES}
+          onSave={(v) => updateLead(l.id, { stage: v as LeadStage })}
+        />
+      ),
     },
     {
       key: "age",
@@ -482,11 +499,38 @@ export function LeadsView() {
               ) : null
             }
           />
+          <BulkActionBar
+            count={sel.count}
+            noun="lead"
+            onClear={sel.clear}
+            actions={[
+              {
+                label: "Delete",
+                icon: Trash2,
+                tone: "danger",
+                onClick: () => {
+                  [...sel.selectedIds].forEach((id) => removeLead(id));
+                  sel.clear();
+                },
+              },
+              {
+                label: "Mark Lost",
+                onClick: () => {
+                  [...sel.selectedIds].forEach((id) => updateLead(id, { stage: "Lost" }));
+                  sel.clear();
+                },
+              },
+            ]}
+          />
           <DataTable<LeadInsight>
             columns={columns}
             rows={filtered}
             rowKey={(r) => r.id}
             onRowClick={(l) => setDrillId(l.id)}
+            selectable
+            selectedIds={sel.selectedIds}
+            onToggleRow={sel.toggle}
+            onToggleAll={sel.toggleAll}
             dense
           />
         </div>

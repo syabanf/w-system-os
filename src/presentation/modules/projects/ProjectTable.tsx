@@ -1,25 +1,17 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
+import type { Project } from "@/domain/entities/Project";
 import { DataTable, type Column } from "@/presentation/shared/DataTable";
-import { StatusBadge } from "@/presentation/shared/StatusBadge";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
+import { useRowSelection } from "@/hooks/useRowSelection";
+import { useProjectsStore } from "@/state/projects.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 
-const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "info" | "wit"> = {
-  Discovery: "info",
-  Planning: "info",
-  "In Development": "wit",
-  QA: "warning",
-  UAT: "warning",
-  Delivered: "success",
-  Maintenance: "neutral",
-};
-
-const HEALTH_TONE = {
-  green: "success" as const,
-  amber: "warning" as const,
-  red: "danger" as const,
-};
+const STATUS_OPTIONS = ["Planning", "Discovery", "In Development", "QA", "UAT", "Delivered", "Maintenance"];
+const HEALTH_OPTIONS = ["green", "amber", "red"];
 
 export function ProjectTable({
   rows,
@@ -28,21 +20,37 @@ export function ProjectTable({
   rows: ProjectOverviewDTO[];
   onRowClick?: (row: ProjectOverviewDTO) => void;
 }) {
+  const updateProject = useProjectsStore((s) => s.update);
+  const removeProject = useProjectsStore((s) => s.remove);
+  const sel = useRowSelection();
+
   const columns: Column<ProjectOverviewDTO>[] = [
     {
       key: "name",
       header: "Project",
       render: (p) => (
         <div>
-          <div className="text-xs font-semibold text-zinc-100">{p.name}</div>
-          <div className="text-[10px] text-zinc-400">{p.code} · {p.clientName}</div>
+          <EditableCell
+            value={p.name}
+            type="text"
+            onSave={(v) => updateProject(p.id, { name: v as string })}
+            displayClassName="text-xs font-semibold text-zinc-100"
+          />
+          <div className="px-1 text-[10px] text-zinc-400">{p.code} · {p.clientName}</div>
         </div>
       ),
     },
     {
       key: "status",
       header: "Status",
-      render: (p) => <StatusBadge tone={STATUS_TONE[p.status]}>{p.status}</StatusBadge>,
+      render: (p) => (
+        <EditableCell
+          value={p.status}
+          type="select"
+          options={STATUS_OPTIONS}
+          onSave={(v) => updateProject(p.id, { status: v as Project["status"] })}
+        />
+      ),
     },
     {
       key: "manager",
@@ -68,7 +76,13 @@ export function ProjectTable({
               }}
             />
           </div>
-          <span className="font-mono text-[10px] text-zinc-300">{p.progress}%</span>
+          <EditableCell
+            value={p.progress}
+            type="number"
+            onSave={(v) => updateProject(p.id, { progress: v as number })}
+            className="w-14"
+            displayClassName="font-mono text-[10px] text-zinc-300"
+          />
         </div>
       ),
     },
@@ -103,20 +117,52 @@ export function ProjectTable({
       key: "health",
       header: "Health",
       render: (p) => (
-        <StatusBadge tone={HEALTH_TONE[p.health]} dot>
-          {p.health}
-        </StatusBadge>
+        <EditableCell
+          value={p.health}
+          type="select"
+          options={HEALTH_OPTIONS}
+          onSave={(v) => updateProject(p.id, { health: v as Project["health"] })}
+        />
       ),
     },
   ];
 
   return (
-    <DataTable<ProjectOverviewDTO>
-      columns={columns}
-      rows={rows}
-      rowKey={(p) => p.id}
-      onRowClick={onRowClick}
-      dense
-    />
+    <div className="space-y-2">
+      <BulkActionBar
+        count={sel.count}
+        noun="project"
+        onClear={sel.clear}
+        actions={[
+          {
+            label: "Delete",
+            icon: Trash2,
+            tone: "danger",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => removeProject(id));
+              sel.clear();
+            },
+          },
+          {
+            label: "Mark Delivered",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => updateProject(id, { status: "Delivered" }));
+              sel.clear();
+            },
+          },
+        ]}
+      />
+      <DataTable<ProjectOverviewDTO>
+        columns={columns}
+        rows={rows}
+        rowKey={(p) => p.id}
+        onRowClick={onRowClick}
+        dense
+        selectable
+        selectedIds={sel.selectedIds}
+        onToggleRow={sel.toggle}
+        onToggleAll={sel.toggleAll}
+      />
+    </div>
   );
 }

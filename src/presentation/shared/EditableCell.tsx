@@ -82,6 +82,7 @@ export function EditableCell({
         <select
           ref={inputRef as React.RefObject<HTMLSelectElement>}
           value={draft}
+          onClick={(e) => e.stopPropagation()}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
@@ -110,6 +111,7 @@ export function EditableCell({
         type={type === "date" ? "date" : type === "text" ? "text" : "number"}
         step={type === "percent" ? "0.1" : type === "number" || type === "currency" || type === "currencyCompact" ? "1" : undefined}
         value={draft}
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
@@ -129,7 +131,10 @@ export function EditableCell({
   return (
     <button
       type="button"
-      onClick={() => setEditing(true)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+      }}
       className={cn(
         "group inline-flex w-full items-center gap-1 rounded px-1 py-0.5 text-left transition-colors hover:bg-white/[0.06] focus:bg-white/[0.06] focus:outline-none",
         isRight && "justify-end text-right",
