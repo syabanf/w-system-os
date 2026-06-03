@@ -756,7 +756,7 @@ function InvoicesTab({
     { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <EditableCell value={r.amount} type="currencyCompact" onSave={(v) => updateInvoice(r.id, { amount: v as number })} /> },
     { key: "paid", header: "Paid", align: "right", sortValue: (r) => r.paidAmount, render: (r) => <span className={`font-mono text-xs ${r.paidAmount >= r.amount ? "text-emerald-300" : r.paidAmount > 0 ? "text-amber-300" : "text-rose-300"}`}>{formatIDR(r.paidAmount)}</span> },
     { key: "balance", header: "Balance", align: "right", sortValue: (r) => Math.max(0, r.amount - r.paidAmount), render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(Math.max(0, r.amount - r.paidAmount))}</span> },
-    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <EditableCell value={r.status} type="select" options={["draft", "sent", "paid", "overdue", "void"]} onSave={(v) => updateInvoice(r.id, { status: v as Invoice["status"] })} /> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <EditableCell value={r.status} type="select" options={["draft", "sent", "paid", "overdue", "void"]} onSave={(v) => updateInvoice(r.id, { status: v as Invoice["status"] })} displayRender={(v) => <StatusBadge tone={INVOICE_TONE[v as string] ?? "neutral"}>{v as string}</StatusBadge>} /> },
     {
       key: "actions",
       header: "",

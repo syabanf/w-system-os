@@ -320,6 +320,11 @@ function TicketQueue({
           type="select"
           options={["critical", "high", "medium", "low"]}
           onSave={(v) => update(t.id, { severity: v as Ticket["severity"] })}
+          displayRender={(v) => (
+            <StatusBadge tone={SEVERITY_TONE[v as string] ?? "neutral"} dot>
+              {v as string}
+            </StatusBadge>
+          )}
         />
       ),
     },
@@ -333,6 +338,9 @@ function TicketQueue({
           type="select"
           options={["Open", "Investigating", "In Progress", "Waiting Client", "Resolved", "Closed"]}
           onSave={(v) => update(t.id, { status: v as Ticket["status"] })}
+          displayRender={(v) => (
+            <StatusBadge tone={STATUS_TONE[v as string] ?? "neutral"}>{v as string}</StatusBadge>
+          )}
         />
       ),
     },

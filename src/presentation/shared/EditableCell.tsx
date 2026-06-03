@@ -25,6 +25,10 @@ interface EditableCellProps {
   placeholder?: string;
   /** Visual treatment for the display value (e.g. tone). */
   displayClassName?: string;
+  /** Custom display-mode renderer (e.g. a colored status badge). When set, it
+   *  replaces the formatted-text span in display mode; the cell still becomes an
+   *  editor on click. */
+  displayRender?: (value: unknown) => React.ReactNode;
 }
 
 /**
@@ -41,6 +45,7 @@ export function EditableCell({
   align,
   placeholder,
   displayClassName,
+  displayRender,
 }: EditableCellProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(() => stringify(value, type));
@@ -141,7 +146,11 @@ export function EditableCell({
         className,
       )}
     >
-      <span className={cn(displayClassName)}>{format(value, type) || (placeholder && <span className="text-zinc-500">{placeholder}</span>) || <span className="text-zinc-500">—</span>}</span>
+      {displayRender ? (
+        displayRender(value)
+      ) : (
+        <span className={cn(displayClassName)}>{format(value, type) || (placeholder && <span className="text-zinc-500">{placeholder}</span>) || <span className="text-zinc-500">—</span>}</span>
+      )}
       <span className="ml-1 text-[8px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
         ✎
       </span>

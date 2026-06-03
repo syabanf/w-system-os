@@ -6,12 +6,24 @@ import type { Project } from "@/domain/entities/Project";
 import { DataTable, type Column } from "@/presentation/shared/DataTable";
 import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
 import { EditableCell } from "@/presentation/shared/EditableCell";
+import { StatusBadge, type StatusTone } from "@/presentation/shared/StatusBadge";
 import { useRowSelection } from "@/hooks/useRowSelection";
 import { useProjectsStore } from "@/state/projects.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 
 const STATUS_OPTIONS = ["Planning", "Discovery", "In Development", "QA", "UAT", "Delivered", "Maintenance"];
 const HEALTH_OPTIONS = ["green", "amber", "red"];
+
+const STATUS_TONE: Record<string, StatusTone> = {
+  Planning: "neutral",
+  Discovery: "info",
+  "In Development": "wit",
+  QA: "warning",
+  UAT: "warning",
+  Delivered: "success",
+  Maintenance: "neutral",
+};
+const HEALTH_TONE: Record<string, StatusTone> = { green: "success", amber: "warning", red: "danger" };
 
 export function ProjectTable({
   rows,
@@ -49,6 +61,9 @@ export function ProjectTable({
           type="select"
           options={STATUS_OPTIONS}
           onSave={(v) => updateProject(p.id, { status: v as Project["status"] })}
+          displayRender={(v) => (
+            <StatusBadge tone={STATUS_TONE[v as string] ?? "neutral"}>{v as string}</StatusBadge>
+          )}
         />
       ),
     },
@@ -122,6 +137,11 @@ export function ProjectTable({
           type="select"
           options={HEALTH_OPTIONS}
           onSave={(v) => updateProject(p.id, { health: v as Project["health"] })}
+          displayRender={(v) => (
+            <StatusBadge tone={HEALTH_TONE[v as string] ?? "neutral"} dot>
+              {v as string}
+            </StatusBadge>
+          )}
         />
       ),
     },

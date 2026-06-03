@@ -266,6 +266,9 @@ export function LeadsView() {
           type="select"
           options={LEAD_STAGES}
           onSave={(v) => updateLead(l.id, { stage: v as LeadStage })}
+          displayRender={(v) => (
+            <StatusBadge tone={STAGE_TONE[v as string] ?? "neutral"}>{v as string}</StatusBadge>
+          )}
         />
       ),
     },
