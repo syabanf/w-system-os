@@ -159,7 +159,8 @@ export function runReddieCommand(raw: string): ReddieReply | null {
   // ── DRAFTS ──────────────────────────────────────────────────────────────────
   if (/\b(draft|write|compose|prepare)\b/.test(q) || (/\bupdate|note|memo|email|summary\b/.test(q) && /\bdraft\b/.test(q))) {
     if (/\b(client|account|customer|check[- ]?in|renewal)\b/.test(q)) {
-      const named = extractName(original);
+      // "...check-in for Garuda" / "...about Acme" → target that client.
+      const named = original.match(/\b(?:for|with|about|re:?)\s+(.+)$/i)?.[1]?.trim() || extractName(original);
       return { content: draftClientCheckIn(named), suggestions: ["Open Clients", "Draft an exec summary"] };
     }
     if (/\b(exec|executive|leadership|board|weekly|status)\b/.test(q)) {
@@ -193,7 +194,7 @@ export function runReddieCommand(raw: string): ReddieReply | null {
   }
 
   // ── LIVE DATA ANSWERS ───────────────────────────────────────────────────────
-  if (/\b(overdue|outstanding|receivable|unpaid|aging|aged)\b/.test(q) || (/\binvoices?\b/.test(q) && /\b(owe|owed|chase|due)\b/.test(q))) {
+  if (/\b(overdue|outstanding|receivables?|unpaid|aging|aged)\b/.test(q) || (/\binvoices?\b/.test(q) && /\b(owe|owed|chase|due)\b/.test(q))) {
     const inv = useInvoicesStore.getState().items;
     const clients = useClientsStore.getState().items;
     const name = (id: string) => clients.find((c) => c.id === id)?.name ?? "—";
@@ -223,7 +224,7 @@ export function runReddieCommand(raw: string): ReddieReply | null {
     };
   }
 
-  if (/\b(over[- ]?allocat|utilization|capacity|overloaded|workload|bandwidth)\b/.test(q)) {
+  if (/over[- ]?alloc|utiliz|utilis|capacity|overloaded|workload|bandwidth/.test(q)) {
     const over = mockTeam.filter((m) => m.allocationPercent > 100).sort((a, b) => b.allocationPercent - a.allocationPercent);
     const avg = Math.round(mockTeam.reduce((s, m) => s + m.allocationPercent, 0) / Math.max(1, mockTeam.length));
     openApp("hr");
@@ -247,7 +248,7 @@ export function runReddieCommand(raw: string): ReddieReply | null {
     };
   }
 
-  if (/\b(tickets?|sla|breach|incident|p0|p1)\b/.test(q)) {
+  if (/\b(tickets?|sla|breaches?|breach|incidents?|p0|p1)\b/.test(q)) {
     const tickets = useTicketsStore.getState().items;
     const open = tickets.filter((t) => t.status !== "Resolved" && t.status !== "Closed");
     const critical = open.filter((t) => t.severity === "critical");
@@ -310,6 +311,15 @@ export function runReddieCommand(raw: string): ReddieReply | null {
     return {
       content: `${mockTeam.length} people across ${roles.size} roles. ${mockTeam.filter((m) => m.allocationPercent > 100).length} are over-allocated.`,
       suggestions: ["Open People", "Who's over-allocated?"],
+    };
+  }
+
+  // Notifications / signals / inbox
+  if (/\b(signals?|notifications?|alerts?|inbox|what needs|attention)\b/.test(q)) {
+    const unread = useNotificationStore.getState().unread;
+    return {
+      content: `You have ${unread} unread signal${unread === 1 ? "" : "s"} in your inbox — open the bell in the top bar to triage.`,
+      suggestions: ["Show overdue invoices", "Which projects are at risk?"],
     };
   }
 
