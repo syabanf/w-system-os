@@ -27,18 +27,19 @@ import { mockTeam } from "@/infrastructure/data/team.mock";
 import {
   mockOnboardingTasks,
   mockChatThreads,
-  mockChatMessages,
-  mockEmployeeLeaveRequests,
   mockHRSlots,
-  mockHRMeetingRequests,
   PORTAL_EMPLOYEE_ID,
 } from "@/infrastructure/data/portal.mock";
 import type {
   OnboardingTask,
   OnboardingStatus,
-  ChatMessage,
   HRMeetingPurpose,
 } from "@/domain/entities/Portal";
+import {
+  usePortalChatStore,
+  usePortalHRStore,
+  usePortalLeaveStore,
+} from "@/state/portal.store";
 import { cn } from "@/lib/cn";
 import { formatDate, relativeFromNow } from "@/lib/date";
 
@@ -392,8 +393,14 @@ function OnboardingTab() {
 
 function ChatTab() {
   const [activeId, setActiveId] = useState(mockChatThreads[0].id);
-  const [messages, setMessages] = useState<ChatMessage[]>(mockChatMessages);
+  const messages = usePortalChatStore((s) => s.items);
+  const hydrate = usePortalChatStore((s) => s.hydrate);
+  const addMessage = usePortalChatStore((s) => s.add);
   const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   const threadMessages = useMemo(
     () =>
@@ -405,16 +412,12 @@ function ChatTab() {
 
   const send = () => {
     if (!draft.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `cm-${Math.random().toString(36).slice(2, 7)}`,
-        threadId: activeId,
-        fromMemberId: PORTAL_EMPLOYEE_ID,
-        content: draft.trim(),
-        at: new Date().toISOString(),
-      },
-    ]);
+    addMessage({
+      threadId: activeId,
+      fromMemberId: PORTAL_EMPLOYEE_ID,
+      content: draft.trim(),
+      at: new Date().toISOString(),
+    });
     setDraft("");
   };
 
@@ -566,7 +569,13 @@ function LeaveRequestTab() {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [toast, setToast] = useState<string | null>(null);
-  const [requests, setRequests] = useState(mockEmployeeLeaveRequests);
+  const requests = usePortalLeaveStore((s) => s.items);
+  const hydrate = usePortalLeaveStore((s) => s.hydrate);
+  const addLeave = usePortalLeaveStore((s) => s.add);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   const types: LeaveType[] = ["Annual", "Sick", "Maternity", "Bereavement", "Unpaid"];
   const balances = [
@@ -583,20 +592,16 @@ function LeaveRequestTab() {
         (new Date(endDate).getTime() - new Date(startDate).getTime()) /
           (1000 * 60 * 60 * 24),
       ) + 1;
-    setRequests((prev) => [
-      {
-        id: `elr-${Math.random().toString(36).slice(2, 6)}`,
-        employeeId: "emp-3",
-        type: leaveType,
-        startDate,
-        endDate,
-        days: Math.max(1, days),
-        reason: reason.trim() || "—",
-        status: "pending",
-        submittedAt: new Date().toISOString().slice(0, 10),
-      },
-      ...prev,
-    ]);
+    addLeave({
+      employeeId: "emp-3",
+      type: leaveType,
+      startDate,
+      endDate,
+      days: Math.max(1, days),
+      reason: reason.trim() || "—",
+      status: "pending",
+      submittedAt: new Date().toISOString().slice(0, 10),
+    });
     setStartDate("");
     setEndDate("");
     setReason("");
@@ -759,9 +764,15 @@ function MeetHRTab() {
   const [activeDate, setActiveDate] = useState<string>(mockHRSlots[0].date);
   const [purpose, setPurpose] = useState<HRMeetingPurpose>("Onboarding");
   const [notes, setNotes] = useState("");
-  const [requests, setRequests] = useState(mockHRMeetingRequests);
+  const requests = usePortalHRStore((s) => s.items);
+  const hydrate = usePortalHRStore((s) => s.hydrate);
+  const addRequest = usePortalHRStore((s) => s.add);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   const dates = Array.from(new Set(mockHRSlots.map((s) => s.date)));
   const slotsForDate = mockHRSlots.filter((s) => s.date === activeDate);
@@ -770,19 +781,15 @@ function MeetHRTab() {
     const slot = mockHRSlots.find((s) => s.id === selectedSlotId);
     if (!slot) return;
     const member = teamMap.get(slot.hrMemberId);
-    setRequests((prev) => [
-      {
-        id: `hmr-${Math.random().toString(36).slice(2, 6)}`,
-        hrMemberId: slot.hrMemberId,
-        employeeMemberId: PORTAL_EMPLOYEE_ID,
-        date: slot.date,
-        time: slot.startTime,
-        purpose,
-        notes: notes.trim() || "—",
-        status: "Requested",
-      },
-      ...prev,
-    ]);
+    addRequest({
+      hrMemberId: slot.hrMemberId,
+      employeeMemberId: PORTAL_EMPLOYEE_ID,
+      date: slot.date,
+      time: slot.startTime,
+      purpose,
+      notes: notes.trim() || "—",
+      status: "Requested",
+    });
     setSelectedSlotId(null);
     setNotes("");
     setToast(
