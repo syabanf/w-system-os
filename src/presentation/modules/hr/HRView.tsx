@@ -27,6 +27,9 @@ import { useDrillState } from "@/state/drill.store";
 import { useEmployeesStore } from "@/state/employees.store";
 import type { Employee } from "@/domain/entities/Employee";
 import { Pencil, Trash2 } from "lucide-react";
+import { useRowSelection } from "@/hooks/useRowSelection";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { useToast } from "@/state/toast.store";
 
@@ -154,6 +157,7 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
   const updateEmployee = useEmployeesStore((s) => s.update);
   const removeEmployee = useEmployeesStore((s) => s.remove);
   const toast = useToast();
+  const sel = useRowSelection();
 
   useEffect(() => {
     hydrate();
@@ -202,27 +206,65 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
         );
       },
     },
-    { key: "dept", header: "Department", render: (e) => <span className="text-[11px] text-zinc-300">{e.department}</span> },
-    { key: "role", header: "Position", render: (e) => <span className="text-[11px] text-zinc-300">{e.position}</span> },
+    {
+      key: "dept",
+      header: "Department",
+      render: (e) => (
+        <EditableCell
+          value={e.department}
+          type="text"
+          displayClassName="text-[11px] text-zinc-300"
+          onSave={(v) => updateEmployee(e.id, { department: v as string })}
+        />
+      ),
+    },
+    {
+      key: "role",
+      header: "Position",
+      render: (e) => (
+        <EditableCell
+          value={e.position}
+          type="text"
+          displayClassName="text-[11px] text-zinc-300"
+          onSave={(v) => updateEmployee(e.id, { position: v as string })}
+        />
+      ),
+    },
     {
       key: "type",
       header: "Type",
-      render: (e) => <StatusBadge tone="wit">{e.employmentType}</StatusBadge>,
+      render: (e) => (
+        <EditableCell
+          value={e.employmentType}
+          type="select"
+          options={["Permanent", "Contract", "Probation", "Intern"]}
+          onSave={(v) => updateEmployee(e.id, { employmentType: v as Employee["employmentType"] })}
+          displayRender={(v) => <StatusBadge tone="wit">{v as string}</StatusBadge>}
+        />
+      ),
     },
     {
       key: "status",
       header: "Status",
       render: (e) => (
-        <StatusBadge
-          tone={
-            e.status === "active" ? "success" :
-            e.status === "on-leave" ? "warning" :
-            e.status === "probation" ? "info" : "neutral"
-          }
-          dot
-        >
-          {e.status}
-        </StatusBadge>
+        <EditableCell
+          value={e.status}
+          type="select"
+          options={["active", "probation", "on-leave", "resigned", "terminated"]}
+          onSave={(v) => updateEmployee(e.id, { status: v as Employee["status"] })}
+          displayRender={(v) => (
+            <StatusBadge
+              tone={
+                v === "active" ? "success" :
+                v === "on-leave" ? "warning" :
+                v === "probation" ? "info" : "neutral"
+              }
+              dot
+            >
+              {v as string}
+            </StatusBadge>
+          )}
+        />
       ),
     },
     {
@@ -337,11 +379,38 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
           description="Click a row to drill in; use the actions column to edit or remove."
           action={<NewButton label="New employee" onClick={openCreate} />}
         />
+        <BulkActionBar
+          count={sel.count}
+          noun="employee"
+          onClear={sel.clear}
+          actions={[
+            {
+              label: "Delete",
+              icon: Trash2,
+              tone: "danger",
+              onClick: () => {
+                [...sel.selectedIds].forEach((id) => removeEmployee(id));
+                sel.clear();
+              },
+            },
+            {
+              label: "Set on leave",
+              onClick: () => {
+                [...sel.selectedIds].forEach((id) => updateEmployee(id, { status: "on-leave" }));
+                sel.clear();
+              },
+            },
+          ]}
+        />
         <DataTable
           rows={employees}
           columns={empColumns}
           rowKey={(e) => e.id}
           onRowClick={(e) => setDrillId(e.id)}
+          selectable
+          selectedIds={sel.selectedIds}
+          onToggleRow={sel.toggle}
+          onToggleAll={sel.toggleAll}
           dense
         />
       </div>
