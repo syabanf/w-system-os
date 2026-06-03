@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
+import { preloadModule } from "@/presentation/desktop/WindowManager";
 import { cn } from "@/lib/cn";
 
 interface DockIconProps {
@@ -15,9 +16,14 @@ interface DockIconProps {
 function DockIcon({ module, open, isFocused, onClick }: DockIconProps) {
   const tile = module.accentLight;
   const Icon = module.icon;
+  // Warm this module's chunk as soon as the user hovers or tabs to the icon,
+  // so a subsequent click opens it without waiting on a network round-trip.
+  const prefetch = () => preloadModule(module.id);
   return (
     <button
       onClick={onClick}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       className="group relative flex flex-col items-center"
       title={module.name}
     >

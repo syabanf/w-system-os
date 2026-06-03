@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlarmClock, AlertOctagon, GitPullRequest, LifeBuoy, Pencil, Plus, Trash2 } from "lucide-react";
+import { AlarmClock, AlertOctagon, ChevronDown, ChevronsUpDown, ChevronUp, GitPullRequest, LifeBuoy, Pencil, Plus, Trash2 } from "lucide-react";
 import { createSupportService } from "@/application/factories/createSupportService";
 import type {
   EnrichedTicket,
@@ -17,7 +17,9 @@ import { useToast } from "@/state/toast.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
-import { TicketQueue } from "./TicketQueue";
+import { StatusBadge } from "@/presentation/shared/StatusBadge";
+import { type Column } from "@/presentation/shared/DataTable";
+import { cn } from "@/lib/cn";
 import { TicketDetailView } from "./TicketDetailView";
 import { SLARiskPanel } from "./SLARiskPanel";
 import { TicketFormDialog } from "./TicketFormDialog";
@@ -41,6 +43,261 @@ function enrich(ticket: Ticket): EnrichedTicket {
     isAtRisk: isSLAAtRisk(ticket, NOW),
     isBreached: isSLABreached(ticket, NOW),
   };
+}
+
+const SEVERITY_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "info"> = {
+  low: "info",
+  medium: "warning",
+  high: "warning",
+  critical: "danger",
+};
+
+const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "info" | "wit"> = {
+  Open: "danger",
+  Investigating: "warning",
+  "Waiting Client": "info",
+  "In Progress": "wit",
+  Resolved: "success",
+  Closed: "neutral",
+};
+
+// Logical severity order so the Severity column sorts by urgency, not alphabet.
+const SEVERITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
+type SortDir = "asc" | "desc";
+type SortState = { key: string; dir: SortDir } | null;
+
+/**
+ * A column that can be sorted. Extends the shared {@link Column} with an
+ * optional `sortValue` extractor — when present the header becomes a clickable
+ * sort toggle. Columns without `sortValue` (e.g. action columns) stay static.
+ */
+type SortableColumn<T> = Column<T> & {
+  sortValue?: (row: T) => string | number | null | undefined;
+};
+
+/** Compare two extracted sort values, sorting nullish to the end of "asc". */
+function compareValues(a: unknown, b: unknown): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
+}
+
+/**
+ * Sortable, sticky-header ticket table. Clicking a column header toggles
+ * asc ⇄ desc (then off); the active column shows a caret. Sorting returns a
+ * sorted COPY of `rows` — the source array is never mutated. The header stays
+ * pinned while the body scrolls inside the bordered container.
+ */
+function SortableTable<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+}: {
+  columns: SortableColumn<T>[];
+  rows: T[];
+  rowKey: (row: T) => string;
+  onRowClick?: (row: T) => void;
+}) {
+  const [sort, setSort] = useState<SortState>(null);
+
+  const sortedRows = useMemo(() => {
+    if (!sort) return rows;
+    const col = columns.find((c) => c.key === sort.key);
+    if (!col?.sortValue) return rows;
+    const extract = col.sortValue;
+    const factor = sort.dir === "asc" ? 1 : -1;
+    // Sort a COPY — never mutate the source rows array.
+    return [...rows].sort((a, b) => compareValues(extract(a), extract(b)) * factor);
+  }, [rows, sort, columns]);
+
+  const toggleSort = (key: string) =>
+    setSort((prev) =>
+      prev && prev.key === key
+        ? prev.dir === "asc"
+          ? { key, dir: "desc" }
+          : null
+        : { key, dir: "asc" },
+    );
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-zinc-400">
+        No tickets in the queue.
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-[60vh] overflow-auto rounded-2xl border border-white/8">
+      <table className="w-full text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-white/[0.03] backdrop-blur supports-[backdrop-filter]:bg-zinc-950/70">
+          <tr>
+            {columns.map((col) => {
+              const active = sort?.key === col.key;
+              const sortable = Boolean(col.sortValue);
+              return (
+                <th
+                  key={col.key}
+                  aria-sort={active ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}
+                  className={cn(
+                    "px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400",
+                    col.align === "right" && "text-right",
+                    col.align === "center" && "text-center",
+                  )}
+                  style={{ width: col.width }}
+                >
+                  {sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      className={cn(
+                        "inline-flex items-center gap-1 transition-colors hover:text-zinc-100",
+                        col.align === "right" && "flex-row-reverse",
+                        active && "text-zinc-100",
+                      )}
+                    >
+                      {col.header}
+                      {active ? (
+                        sort!.dir === "asc" ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="h-3 w-3 text-zinc-600" />
+                      )}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedRows.map((row, i) => (
+            <tr
+              key={rowKey(row)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={cn(
+                "border-t border-white/5 transition-colors hover:bg-white/[0.04]",
+                onRowClick && "cursor-pointer",
+                i % 2 === 1 && "bg-white/[0.015]",
+              )}
+            >
+              {columns.map((col) => (
+                <td
+                  key={col.key}
+                  className={cn(
+                    "px-4 py-2 text-xs text-zinc-200",
+                    col.align === "right" && "text-right",
+                    col.align === "center" && "text-center",
+                  )}
+                >
+                  {col.render(row)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * The support queue table — replicated inline (was the shared `TicketQueue`
+ * component) so it can carry sortable, sticky headers. Severity sorts by
+ * urgency rank and SLA sorts by hours-until-deadline; the title/status/assignee
+ * columns sort textually.
+ */
+function TicketQueue({
+  rows,
+  onRowClick,
+}: {
+  rows: EnrichedTicket[];
+  onRowClick?: (t: EnrichedTicket) => void;
+}) {
+  const columns: SortableColumn<EnrichedTicket>[] = [
+    {
+      key: "title",
+      header: "Ticket",
+      sortValue: (t) => t.title,
+      render: (t) => (
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] text-zinc-400">{t.code}</span>
+            {t.isChangeRequest ? <StatusBadge tone="info">CR</StatusBadge> : null}
+          </div>
+          <div className="mt-0.5 text-xs font-semibold text-zinc-100">{t.title}</div>
+          <div className="text-[10px] text-zinc-400">
+            {t.clientName} · {t.projectName}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "severity",
+      header: "Severity",
+      sortValue: (t) => SEVERITY_RANK[t.severity] ?? -1,
+      render: (t) => <StatusBadge tone={SEVERITY_TONE[t.severity]} dot>{t.severity}</StatusBadge>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortValue: (t) => t.status,
+      render: (t) => <StatusBadge tone={STATUS_TONE[t.status]}>{t.status}</StatusBadge>,
+    },
+    {
+      key: "assignee",
+      header: "Assignee",
+      sortValue: (t) => t.assigneeName,
+      render: (t) => <span className="text-[11px] text-zinc-300">{t.assigneeName}</span>,
+    },
+    {
+      key: "sla",
+      header: "SLA",
+      align: "right",
+      sortValue: (t) => t.hoursUntilSLA,
+      render: (t) => {
+        if (t.status === "Resolved" || t.status === "Closed")
+          return <span className="text-[11px] text-zinc-500">—</span>;
+        if (t.isBreached) {
+          return (
+            <span className="font-mono text-[11px] text-rose-300">
+              {`${Math.abs(Math.round(t.hoursUntilSLA))}h overdue`}
+            </span>
+          );
+        }
+        if (t.isAtRisk) {
+          return (
+            <span className="font-mono text-[11px] text-amber-300">
+              {`${Math.round(t.hoursUntilSLA * 10) / 10}h left`}
+            </span>
+          );
+        }
+        return (
+          <span className="font-mono text-[11px] text-emerald-300">
+            {`${Math.round(t.hoursUntilSLA)}h left`}
+          </span>
+        );
+      },
+    },
+  ];
+
+  return (
+    <SortableTable<EnrichedTicket>
+      columns={columns}
+      rows={rows}
+      rowKey={(r) => r.id}
+      onRowClick={onRowClick}
+    />
+  );
 }
 
 export function SupportTicketView() {

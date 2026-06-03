@@ -305,10 +305,15 @@ export function KPIsView() {
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
           if (!confirmDelete) return;
-          const name = confirmDelete.name;
-          removeKpi(confirmDelete.id);
+          const { id, ...draft } = confirmDelete;
+          removeKpi(id);
           setConfirmDelete(null);
-          toast.info("KPI deleted", name);
+          toast.push({
+            tone: "info",
+            title: "KPI deleted",
+            description: draft.name,
+            action: { label: "Undo", onClick: () => addKpi(draft) },
+          });
         }}
       />
     </div>

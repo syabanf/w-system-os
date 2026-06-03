@@ -1,48 +1,114 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ComponentType } from "react";
 import { AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useWindowStore } from "@/state/window.store";
 import { AppWindow } from "@/presentation/windows/AppWindow";
 import type { AppModuleId } from "@/constants/appModules";
 
-import { ExecutiveDashboardView } from "@/presentation/modules/dashboard/ExecutiveDashboardView";
-import { LeadsView } from "@/presentation/modules/leads/LeadsView";
-import { ClientManagementView } from "@/presentation/modules/clients/ClientManagementView";
-import { ProjectManagementView } from "@/presentation/modules/projects/ProjectManagementView";
-import { HRView } from "@/presentation/modules/hr/HRView";
-import { TimesheetView } from "@/presentation/modules/timesheet/TimesheetView";
-import { FinanceBillingView } from "@/presentation/modules/finance/FinanceBillingView";
-import { TransactionView } from "@/presentation/modules/transaction/TransactionView";
-import { SupportTicketView } from "@/presentation/modules/support/SupportTicketView";
-import { KnowledgeBaseView } from "@/presentation/modules/knowledge/KnowledgeBaseView";
-import { AdminAccessView } from "@/presentation/modules/admin/AdminAccessView";
-import { UserPortalView } from "@/presentation/modules/portal/UserPortalView";
-import { ReportsView } from "@/presentation/modules/reports/ReportsView";
-import { KPIsView } from "@/presentation/modules/kpis/KPIsView";
-import { Performance360View } from "@/presentation/modules/performance/Performance360View";
-import { IntegrationDashboardView } from "@/presentation/modules/integration/IntegrationDashboardView";
+/**
+ * Small centered spinner shown while a lazily-loaded module view's chunk is
+ * still being fetched. Kept dependency-free so it lives inside the already-
+ * loaded shell bundle (no extra import to defeat the point of code-splitting).
+ */
+function ModuleLoading() {
+  return (
+    <div className="grid h-full w-full place-items-center p-8">
+      <span
+        aria-label="Loading module"
+        role="status"
+        className="h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-white/80"
+      />
+    </div>
+  );
+}
+
+/**
+ * Raw import thunks, one per module id. These are the single source of truth
+ * for "how to load module X". We use them in two places:
+ *   1. `dynamic(thunk, …)` below, to build the lazily-rendered component.
+ *   2. `preloadModule(id)`, to warm a chunk on hover/focus before click.
+ *
+ * The `import()` expressions are written out explicitly (not via a variable
+ * path) and live at module top level, which is what the bundler needs to map
+ * each chunk to its dynamic() call and to make preloading effective.
+ */
+const MODULE_LOADERS: Record<AppModuleId, () => Promise<unknown>> = {
+  dashboard: () => import("@/presentation/modules/dashboard/ExecutiveDashboardView"),
+  leads: () => import("@/presentation/modules/leads/LeadsView"),
+  clients: () => import("@/presentation/modules/clients/ClientManagementView"),
+  projects: () => import("@/presentation/modules/projects/ProjectManagementView"),
+  hr: () => import("@/presentation/modules/hr/HRView"),
+  timesheet: () => import("@/presentation/modules/timesheet/TimesheetView"),
+  finance: () => import("@/presentation/modules/finance/FinanceBillingView"),
+  transaction: () => import("@/presentation/modules/transaction/TransactionView"),
+  support: () => import("@/presentation/modules/support/SupportTicketView"),
+  knowledge: () => import("@/presentation/modules/knowledge/KnowledgeBaseView"),
+  admin: () => import("@/presentation/modules/admin/AdminAccessView"),
+  portal: () => import("@/presentation/modules/portal/UserPortalView"),
+  reports: () => import("@/presentation/modules/reports/ReportsView"),
+  kpis: () => import("@/presentation/modules/kpis/KPIsView"),
+  performance: () => import("@/presentation/modules/performance/Performance360View"),
+  integration: () => import("@/presentation/modules/integration/IntegrationDashboardView"),
+};
+
+/**
+ * Lazily-rendered module components. Each view is fetched only the first time
+ * its window is rendered. `ssr: false` keeps these out of the server/initial
+ * payload (they're client-only desktop windows), and `loading` shows a small
+ * centered spinner while the chunk arrives.
+ *
+ * The module files export their view as a NAMED export, so each loader resolves
+ * the named member to the `default`-shaped component next/dynamic expects.
+ */
+const MODULE_COMPONENTS: Record<AppModuleId, ComponentType> = {
+  dashboard: dynamic(() => import("@/presentation/modules/dashboard/ExecutiveDashboardView").then((m) => m.ExecutiveDashboardView), { ssr: false, loading: () => <ModuleLoading /> }),
+  leads: dynamic(() => import("@/presentation/modules/leads/LeadsView").then((m) => m.LeadsView), { ssr: false, loading: () => <ModuleLoading /> }),
+  clients: dynamic(() => import("@/presentation/modules/clients/ClientManagementView").then((m) => m.ClientManagementView), { ssr: false, loading: () => <ModuleLoading /> }),
+  projects: dynamic(() => import("@/presentation/modules/projects/ProjectManagementView").then((m) => m.ProjectManagementView), { ssr: false, loading: () => <ModuleLoading /> }),
+  hr: dynamic(() => import("@/presentation/modules/hr/HRView").then((m) => m.HRView), { ssr: false, loading: () => <ModuleLoading /> }),
+  timesheet: dynamic(() => import("@/presentation/modules/timesheet/TimesheetView").then((m) => m.TimesheetView), { ssr: false, loading: () => <ModuleLoading /> }),
+  finance: dynamic(() => import("@/presentation/modules/finance/FinanceBillingView").then((m) => m.FinanceBillingView), { ssr: false, loading: () => <ModuleLoading /> }),
+  transaction: dynamic(() => import("@/presentation/modules/transaction/TransactionView").then((m) => m.TransactionView), { ssr: false, loading: () => <ModuleLoading /> }),
+  support: dynamic(() => import("@/presentation/modules/support/SupportTicketView").then((m) => m.SupportTicketView), { ssr: false, loading: () => <ModuleLoading /> }),
+  knowledge: dynamic(() => import("@/presentation/modules/knowledge/KnowledgeBaseView").then((m) => m.KnowledgeBaseView), { ssr: false, loading: () => <ModuleLoading /> }),
+  admin: dynamic(() => import("@/presentation/modules/admin/AdminAccessView").then((m) => m.AdminAccessView), { ssr: false, loading: () => <ModuleLoading /> }),
+  portal: dynamic(() => import("@/presentation/modules/portal/UserPortalView").then((m) => m.UserPortalView), { ssr: false, loading: () => <ModuleLoading /> }),
+  reports: dynamic(() => import("@/presentation/modules/reports/ReportsView").then((m) => m.ReportsView), { ssr: false, loading: () => <ModuleLoading /> }),
+  kpis: dynamic(() => import("@/presentation/modules/kpis/KPIsView").then((m) => m.KPIsView), { ssr: false, loading: () => <ModuleLoading /> }),
+  performance: dynamic(() => import("@/presentation/modules/performance/Performance360View").then((m) => m.Performance360View), { ssr: false, loading: () => <ModuleLoading /> }),
+  integration: dynamic(() => import("@/presentation/modules/integration/IntegrationDashboardView").then((m) => m.IntegrationDashboardView), { ssr: false, loading: () => <ModuleLoading /> }),
+};
+
+/** Track which module chunks have already been requested, so repeated
+ *  hover/focus events don't fire duplicate imports. */
+const preloaded = new Set<AppModuleId>();
+
+/**
+ * Warm a module's chunk before it's needed (e.g. on dock-icon hover/focus) so
+ * clicking opens it instantly. Safe to call repeatedly — it dedupes and is a
+ * no-op on the server. Failures are swallowed: this is a pure optimization and
+ * the real render path will surface any genuine load error.
+ */
+export function preloadModule(id: AppModuleId) {
+  if (typeof window === "undefined") return;
+  if (preloaded.has(id)) return;
+  preloaded.add(id);
+  const load = MODULE_LOADERS[id];
+  if (!load) return;
+  void Promise.resolve()
+    .then(load)
+    .catch(() => {
+      // Allow a later attempt to retry if the warm-up failed.
+      preloaded.delete(id);
+    });
+}
 
 function renderModule(id: AppModuleId) {
-  switch (id) {
-    case "dashboard": return <ExecutiveDashboardView />;
-    case "leads": return <LeadsView />;
-    case "clients": return <ClientManagementView />;
-    case "projects": return <ProjectManagementView />;
-    case "hr": return <HRView />;
-    case "timesheet": return <TimesheetView />;
-    case "finance": return <FinanceBillingView />;
-    case "transaction": return <TransactionView />;
-    case "support": return <SupportTicketView />;
-    case "knowledge": return <KnowledgeBaseView />;
-    case "admin": return <AdminAccessView />;
-    case "portal": return <UserPortalView />;
-    case "reports": return <ReportsView />;
-    case "kpis": return <KPIsView />;
-    case "performance": return <Performance360View />;
-    case "integration": return <IntegrationDashboardView />;
-    default: return null;
-  }
+  const Component = MODULE_COMPONENTS[id];
+  if (!Component) return null;
+  return <Component />;
 }
 
 /**

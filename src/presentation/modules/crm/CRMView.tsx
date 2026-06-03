@@ -13,11 +13,17 @@ import { SalesFunnelChart } from "./SalesFunnelChart";
 import { LeadTable } from "./LeadTable";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
+import {
+  Skeleton,
+  SkeletonList,
+  SkeletonMetricGrid,
+} from "@/presentation/shared/Skeleton";
 
 export function CRMView({ compact = false }: { compact?: boolean } = {}) {
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [conversion, setConversion] = useState({ conversionRate: 0, wonCount: 0, lostCount: 0, pipelineCount: 0 });
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +33,7 @@ export function CRMView({ compact = false }: { compact?: boolean } = {}) {
       if (!cancelled) {
         setStages(p);
         setConversion(c);
+        setLoading(false);
       }
     })();
     return () => {
@@ -84,6 +91,10 @@ export function CRMView({ compact = false }: { compact?: boolean } = {}) {
       </header>
       ) : null}
 
+      {loading ? (
+        <CRMSkeleton />
+      ) : (
+      <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           emphasis
@@ -161,6 +172,68 @@ export function CRMView({ compact = false }: { compact?: boolean } = {}) {
         <SectionHeader eyebrow="Records" title={`All leads (${filteredLeads.length})`} />
         <LeadTable leads={filteredLeads} />
       </div>
+      </>
+      )}
     </div>
+  );
+}
+
+/** Placeholder mirroring the live pipeline layout while stages load. */
+function CRMSkeleton() {
+  return (
+    <>
+      <SkeletonMetricGrid />
+
+      <div className="glass rounded-[20px] p-5">
+        <div className="mb-4 space-y-2">
+          <Skeleton width="w-20" height="h-2.5" />
+          <Skeleton width="w-40" height="h-4" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }, (_, col) => (
+            <div
+              key={col}
+              className="glass-soft space-y-2 rounded-xl border border-white/6 p-3"
+            >
+              <Skeleton width="w-2/3" height="h-3" />
+              {Array.from({ length: 3 }, (_, card) => (
+                <div
+                  key={card}
+                  className="space-y-1.5 rounded-lg border border-white/6 bg-white/[0.02] p-2.5"
+                >
+                  <Skeleton width="w-3/4" height="h-2.5" />
+                  <Skeleton width="w-1/2" height="h-2.5" />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="glass rounded-[20px] p-5 xl:col-span-2">
+          <div className="mb-4 space-y-2">
+            <Skeleton width="w-48" height="h-4" />
+            <Skeleton width="w-64" height="h-2.5" />
+          </div>
+          <Skeleton height="h-[200px]" rounded="rounded-2xl" />
+        </div>
+        <div className="glass rounded-[20px] p-5">
+          <div className="mb-4 space-y-2">
+            <Skeleton width="w-20" height="h-2.5" />
+            <Skeleton width="w-40" height="h-4" />
+          </div>
+          <SkeletonList rows={5} />
+        </div>
+      </div>
+
+      <div className="glass rounded-[20px] p-5">
+        <div className="mb-4 space-y-2">
+          <Skeleton width="w-20" height="h-2.5" />
+          <Skeleton width="w-40" height="h-4" />
+        </div>
+        <SkeletonList rows={6} />
+      </div>
+    </>
   );
 }

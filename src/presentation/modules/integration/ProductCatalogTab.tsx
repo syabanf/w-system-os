@@ -237,10 +237,16 @@ export function ProductCatalogTab() {
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
           if (!confirmDelete) return;
-          const title = confirmDelete.title;
-          removeProduct(confirmDelete.id);
+          const { id, updatedAt, ...draft } = confirmDelete;
+          void updatedAt;
+          removeProduct(id);
           setConfirmDelete(null);
-          toast.info("Product deleted", title);
+          toast.push({
+            tone: "info",
+            title: "Product deleted",
+            description: draft.title,
+            action: { label: "Undo", onClick: () => addProduct(draft) },
+          });
         }}
       />
     </div>

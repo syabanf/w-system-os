@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownToLine, ArrowUpFromLine, FileSignature, Pencil, Plus, ReceiptText, Trash2 } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronsUpDown, ChevronUp, FileSignature, Pencil, Plus, ReceiptText, Trash2 } from "lucide-react";
 import { createTransactionService } from "@/application/factories/createTransactionService";
 import type { TransactionOverviewDTO } from "@/application/use-cases/transaction/GetTransactionOverview";
 import type { ExpenseClaim, Payment, PurchaseOrder } from "@/domain/entities/Transaction";
@@ -16,7 +16,7 @@ import { useHotkey } from "@/hooks/useHotkey";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
-import { DataTable, type Column } from "@/presentation/shared/DataTable";
+import { type Column } from "@/presentation/shared/DataTable";
 import { formatIDR, formatIDRCompact } from "@/lib/currency";
 import { formatDate } from "@/lib/date";
 import { cn } from "@/lib/cn";
@@ -31,6 +31,154 @@ import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 
 type Tab = "invoices" | "payments" | "po" | "expenses";
+
+type SortDir = "asc" | "desc";
+type SortState = { key: string; dir: SortDir } | null;
+
+/**
+ * A column that can be sorted. Extends the shared {@link Column} with an
+ * optional `sortValue` extractor — when present the column header becomes a
+ * clickable sort toggle. Action columns simply omit `sortValue`.
+ */
+type SortableColumn<T> = Column<T> & {
+  sortValue?: (row: T) => string | number | null | undefined;
+};
+
+/** Compare two extracted sort values, sorting nullish to the end of "asc". */
+function compareValues(a: unknown, b: unknown): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
+}
+
+/**
+ * Drop-in replacement for {@link DataTable} for the transaction tables.
+ * Adds clickable column-header sorting (asc ⇄ desc) and a sticky header that
+ * stays pinned while the body scrolls. Sorting returns a sorted COPY of `rows`
+ * — the source array is never mutated. Cell rendering, row striping, and click
+ * behaviour mirror DataTable exactly so nothing visual changes besides the new
+ * sort affordances.
+ */
+function SortableTable<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+}: {
+  columns: SortableColumn<T>[];
+  rows: T[];
+  rowKey: (row: T) => string;
+  onRowClick?: (row: T) => void;
+}) {
+  const [sort, setSort] = useState<SortState>(null);
+
+  const sortedRows = useMemo(() => {
+    if (!sort) return rows;
+    const col = columns.find((c) => c.key === sort.key);
+    if (!col?.sortValue) return rows;
+    const extract = col.sortValue;
+    const factor = sort.dir === "asc" ? 1 : -1;
+    // Sort a COPY — never mutate the source rows array.
+    return [...rows].sort((a, b) => compareValues(extract(a), extract(b)) * factor);
+  }, [rows, sort, columns]);
+
+  const toggleSort = (key: string) =>
+    setSort((prev) =>
+      prev && prev.key === key
+        ? prev.dir === "asc"
+          ? { key, dir: "desc" }
+          : null
+        : { key, dir: "asc" },
+    );
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-zinc-400">
+        No records.
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-[60vh] overflow-auto rounded-2xl border border-white/8">
+      <table className="w-full text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-white/[0.03] backdrop-blur supports-[backdrop-filter]:bg-zinc-950/70">
+          <tr>
+            {columns.map((col) => {
+              const active = sort?.key === col.key;
+              const sortable = Boolean(col.sortValue);
+              return (
+                <th
+                  key={col.key}
+                  aria-sort={active ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}
+                  className={cn(
+                    "px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400",
+                    col.align === "right" && "text-right",
+                    col.align === "center" && "text-center",
+                  )}
+                  style={{ width: col.width }}
+                >
+                  {sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      className={cn(
+                        "inline-flex items-center gap-1 transition-colors hover:text-zinc-100",
+                        col.align === "right" && "flex-row-reverse",
+                        active && "text-zinc-100",
+                      )}
+                    >
+                      {col.header}
+                      {active ? (
+                        sort!.dir === "asc" ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="h-3 w-3 text-zinc-600" />
+                      )}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedRows.map((row, i) => (
+            <tr
+              key={rowKey(row)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={cn(
+                "border-t border-white/5 transition-colors hover:bg-white/[0.04]",
+                onRowClick && "cursor-pointer",
+                i % 2 === 1 && "bg-white/[0.015]",
+              )}
+            >
+              {columns.map((col) => (
+                <td
+                  key={col.key}
+                  className={cn(
+                    "px-4 py-2 text-xs text-zinc-200",
+                    col.align === "right" && "text-right",
+                    col.align === "center" && "text-center",
+                  )}
+                >
+                  {col.render(row)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 const PO_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "info" | "wit"> = {
   draft: "neutral",
@@ -513,10 +661,11 @@ function InvoicesTab({
   onDelete: (i: Invoice) => void;
 }) {
   type Row = TransactionOverviewDTO["invoices"][number];
-  const cols: Column<Row>[] = [
+  const cols: SortableColumn<Row>[] = [
     {
       key: "no",
       header: "Invoice",
+      sortValue: (r) => r.number,
       render: (r) => (
         <div>
           <div className="font-mono text-xs text-zinc-100">{r.number}</div>
@@ -524,12 +673,12 @@ function InvoicesTab({
         </div>
       ),
     },
-    { key: "issue", header: "Issued", render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.issueDate)}</span> },
-    { key: "due", header: "Due", render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.dueDate)}</span> },
-    { key: "amount", header: "Amount", align: "right", render: (r) => <span className="font-mono text-xs">{formatIDR(r.amount)}</span> },
-    { key: "paid", header: "Paid", align: "right", render: (r) => <span className={`font-mono text-xs ${r.paidAmount >= r.amount ? "text-emerald-300" : r.paidAmount > 0 ? "text-amber-300" : "text-rose-300"}`}>{formatIDR(r.paidAmount)}</span> },
-    { key: "balance", header: "Balance", align: "right", render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(Math.max(0, r.amount - r.paidAmount))}</span> },
-    { key: "status", header: "Status", render: (r) => <StatusBadge tone={INVOICE_TONE[r.status]}>{r.status}</StatusBadge> },
+    { key: "issue", header: "Issued", sortValue: (r) => r.issueDate, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.issueDate)}</span> },
+    { key: "due", header: "Due", sortValue: (r) => r.dueDate, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.dueDate)}</span> },
+    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <span className="font-mono text-xs">{formatIDR(r.amount)}</span> },
+    { key: "paid", header: "Paid", align: "right", sortValue: (r) => r.paidAmount, render: (r) => <span className={`font-mono text-xs ${r.paidAmount >= r.amount ? "text-emerald-300" : r.paidAmount > 0 ? "text-amber-300" : "text-rose-300"}`}>{formatIDR(r.paidAmount)}</span> },
+    { key: "balance", header: "Balance", align: "right", sortValue: (r) => Math.max(0, r.amount - r.paidAmount), render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(Math.max(0, r.amount - r.paidAmount))}</span> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <StatusBadge tone={INVOICE_TONE[r.status]}>{r.status}</StatusBadge> },
     {
       key: "actions",
       header: "",
@@ -589,12 +738,11 @@ function InvoicesTab({
           </button>
         }
       />
-      <DataTable
+      <SortableTable
         rows={data.invoices}
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
-        dense
       />
     </div>
   );
@@ -614,28 +762,31 @@ function PaymentsTab({
   onDelete: (p: Payment) => void;
 }) {
   type Row = TransactionOverviewDTO["payments"][number];
-  const cols: Column<Row>[] = [
-    { key: "no", header: "Payment", render: (r) => <span className="font-mono text-xs">{r.number}</span> },
+  const cols: SortableColumn<Row>[] = [
+    { key: "no", header: "Payment", sortValue: (r) => r.number, render: (r) => <span className="font-mono text-xs">{r.number}</span> },
     {
       key: "type",
       header: "Type",
+      sortValue: (r) => r.type,
       render: (r) => (
         <StatusBadge tone={r.type === "incoming" ? "success" : "info"}>{r.type}</StatusBadge>
       ),
     },
-    { key: "date", header: "Date", render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
+    { key: "date", header: "Date", sortValue: (r) => r.date, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
     {
       key: "party",
       header: "Counterparty",
+      sortValue: (r) => r.clientName ?? r.vendor ?? "",
       render: (r) => (
         <span className="text-[11px] text-zinc-300">{r.clientName ?? r.vendor ?? "—"}</span>
       ),
     },
-    { key: "method", header: "Method", render: (r) => <span className="text-[11px] text-zinc-400">{r.method}</span> },
-    { key: "amount", header: "Amount", align: "right", render: (r) => <span className={`font-mono text-xs ${r.type === "incoming" ? "text-emerald-300" : "text-rose-300"}`}>{r.type === "incoming" ? "+" : "-"}{formatIDR(r.amount)}</span> },
+    { key: "method", header: "Method", sortValue: (r) => r.method, render: (r) => <span className="text-[11px] text-zinc-400">{r.method}</span> },
+    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <span className={`font-mono text-xs ${r.type === "incoming" ? "text-emerald-300" : "text-rose-300"}`}>{r.type === "incoming" ? "+" : "-"}{formatIDR(r.amount)}</span> },
     {
       key: "status",
       header: "Status",
+      sortValue: (r) => r.status,
       render: (r) => (
         <StatusBadge tone={r.status === "cleared" || r.status === "reconciled" ? "success" : r.status === "failed" ? "danger" : "warning"}>
           {r.status}
@@ -643,7 +794,7 @@ function PaymentsTab({
       ),
     },
   ];
-  const actionCol: Column<Row> = {
+  const actionCol: SortableColumn<Row> = {
     key: "actions",
     header: "",
     align: "right",
@@ -685,12 +836,11 @@ function PaymentsTab({
           </button>
         }
       />
-      <DataTable
+      <SortableTable
         rows={data.payments}
         columns={[...cols, actionCol]}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
-        dense
       />
     </div>
   );
@@ -710,10 +860,11 @@ function POTab({
   onDelete: (p: PurchaseOrder) => void;
 }) {
   type Row = TransactionOverviewDTO["purchaseOrders"][number];
-  const cols: Column<Row>[] = [
+  const cols: SortableColumn<Row>[] = [
     {
       key: "no",
       header: "PO",
+      sortValue: (r) => r.number,
       render: (r) => (
         <div>
           <div className="font-mono text-xs text-zinc-100">{r.number}</div>
@@ -721,12 +872,12 @@ function POTab({
         </div>
       ),
     },
-    { key: "date", header: "Date", render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
-    { key: "deliver", header: "Delivery", render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.deliveryDate)}</span> },
-    { key: "items", header: "Items", align: "right", render: (r) => <span className="font-mono text-xs text-zinc-400">{r.items}</span> },
-    { key: "total", header: "Total", align: "right", render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(r.total)}</span> },
-    { key: "status", header: "Status", render: (r) => <StatusBadge tone={PO_TONE[r.status]}>{r.status}</StatusBadge> },
-    { key: "approver", header: "Approver", render: (r) => <span className="text-[11px] text-zinc-400">{r.approverName ?? "—"}</span> },
+    { key: "date", header: "Date", sortValue: (r) => r.date, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
+    { key: "deliver", header: "Delivery", sortValue: (r) => r.deliveryDate, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.deliveryDate)}</span> },
+    { key: "items", header: "Items", align: "right", sortValue: (r) => r.items, render: (r) => <span className="font-mono text-xs text-zinc-400">{r.items}</span> },
+    { key: "total", header: "Total", align: "right", sortValue: (r) => r.total, render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(r.total)}</span> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <StatusBadge tone={PO_TONE[r.status]}>{r.status}</StatusBadge> },
+    { key: "approver", header: "Approver", sortValue: (r) => r.approverName ?? "", render: (r) => <span className="text-[11px] text-zinc-400">{r.approverName ?? "—"}</span> },
     {
       key: "actions",
       header: "",
@@ -770,12 +921,11 @@ function POTab({
           </button>
         }
       />
-      <DataTable
+      <SortableTable
         rows={data.purchaseOrders}
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
-        dense
       />
     </div>
   );
@@ -795,10 +945,11 @@ function ExpenseTab({
   onDelete: (c: ExpenseClaim) => void;
 }) {
   type Row = TransactionOverviewDTO["expenseClaims"][number];
-  const cols: Column<Row>[] = [
+  const cols: SortableColumn<Row>[] = [
     {
       key: "no",
       header: "Claim",
+      sortValue: (r) => r.number,
       render: (r) => (
         <div>
           <div className="font-mono text-xs text-zinc-100">{r.number}</div>
@@ -806,11 +957,11 @@ function ExpenseTab({
         </div>
       ),
     },
-    { key: "date", header: "Date", render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
-    { key: "cat", header: "Category", render: (r) => <span className="text-[11px] text-zinc-300">{r.category}</span> },
-    { key: "desc", header: "Description", render: (r) => <span className="text-[11px] text-zinc-300">{r.description}</span> },
-    { key: "amount", header: "Amount", align: "right", render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(r.amount)}</span> },
-    { key: "status", header: "Status", render: (r) => <StatusBadge tone={EXPENSE_TONE[r.status]}>{r.status}</StatusBadge> },
+    { key: "date", header: "Date", sortValue: (r) => r.date, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
+    { key: "cat", header: "Category", sortValue: (r) => r.category, render: (r) => <span className="text-[11px] text-zinc-300">{r.category}</span> },
+    { key: "desc", header: "Description", sortValue: (r) => r.description, render: (r) => <span className="text-[11px] text-zinc-300">{r.description}</span> },
+    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(r.amount)}</span> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <StatusBadge tone={EXPENSE_TONE[r.status]}>{r.status}</StatusBadge> },
     {
       key: "actions",
       header: "",
@@ -854,12 +1005,11 @@ function ExpenseTab({
           </button>
         }
       />
-      <DataTable
+      <SortableTable
         rows={data.expenseClaims}
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
-        dense
       />
     </div>
   );

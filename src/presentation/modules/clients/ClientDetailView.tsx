@@ -25,6 +25,8 @@ import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { ProjectMilestoneTracker } from "@/presentation/modules/projects/ProjectMilestoneTracker";
+import { EmptyState } from "@/presentation/shared/EmptyState";
+import { SkeletonList } from "@/presentation/shared/Skeleton";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 import { cn } from "@/lib/cn";
 
@@ -54,6 +56,7 @@ type Tab = "engagements" | "invoices" | "tickets" | "activity";
 
 export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
   const [projects, setProjects] = useState<ProjectOverviewDTO[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("engagements");
 
   // Source live data from the stores so this view reflects edits made anywhere
@@ -73,9 +76,13 @@ export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
 
   useEffect(() => {
     let cancelled = false;
+    setProjectsLoading(true);
     (async () => {
       const all = await createProjectService().getOverview();
-      if (!cancelled) setProjects(all.filter((p) => p.clientId === client.id));
+      if (!cancelled) {
+        setProjects(all.filter((p) => p.clientId === client.id));
+        setProjectsLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -221,7 +228,7 @@ export function ClientDetailView({ client }: { client: ClientPortfolioItem }) {
         </div>
 
         {tab === "engagements" ? (
-          <EngagementsList projects={projects} />
+          <EngagementsList projects={projects} loading={projectsLoading} />
         ) : tab === "invoices" ? (
           <InvoicesList invoices={invoices} />
         ) : tab === "tickets" ? (
@@ -259,12 +266,21 @@ function TabSwitch({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
   );
 }
 
-function EngagementsList({ projects }: { projects: ProjectOverviewDTO[] }) {
+function EngagementsList({
+  projects,
+  loading,
+}: {
+  projects: ProjectOverviewDTO[];
+  loading: boolean;
+}) {
+  if (loading) return <SkeletonList rows={3} />;
   if (projects.length === 0)
     return (
-      <div className="rounded-xl border border-dashed border-white/8 p-6 text-center text-xs text-zinc-400">
-        No active engagements.
-      </div>
+      <EmptyState
+        icon={Briefcase}
+        title="No active engagements"
+        description="Projects linked to this client will appear here once they're created in the Projects module."
+      />
     );
   return (
     <ul className="space-y-2">
@@ -315,9 +331,11 @@ function EngagementsList({ projects }: { projects: ProjectOverviewDTO[] }) {
 function InvoicesList({ invoices }: { invoices: Invoice[] }) {
   if (invoices.length === 0)
     return (
-      <div className="rounded-xl border border-dashed border-white/8 p-6 text-center text-xs text-zinc-400">
-        No invoices for this client.
-      </div>
+      <EmptyState
+        icon={Receipt}
+        title="No invoices yet"
+        description="Invoices raised for this client will be listed here."
+      />
     );
   return (
     <ul className="space-y-1.5">
@@ -348,9 +366,11 @@ function InvoicesList({ invoices }: { invoices: Invoice[] }) {
 function TicketsList({ tickets }: { tickets: Ticket[] }) {
   if (tickets.length === 0)
     return (
-      <div className="rounded-xl border border-dashed border-white/8 p-6 text-center text-xs text-zinc-400">
-        No tickets for this client.
-      </div>
+      <EmptyState
+        icon={LifeBuoy}
+        title="No tickets yet"
+        description="Support tickets and change requests for this client will appear here."
+      />
     );
   return (
     <ul className="space-y-1.5">

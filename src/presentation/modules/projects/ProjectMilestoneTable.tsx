@@ -112,8 +112,14 @@ export function ProjectMilestoneTable({ projectId }: ProjectMilestoneTableProps)
 
   const handleConfirmDelete = () => {
     if (!confirmDelete) return;
-    removeMilestone(confirmDelete.id);
-    toast.success("Milestone deleted", confirmDelete.label);
+    const { id, ...draft } = confirmDelete;
+    removeMilestone(id);
+    toast.push({
+      tone: "info",
+      title: "Milestone deleted",
+      description: confirmDelete.label,
+      action: { label: "Undo", onClick: () => addMilestone(draft) },
+    });
     setConfirmDelete(null);
   };
 

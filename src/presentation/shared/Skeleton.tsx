@@ -14,7 +14,9 @@ interface SkeletonProps {
 
 /**
  * Single shimmer block. Compose into rows/cards to mimic the eventual layout.
- * Animation is a CSS-only gradient sweep — keeps the bundle lean.
+ * A neutral `bg-white/8` reads correctly in both themes and the gentle
+ * `animate-pulse` is automatically tamed by the global prefers-reduced-motion
+ * block in globals.css — no custom keyframes needed.
  */
 export function Skeleton({
   className,
@@ -26,15 +28,53 @@ export function Skeleton({
     <span
       aria-hidden
       className={cn(
-        "block animate-skeleton-sweep",
-        "bg-[linear-gradient(110deg,rgba(255,255,255,0.04)_8%,rgba(255,255,255,0.10)_18%,rgba(255,255,255,0.04)_33%)]",
-        "bg-[length:200%_100%]",
+        "block animate-pulse bg-white/8",
         width,
         height,
         rounded,
         className,
       )}
     />
+  );
+}
+
+/**
+ * Multi-line text placeholder. The last line is deliberately shorter to mimic
+ * a ragged paragraph end. `lines` defaults to 3.
+ */
+export function SkeletonText({
+  lines = 3,
+  className,
+}: {
+  lines?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-2", className)}>
+      {Array.from({ length: lines }, (_, i) => (
+        <Skeleton
+          key={i}
+          height="h-3"
+          width={i === lines - 1 ? "w-2/3" : "w-full"}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Card-shaped placeholder — a bordered glass surface with a title + body. */
+export function SkeletonCard({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "glass-soft rounded-2xl border border-white/8 p-4",
+        className,
+      )}
+    >
+      <Skeleton width="w-1/3" height="h-2.5" />
+      <Skeleton className="mt-3" width="w-1/2" height="h-7" />
+      <SkeletonText className="mt-3" lines={2} />
+    </div>
   );
 }
 

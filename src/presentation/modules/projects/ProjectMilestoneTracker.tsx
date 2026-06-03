@@ -116,8 +116,14 @@ export function ProjectMilestoneTracker({
 
   const handleConfirmDelete = () => {
     if (!confirmDelete) return;
-    removeMilestone(confirmDelete.id);
-    toast.success("Milestone deleted", confirmDelete.label);
+    const { id, ...draft } = confirmDelete;
+    removeMilestone(id);
+    toast.push({
+      tone: "info",
+      title: "Milestone deleted",
+      description: confirmDelete.label,
+      action: { label: "Undo", onClick: () => addMilestone(draft) },
+    });
     setConfirmDelete(null);
   };
 
@@ -136,8 +142,14 @@ export function ProjectMilestoneTracker({
 
   const handleConfirmDeleteTeam = () => {
     if (!confirmDeleteTeam) return;
-    removeTeamRole(confirmDeleteTeam.id);
-    toast.success("Team member removed", confirmDeleteTeam.name);
+    const { id, ...draft } = confirmDeleteTeam;
+    removeTeamRole(id);
+    toast.push({
+      tone: "info",
+      title: "Team member removed",
+      description: confirmDeleteTeam.name,
+      action: { label: "Undo", onClick: () => addTeamRole(draft) },
+    });
     setConfirmDeleteTeam(null);
   };
 
