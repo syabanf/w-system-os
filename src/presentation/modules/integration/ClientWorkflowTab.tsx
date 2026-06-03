@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Calendar,
@@ -506,6 +506,30 @@ function DrillView({
   const [editOpen, setEditOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
+  // The "Filter Task" and "Action View" menus must be mutually exclusive and
+  // dismiss on an outside click (previously both could be open at once and only
+  // closed on mouse-leave).
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!filterMenuOpen && !actionMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (
+        filterMenuRef.current?.contains(t) ||
+        actionMenuRef.current?.contains(t)
+      ) {
+        return;
+      }
+      onCloseFilterMenu();
+      setActionMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [filterMenuOpen, actionMenuOpen, onCloseFilterMenu]);
+
   const exportDossier = () => {
     downloadJSON(`${client.name.replace(/\s+/g, "-").toLowerCase()}-dossier.json`, {
       client,
@@ -774,10 +798,14 @@ function DrillView({
                 );
               })}
             </div>
-            <div className="relative">
+            <div className="relative" ref={filterMenuRef}>
               <button
                 type="button"
-                onClick={onToggleFilterMenu}
+                onClick={() => {
+                  setActionMenuOpen(false);
+                  onToggleFilterMenu();
+                }}
+                aria-expanded={filterMenuOpen}
                 className="press inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1D4ED8]"
               >
                 <Filter className="h-3 w-3" />
@@ -788,7 +816,6 @@ function DrillView({
                 <div
                   role="menu"
                   className="animate-scale-in glass-strong absolute left-0 top-full z-20 mt-1 w-48 origin-top-left overflow-hidden rounded-xl border border-white/10 shadow-xl"
-                  onMouseLeave={onCloseFilterMenu}
                 >
                   {FILTER_TASK_OPTIONS.map((opt) => (
                     <button
@@ -811,10 +838,13 @@ function DrillView({
                 </div>
               ) : null}
             </div>
-            <div className="relative ml-auto">
+            <div className="relative ml-auto" ref={actionMenuRef}>
               <button
                 type="button"
-                onClick={() => setActionMenuOpen((o) => !o)}
+                onClick={() => {
+                  onCloseFilterMenu();
+                  setActionMenuOpen((o) => !o);
+                }}
                 aria-expanded={actionMenuOpen}
                 className="press inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10"
               >
@@ -830,7 +860,6 @@ function DrillView({
                 <div
                   role="menu"
                   className="animate-scale-in glass-strong absolute right-0 top-full z-20 mt-1 w-48 origin-top-right overflow-hidden rounded-xl border border-white/10 shadow-xl"
-                  onMouseLeave={() => setActionMenuOpen(false)}
                 >
                   <button
                     type="button"
