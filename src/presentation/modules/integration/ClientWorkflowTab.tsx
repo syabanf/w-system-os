@@ -29,6 +29,9 @@ import type { Project } from "@/domain/entities/Project";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { SearchInput } from "@/presentation/shared/SearchInput";
 import { DrillHeader } from "@/presentation/shared/DrillHeader";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
+import { useRowSelection } from "@/hooks/useRowSelection";
 import { useToast } from "@/state/toast.store";
 import { useClientsStore } from "@/state/clients.store";
 import { useDrillState } from "@/state/drill.store";
@@ -55,6 +58,12 @@ interface ClientWorkflowTabProps {
   onEditClient?: (c: Client) => void;
   /** Wire the trash action in each row. Without this it just warns "Delete demo". */
   onDeleteClient?: (c: Client) => void;
+  /** When provided, enables row selection + a bulk-delete action bar. Receives
+   *  every selected client. (Opt-in: the Integration demo path omits it.) */
+  onBulkDelete?: (clients: Client[]) => void;
+  /** When provided, the Product (name) + Category (industry) cells become
+   *  inline-editable, saving through this callback. */
+  onUpdateClient?: (id: string, patch: Partial<Client>) => void;
   /** Suppress the cyan filter chip (used by the Integration Dashboard module
    *  but not when this view drives the standalone Clients module). */
   hideFilterChip?: boolean;
@@ -129,11 +138,15 @@ export function ClientWorkflowTab({
   onAddClient,
   onEditClient,
   onDeleteClient,
+  onBulkDelete,
+  onUpdateClient,
   hideFilterChip = false,
 }: ClientWorkflowTabProps = {}) {
   const toast = useToast();
   const filterCategory = useIntegrationFilterStore((s) => s.category);
   const clearFilter = useIntegrationFilterStore((s) => s.clear);
+  const sel = useRowSelection();
+  const selectable = !!onBulkDelete;
 
   // Source of truth: store-injected list (Clients module) or static mock
   // (Integration Dashboard demo).
@@ -325,10 +338,45 @@ export function ClientWorkflowTab({
             </div>
           </header>
 
+          {selectable && sel.count > 0 ? (
+            <div className="mt-3">
+              <BulkActionBar
+                count={sel.count}
+                noun="client"
+                onClear={sel.clear}
+                actions={[
+                  {
+                    label: "Delete",
+                    icon: Trash2,
+                    tone: "danger",
+                    onClick: () => {
+                      onBulkDelete?.(clientsSource.filter((c) => sel.isSelected(c.id)));
+                      sel.clear();
+                    },
+                  },
+                ]}
+              />
+            </div>
+          ) : null}
+
           <div className="mt-3 overflow-hidden rounded-xl border border-white/8">
             <table className="w-full text-left text-sm">
               <thead className="bg-white/[0.03]">
                 <tr>
+                  {selectable ? (
+                    <Th className="w-9">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all clients"
+                        className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                        checked={sel.allSelected(filtered.map((c) => c.id))}
+                        ref={(el) => {
+                          if (el) el.indeterminate = sel.someSelected(filtered.map((c) => c.id));
+                        }}
+                        onChange={() => sel.toggleAll(filtered.map((c) => c.id))}
+                      />
+                    </Th>
+                  ) : null}
                   <Th>Product</Th>
                   <Th>Last updates</Th>
                   <Th>Created</Th>
@@ -341,7 +389,7 @@ export function ClientWorkflowTab({
               <tbody>
                 {pageRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-xs text-zinc-400">
+                    <td colSpan={selectable ? 8 : 7} className="px-4 py-6 text-center text-xs text-zinc-400">
                       No clients match the current filters.
                     </td>
                   </tr>
@@ -359,8 +407,22 @@ export function ClientWorkflowTab({
                           setDrillId(c.id);
                         }
                       }}
-                      className="animate-fade-in cursor-pointer border-t border-white/5 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:bg-white/[0.06]"
+                      className={cn(
+                        "animate-fade-in cursor-pointer border-t border-white/5 transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:bg-white/[0.06]",
+                        selectable && sel.isSelected(c.id) && "bg-blue-500/10 hover:bg-blue-500/15",
+                      )}
                     >
+                      {selectable ? (
+                        <td className="px-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${c.name}`}
+                            className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                            checked={sel.isSelected(c.id)}
+                            onChange={() => sel.toggle(c.id)}
+                          />
+                        </td>
+                      ) : null}
                       <Td>
                         <div className="flex items-center gap-2">
                           <Avatar
@@ -368,9 +430,18 @@ export function ClientWorkflowTab({
                             color={c.logoColor}
                             size="sm"
                           />
-                          <span className="truncate text-xs font-semibold text-zinc-100">
-                            {c.name}
-                          </span>
+                          {onUpdateClient ? (
+                            <EditableCell
+                              value={c.name}
+                              type="text"
+                              onSave={(v) => onUpdateClient(c.id, { name: v as string })}
+                              displayClassName="text-xs font-semibold text-zinc-100"
+                            />
+                          ) : (
+                            <span className="truncate text-xs font-semibold text-zinc-100">
+                              {c.name}
+                            </span>
+                          )}
                         </div>
                       </Td>
                       <Td className="text-[11px] text-zinc-300">
@@ -383,7 +454,16 @@ export function ClientWorkflowTab({
                         {teamName(c.accountOwnerId)}
                       </Td>
                       <Td className="text-[11px] text-zinc-300">
-                        {c.industry}
+                        {onUpdateClient ? (
+                          <EditableCell
+                            value={c.industry}
+                            type="text"
+                            onSave={(v) => onUpdateClient(c.id, { industry: v as string })}
+                            displayClassName="text-[11px] text-zinc-300"
+                          />
+                        ) : (
+                          c.industry
+                        )}
                       </Td>
                       <Td className="text-center font-mono text-[11px] text-zinc-300">
                         2

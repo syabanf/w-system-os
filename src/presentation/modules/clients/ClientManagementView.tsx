@@ -86,6 +86,14 @@ export function ClientManagementView() {
           setFormOpen(true);
         }}
         onDeleteClient={(c) => setConfirmDelete(c)}
+        onUpdateClient={(id, patch) => updateClient(id, patch)}
+        onBulkDelete={(clients) => {
+          clients.forEach((c) => removeClient(c.id));
+          toast.info(
+            "Clients removed",
+            `${clients.length} account${clients.length === 1 ? "" : "s"} archived.`,
+          );
+        }}
       />
 
       <ClientFormDialog

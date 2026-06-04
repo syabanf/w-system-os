@@ -25,6 +25,9 @@ import { NewButton } from "@/presentation/shared/NewButton";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell, type EditableCellType } from "@/presentation/shared/EditableCell";
+import { useRowSelection } from "@/hooks/useRowSelection";
 import {
   useKpisStore,
   type KPI,
@@ -97,6 +100,7 @@ export function KPIsView() {
   const [editing, setEditing] = useState<KPI | null>(null);
   const [prefillName, setPrefillName] = useState<string | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState<KPI | null>(null);
+  const sel = useRowSelection();
 
   useEffect(() => {
     hydrate();
@@ -211,16 +215,53 @@ export function KPIsView() {
       </div>
 
       <div className="glass rounded-[20px] p-5">
-        <SectionHeader
-          eyebrow="Scoreboard"
-          title={`KPIs (${filtered.length})`}
-          description="Current vs target, with rolling 12-period sparkline."
-        />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <SectionHeader
+            eyebrow="Scoreboard"
+            title={`KPIs (${filtered.length})`}
+            description="Current vs target, with rolling 12-period sparkline. Click a value to edit inline."
+          />
+          <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-400">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+              checked={sel.allSelected(filtered.map((k) => k.id))}
+              ref={(el) => {
+                if (el) el.indeterminate = sel.someSelected(filtered.map((k) => k.id));
+              }}
+              onChange={() => sel.toggleAll(filtered.map((k) => k.id))}
+            />
+            Select all
+          </label>
+        </div>
+        {sel.count > 0 ? (
+          <div className="mt-3">
+            <BulkActionBar
+              count={sel.count}
+              noun="KPI"
+              onClear={sel.clear}
+              actions={[
+                {
+                  label: "Delete",
+                  icon: Trash2,
+                  tone: "danger",
+                  onClick: () => {
+                    [...sel.selectedIds].forEach((id) => removeKpi(id));
+                    sel.clear();
+                  },
+                },
+              ]}
+            />
+          </div>
+        ) : null}
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((k) => (
             <KPICard
               key={k.id}
               kpi={k}
+              selected={sel.isSelected(k.id)}
+              onToggleSelect={() => sel.toggle(k.id)}
+              onUpdate={(patch) => updateKpi(k.id, patch)}
               onEdit={() => openEdit(k)}
               onDelete={() => setConfirmDelete(k)}
             />
@@ -334,14 +375,22 @@ export function KPIsView() {
 
 function KPICard({
   kpi,
+  selected,
+  onToggleSelect,
+  onUpdate,
   onEdit,
   onDelete,
 }: {
   kpi: KPI;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onUpdate: (patch: { current?: number; target?: number }) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const status = statusOf(kpi);
+  const cellType: EditableCellType =
+    kpi.unit === "IDR" ? "currencyCompact" : kpi.unit === "%" ? "percent" : "number";
   const trend = trendOf(kpi);
   const TrendIcon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : Minus;
   const isGoodTrend =
@@ -354,22 +403,36 @@ function KPICard({
   const gapPct = kpi.target !== 0 ? (gap / Math.abs(kpi.target)) * 100 : 0;
 
   return (
-    <article className="group glass-soft flex flex-col gap-3 rounded-2xl border border-white/8 p-4 transition-all hover:-translate-y-0.5 hover:border-white/20">
+    <article
+      className={cn(
+        "group glass-soft flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:-translate-y-0.5",
+        selected ? "border-blue-400/40 ring-1 ring-blue-400/30" : "border-white/8 hover:border-white/20",
+      )}
+    >
       <header className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="grid h-2 w-2 rounded-full"
-              style={{ background: lineColor }}
-            />
-            <span
-              className="text-[10px] uppercase tracking-wider"
-              style={{ color: lineColor }}
-            >
-              {kpi.pillar}
-            </span>
+        <div className="flex min-w-0 items-start gap-2">
+          <input
+            type="checkbox"
+            aria-label={`Select ${kpi.name}`}
+            checked={selected}
+            onChange={onToggleSelect}
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="grid h-2 w-2 rounded-full"
+                style={{ background: lineColor }}
+              />
+              <span
+                className="text-[10px] uppercase tracking-wider"
+                style={{ color: lineColor }}
+              >
+                {kpi.pillar}
+              </span>
+            </div>
+            <h3 className="mt-1 truncate text-sm font-semibold text-zinc-50">{kpi.name}</h3>
           </div>
-          <h3 className="mt-1 truncate text-sm font-semibold text-zinc-50">{kpi.name}</h3>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <div className="flex items-center gap-0.5">
@@ -399,12 +462,25 @@ function KPICard({
       </header>
 
       <div className="flex items-end justify-between gap-2">
-        <div>
-          <div className="font-mono text-2xl font-semibold tracking-tight text-zinc-50">
-            {formatValue(kpi.current, kpi.unit)}
-          </div>
-          <div className="mt-0.5 text-[10px] text-zinc-400">
-            Target {kpi.direction === "higher" ? "≥" : "≤"} {formatValue(kpi.target, kpi.unit)}
+        <div className="min-w-0">
+          <EditableCell
+            value={kpi.current}
+            type={cellType}
+            onSave={(v) => onUpdate({ current: v as number })}
+            displayRender={(v) => (
+              <span className="font-mono text-2xl font-semibold tracking-tight text-zinc-50">
+                {formatValue(Number(v), kpi.unit)}
+              </span>
+            )}
+          />
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] text-zinc-400">
+            <span>Target {kpi.direction === "higher" ? "≥" : "≤"}</span>
+            <EditableCell
+              value={kpi.target}
+              type={cellType}
+              onSave={(v) => onUpdate({ target: v as number })}
+              displayRender={(v) => <span>{formatValue(Number(v), kpi.unit)}</span>}
+            />
           </div>
         </div>
         <span
