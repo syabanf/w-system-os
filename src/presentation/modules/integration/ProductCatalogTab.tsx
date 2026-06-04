@@ -9,8 +9,20 @@ import { useToast } from "@/state/toast.store";
 import { NewButton } from "@/presentation/shared/NewButton";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { ArticleFormDialog } from "@/presentation/modules/knowledge/ArticleFormDialog";
+import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
+import { EditableCell } from "@/presentation/shared/EditableCell";
+import { useRowSelection } from "@/hooks/useRowSelection";
 import { cn } from "@/lib/cn";
 import { PastelKPITile } from "./PastelKPITile";
+
+const CATEGORY_OPTIONS: KnowledgeArticle["category"][] = [
+  "SOP",
+  "Templates",
+  "Tech Stack",
+  "API Docs",
+  "Onboarding",
+  "Delivery Checklist",
+];
 
 function teamName(id: string): string {
   return mockTeam.find((t) => t.id === id)?.name ?? "—";
@@ -34,6 +46,8 @@ export function ProductCatalogTab() {
   const addProduct = useKnowledgeStore((s) => s.add);
   const updateProduct = useKnowledgeStore((s) => s.update);
   const removeProduct = useKnowledgeStore((s) => s.remove);
+
+  const sel = useRowSelection();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<KnowledgeArticle | null>(null);
@@ -60,6 +74,9 @@ export function ProductCatalogTab() {
   );
   const topDealing = sorted.slice(0, 2);
   const topViewed = sorted.slice(2, 4);
+
+  // The table body maps over `products` as-is, so every product id is visible.
+  const visibleIds = products.map((k) => k.id);
 
   // Treat SOP/Templates/Tech Stack/etc. as "products" — same as the source
   // module's mock catalog. Services counted via heuristics on category.
@@ -139,10 +156,40 @@ export function ProductCatalogTab() {
             <NewButton label="New product" onClick={openCreate} size="sm" />
           </header>
 
+          <BulkActionBar
+            count={sel.count}
+            noun="product"
+            onClear={sel.clear}
+            actions={[
+              {
+                label: "Delete",
+                icon: Trash2,
+                tone: "danger",
+                onClick: () => {
+                  [...sel.selectedIds].forEach((id) => removeProduct(id));
+                  sel.clear();
+                },
+              },
+            ]}
+            className="mt-3"
+          />
+
           <div className="mt-3 overflow-hidden rounded-xl border border-white/8">
             <table className="w-full text-left text-sm">
               <thead className="bg-white/[0.03]">
                 <tr>
+                  <Th className="w-9">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all products"
+                      className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                      checked={sel.allSelected(visibleIds)}
+                      ref={(el) => {
+                        if (el) el.indeterminate = sel.someSelected(visibleIds);
+                      }}
+                      onChange={() => sel.toggleAll(visibleIds)}
+                    />
+                  </Th>
                   <Th>Product</Th>
                   <Th>Last updates</Th>
                   <Th>Created</Th>
@@ -156,12 +203,27 @@ export function ProductCatalogTab() {
                 {products.map((k) => (
                   <tr
                     key={k.id}
-                    className="border-t border-white/5 transition-colors hover:bg-white/[0.04]"
+                    className={cn(
+                      "border-t border-white/5 transition-colors hover:bg-white/[0.04]",
+                      sel.isSelected(k.id) && "bg-blue-500/10 hover:bg-blue-500/15",
+                    )}
                   >
                     <Td>
-                      <div className="truncate text-xs font-semibold text-zinc-100">
-                        {k.title}
-                      </div>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${k.title}`}
+                        className="h-3.5 w-3.5 cursor-pointer rounded border-white/25 bg-white/5 accent-blue-500"
+                        checked={sel.isSelected(k.id)}
+                        onChange={() => sel.toggle(k.id)}
+                      />
+                    </Td>
+                    <Td>
+                      <EditableCell
+                        value={k.title}
+                        type="text"
+                        onSave={(v) => updateProduct(k.id, { title: v as string })}
+                        displayClassName="truncate text-xs font-semibold text-zinc-100"
+                      />
                     </Td>
                     <Td className="text-[11px] text-zinc-300">
                       {formatDate(k.updatedAt)}
@@ -172,7 +234,18 @@ export function ProductCatalogTab() {
                     <Td className="text-[11px] text-zinc-200">
                       {teamName(k.authorId)}
                     </Td>
-                    <Td className="text-[11px] text-zinc-300">{k.category}</Td>
+                    <Td className="text-[11px] text-zinc-300">
+                      <EditableCell
+                        value={k.category}
+                        type="select"
+                        options={CATEGORY_OPTIONS}
+                        onSave={(v) =>
+                          updateProduct(k.id, {
+                            category: v as KnowledgeArticle["category"],
+                          })
+                        }
+                      />
+                    </Td>
                     <Td className="text-center font-mono text-[11px] text-zinc-300">
                       2
                     </Td>

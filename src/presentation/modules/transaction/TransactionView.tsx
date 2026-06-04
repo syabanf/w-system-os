@@ -862,6 +862,9 @@ function PaymentsTab({
   onDelete: (p: Payment) => void;
 }) {
   type Row = TransactionOverviewDTO["payments"][number];
+  const sel = useRowSelection();
+  const updatePayment = usePaymentsStore((s) => s.update);
+  const removePayment = usePaymentsStore((s) => s.remove);
   const cols: SortableColumn<Row>[] = [
     { key: "no", header: "Payment", sortValue: (r) => r.number, render: (r) => <span className="font-mono text-xs">{r.number}</span> },
     {
@@ -882,15 +885,23 @@ function PaymentsTab({
       ),
     },
     { key: "method", header: "Method", sortValue: (r) => r.method, render: (r) => <span className="text-[11px] text-zinc-400">{r.method}</span> },
-    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <span className={`font-mono text-xs ${r.type === "incoming" ? "text-emerald-300" : "text-rose-300"}`}>{r.type === "incoming" ? "+" : "-"}{formatIDR(r.amount)}</span> },
+    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <EditableCell value={r.amount} type="currencyCompact" onSave={(v) => updatePayment(r.id, { amount: v as number })} /> },
     {
       key: "status",
       header: "Status",
       sortValue: (r) => r.status,
       render: (r) => (
-        <StatusBadge tone={r.status === "cleared" || r.status === "reconciled" ? "success" : r.status === "failed" ? "danger" : "warning"}>
-          {r.status}
-        </StatusBadge>
+        <EditableCell
+          value={r.status}
+          type="select"
+          options={["draft", "cleared", "reconciled", "failed"]}
+          onSave={(v) => updatePayment(r.id, { status: v as Payment["status"] })}
+          displayRender={(v) => (
+            <StatusBadge tone={v === "cleared" || v === "reconciled" ? "success" : v === "failed" ? "danger" : "warning"}>
+              {v as string}
+            </StatusBadge>
+          )}
+        />
       ),
     },
   ];
@@ -930,12 +941,39 @@ function PaymentsTab({
         description="Click any row to inspect the linked invoice."
         action={<NewButton label="New payment" onClick={onAdd} />}
       />
+      <BulkActionBar
+        count={sel.count}
+        noun="payment"
+        onClear={sel.clear}
+        actions={[
+          {
+            label: "Delete",
+            icon: Trash2,
+            tone: "danger",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => removePayment(id));
+              sel.clear();
+            },
+          },
+          {
+            label: "Mark cleared",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => updatePayment(id, { status: "cleared" }));
+              sel.clear();
+            },
+          },
+        ]}
+      />
       <SortableTable
         rows={data.payments}
         columns={[...cols, actionCol]}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
         rowAriaLabel={(r) => `Open payment ${r.number}`}
+        selectable
+        selectedIds={sel.selectedIds}
+        onToggleRow={sel.toggle}
+        onToggleAll={sel.toggleAll}
       />
     </div>
   );
@@ -955,6 +993,9 @@ function POTab({
   onDelete: (p: PurchaseOrder) => void;
 }) {
   type Row = TransactionOverviewDTO["purchaseOrders"][number];
+  const sel = useRowSelection();
+  const updatePO = usePurchaseOrdersStore((s) => s.update);
+  const removePO = usePurchaseOrdersStore((s) => s.remove);
   const cols: SortableColumn<Row>[] = [
     {
       key: "no",
@@ -970,8 +1011,8 @@ function POTab({
     { key: "date", header: "Date", sortValue: (r) => r.date, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
     { key: "deliver", header: "Delivery", sortValue: (r) => r.deliveryDate, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.deliveryDate)}</span> },
     { key: "items", header: "Items", align: "right", sortValue: (r) => r.items, render: (r) => <span className="font-mono text-xs text-zinc-400">{r.items}</span> },
-    { key: "total", header: "Total", align: "right", sortValue: (r) => r.total, render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(r.total)}</span> },
-    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <StatusBadge tone={PO_TONE[r.status]}>{r.status}</StatusBadge> },
+    { key: "total", header: "Total", align: "right", sortValue: (r) => r.total, render: (r) => <EditableCell value={r.total} type="currencyCompact" onSave={(v) => updatePO(r.id, { total: v as number })} /> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <EditableCell value={r.status} type="select" options={["draft", "pending-approval", "approved", "partially-received", "received", "cancelled"]} onSave={(v) => updatePO(r.id, { status: v as PurchaseOrder["status"] })} displayRender={(v) => <StatusBadge tone={PO_TONE[v as string] ?? "neutral"}>{v as string}</StatusBadge>} /> },
     { key: "approver", header: "Approver", sortValue: (r) => r.approverName ?? "", render: (r) => <span className="text-[11px] text-zinc-400">{r.approverName ?? "—"}</span> },
     {
       key: "actions",
@@ -1010,12 +1051,39 @@ function POTab({
         description="Click any row to inspect approval workflow + delivery."
         action={<NewButton label="New PO" onClick={onAdd} />}
       />
+      <BulkActionBar
+        count={sel.count}
+        noun="PO"
+        onClear={sel.clear}
+        actions={[
+          {
+            label: "Delete",
+            icon: Trash2,
+            tone: "danger",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => removePO(id));
+              sel.clear();
+            },
+          },
+          {
+            label: "Mark approved",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => updatePO(id, { status: "approved" }));
+              sel.clear();
+            },
+          },
+        ]}
+      />
       <SortableTable
         rows={data.purchaseOrders}
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
         rowAriaLabel={(r) => `Open purchase order ${r.number} from ${r.vendor}`}
+        selectable
+        selectedIds={sel.selectedIds}
+        onToggleRow={sel.toggle}
+        onToggleAll={sel.toggleAll}
       />
     </div>
   );
@@ -1035,6 +1103,9 @@ function ExpenseTab({
   onDelete: (c: ExpenseClaim) => void;
 }) {
   type Row = TransactionOverviewDTO["expenseClaims"][number];
+  const sel = useRowSelection();
+  const updateExpense = useExpenseClaimsStore((s) => s.update);
+  const removeExpense = useExpenseClaimsStore((s) => s.remove);
   const cols: SortableColumn<Row>[] = [
     {
       key: "no",
@@ -1050,8 +1121,8 @@ function ExpenseTab({
     { key: "date", header: "Date", sortValue: (r) => r.date, render: (r) => <span className="text-[11px] text-zinc-300">{formatDate(r.date)}</span> },
     { key: "cat", header: "Category", sortValue: (r) => r.category, render: (r) => <span className="text-[11px] text-zinc-300">{r.category}</span> },
     { key: "desc", header: "Description", sortValue: (r) => r.description, render: (r) => <span className="text-[11px] text-zinc-300">{r.description}</span> },
-    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <span className="font-mono text-xs text-zinc-100">{formatIDR(r.amount)}</span> },
-    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <StatusBadge tone={EXPENSE_TONE[r.status]}>{r.status}</StatusBadge> },
+    { key: "amount", header: "Amount", align: "right", sortValue: (r) => r.amount, render: (r) => <EditableCell value={r.amount} type="currencyCompact" onSave={(v) => updateExpense(r.id, { amount: v as number })} /> },
+    { key: "status", header: "Status", sortValue: (r) => r.status, render: (r) => <EditableCell value={r.status} type="select" options={["draft", "submitted", "approved", "rejected", "reimbursed"]} onSave={(v) => updateExpense(r.id, { status: v as ExpenseClaim["status"] })} displayRender={(v) => <StatusBadge tone={EXPENSE_TONE[v as string] ?? "neutral"}>{v as string}</StatusBadge>} /> },
     {
       key: "actions",
       header: "",
@@ -1089,12 +1160,39 @@ function ExpenseTab({
         description="Click any row to inspect approval state + reimbursement."
         action={<NewButton label="New claim" onClick={onAdd} />}
       />
+      <BulkActionBar
+        count={sel.count}
+        noun="expense"
+        onClear={sel.clear}
+        actions={[
+          {
+            label: "Delete",
+            icon: Trash2,
+            tone: "danger",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => removeExpense(id));
+              sel.clear();
+            },
+          },
+          {
+            label: "Mark approved",
+            onClick: () => {
+              [...sel.selectedIds].forEach((id) => updateExpense(id, { status: "approved" }));
+              sel.clear();
+            },
+          },
+        ]}
+      />
       <SortableTable
         rows={data.expenseClaims}
         columns={cols}
         rowKey={(r) => r.id}
         onRowClick={(r) => onDrill(r.id)}
         rowAriaLabel={(r) => `Open expense claim ${r.number} for ${r.employeeName}`}
+        selectable
+        selectedIds={sel.selectedIds}
+        onToggleRow={sel.toggle}
+        onToggleAll={sel.toggleAll}
       />
     </div>
   );
