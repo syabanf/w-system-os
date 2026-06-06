@@ -48,6 +48,7 @@ interface EmployeesState {
   add: (draft: EmployeeDraft) => Employee;
   update: (id: string, patch: Partial<Employee>) => void;
   remove: (id: string) => void;
+  restore: (records: Employee[]) => void;
   reset: () => void;
 }
 
@@ -78,6 +79,16 @@ export const useEmployeesStore = create<EmployeesState>((set, get) => ({
   },
   remove: (id) => {
     const next = get().employees.filter((e) => e.id !== id);
+    persist(next);
+    set({ employees: next });
+  },
+  restore: (records) => {
+    if (records.length === 0) return;
+    const existing = get().employees;
+    const present = new Set(existing.map((e) => e.id));
+    const fresh = records.filter((r) => !present.has(r.id));
+    if (fresh.length === 0) return;
+    const next = [...fresh, ...existing];
     persist(next);
     set({ employees: next });
   },

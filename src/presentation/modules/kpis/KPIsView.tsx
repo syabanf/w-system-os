@@ -37,6 +37,7 @@ import {
 import { useToast } from "@/state/toast.store";
 import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 import { cn } from "@/lib/cn";
 import { KPIFormDialog } from "./KPIFormDialog";
 
@@ -94,6 +95,7 @@ export function KPIsView() {
   const addKpi = useKpisStore((s) => s.add);
   const updateKpi = useKpisStore((s) => s.update);
   const removeKpi = useKpisStore((s) => s.remove);
+  const restoreKpi = useKpisStore((s) => s.restore);
   const toast = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -245,10 +247,16 @@ export function KPIsView() {
                   label: "Delete",
                   icon: Trash2,
                   tone: "danger",
-                  onClick: () => {
-                    [...sel.selectedIds].forEach((id) => removeKpi(id));
-                    sel.clear();
-                  },
+                  onClick: () =>
+                    bulkDeleteWithUndo({
+                      ids: sel.selectedIds,
+                      items: kpis,
+                      remove: removeKpi,
+                      restore: restoreKpi,
+                      toast,
+                      noun: "KPI",
+                      onDone: sel.clear,
+                    }),
                 },
               ]}
             />

@@ -9,6 +9,8 @@ import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
 import { EditableCell } from "@/presentation/shared/EditableCell";
 import { useRowSelection } from "@/hooks/useRowSelection";
 import { useUsersStore } from "@/state/users.store";
+import { useToast } from "@/state/toast.store";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 import { formatDateTime } from "@/lib/date";
 import { Trash2 } from "lucide-react";
 
@@ -35,6 +37,9 @@ export function UserRoleTable({
   const sel = useRowSelection();
   const updateUser = useUsersStore((s) => s.update);
   const removeUser = useUsersStore((s) => s.remove);
+  const restoreUser = useUsersStore((s) => s.restore);
+  const rawUsers = useUsersStore((s) => s.items);
+  const toast = useToast();
 
   const baseColumns: Column<UserAccount>[] = [
     {
@@ -100,10 +105,16 @@ export function UserRoleTable({
             label: "Delete",
             icon: Trash2,
             tone: "danger",
-            onClick: () => {
-              [...sel.selectedIds].forEach((id) => removeUser(id));
-              sel.clear();
-            },
+            onClick: () =>
+              bulkDeleteWithUndo({
+                ids: sel.selectedIds,
+                items: rawUsers,
+                remove: removeUser,
+                restore: restoreUser,
+                toast,
+                noun: "user",
+                onDone: sel.clear,
+              }),
           },
           {
             label: "Deactivate",

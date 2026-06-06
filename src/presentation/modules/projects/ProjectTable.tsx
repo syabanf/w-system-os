@@ -9,7 +9,9 @@ import { EditableCell } from "@/presentation/shared/EditableCell";
 import { StatusBadge, type StatusTone } from "@/presentation/shared/StatusBadge";
 import { useRowSelection } from "@/hooks/useRowSelection";
 import { useProjectsStore } from "@/state/projects.store";
+import { useToast } from "@/state/toast.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 
 const STATUS_OPTIONS = ["Planning", "Discovery", "In Development", "QA", "UAT", "Delivered", "Maintenance"];
 const HEALTH_OPTIONS = ["green", "amber", "red"];
@@ -34,7 +36,10 @@ export function ProjectTable({
 }) {
   const updateProject = useProjectsStore((s) => s.update);
   const removeProject = useProjectsStore((s) => s.remove);
+  const restoreProject = useProjectsStore((s) => s.restore);
+  const rawProjects = useProjectsStore((s) => s.items);
   const sel = useRowSelection();
+  const toast = useToast();
 
   const columns: Column<ProjectOverviewDTO>[] = [
     {
@@ -158,10 +163,16 @@ export function ProjectTable({
             label: "Delete",
             icon: Trash2,
             tone: "danger",
-            onClick: () => {
-              [...sel.selectedIds].forEach((id) => removeProject(id));
-              sel.clear();
-            },
+            onClick: () =>
+              bulkDeleteWithUndo({
+                ids: sel.selectedIds,
+                items: rawProjects,
+                remove: removeProject,
+                restore: restoreProject,
+                toast,
+                noun: "project",
+                onDone: sel.clear,
+              }),
           },
           {
             label: "Mark Delivered",

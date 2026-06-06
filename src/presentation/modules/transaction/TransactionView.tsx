@@ -21,6 +21,7 @@ import { type Column } from "@/presentation/shared/DataTable";
 import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
 import { EditableCell } from "@/presentation/shared/EditableCell";
 import { useRowSelection } from "@/hooks/useRowSelection";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 import { formatIDR, formatIDRCompact } from "@/lib/currency";
 import { formatDate } from "@/lib/date";
 import { cn } from "@/lib/cn";
@@ -739,6 +740,9 @@ function InvoicesTab({
   const invSel = useRowSelection();
   const updateInvoice = useInvoicesStore((s) => s.update);
   const removeInvoice = useInvoicesStore((s) => s.remove);
+  const restoreInvoice = useInvoicesStore((s) => s.restore);
+  const rawInvoices = useInvoicesStore((s) => s.items);
+  const toast = useToast();
   const cols: SortableColumn<Row>[] = [
     {
       key: "no",
@@ -819,10 +823,16 @@ function InvoicesTab({
             label: "Delete",
             icon: Trash2,
             tone: "danger",
-            onClick: () => {
-              [...invSel.selectedIds].forEach((id) => removeInvoice(id));
-              invSel.clear();
-            },
+            onClick: () =>
+              bulkDeleteWithUndo({
+                ids: invSel.selectedIds,
+                items: rawInvoices,
+                remove: removeInvoice,
+                restore: restoreInvoice,
+                toast,
+                noun: "invoice",
+                onDone: invSel.clear,
+              }),
           },
           {
             label: "Mark Paid",
@@ -865,6 +875,9 @@ function PaymentsTab({
   const sel = useRowSelection();
   const updatePayment = usePaymentsStore((s) => s.update);
   const removePayment = usePaymentsStore((s) => s.remove);
+  const restorePayment = usePaymentsStore((s) => s.restore);
+  const rawPayments = usePaymentsStore((s) => s.items);
+  const toast = useToast();
   const cols: SortableColumn<Row>[] = [
     { key: "no", header: "Payment", sortValue: (r) => r.number, render: (r) => <span className="font-mono text-xs">{r.number}</span> },
     {
@@ -950,10 +963,16 @@ function PaymentsTab({
             label: "Delete",
             icon: Trash2,
             tone: "danger",
-            onClick: () => {
-              [...sel.selectedIds].forEach((id) => removePayment(id));
-              sel.clear();
-            },
+            onClick: () =>
+              bulkDeleteWithUndo({
+                ids: sel.selectedIds,
+                items: rawPayments,
+                remove: removePayment,
+                restore: restorePayment,
+                toast,
+                noun: "payment",
+                onDone: sel.clear,
+              }),
           },
           {
             label: "Mark cleared",
@@ -996,6 +1015,9 @@ function POTab({
   const sel = useRowSelection();
   const updatePO = usePurchaseOrdersStore((s) => s.update);
   const removePO = usePurchaseOrdersStore((s) => s.remove);
+  const restorePO = usePurchaseOrdersStore((s) => s.restore);
+  const rawPOs = usePurchaseOrdersStore((s) => s.items);
+  const toast = useToast();
   const cols: SortableColumn<Row>[] = [
     {
       key: "no",
@@ -1060,10 +1082,16 @@ function POTab({
             label: "Delete",
             icon: Trash2,
             tone: "danger",
-            onClick: () => {
-              [...sel.selectedIds].forEach((id) => removePO(id));
-              sel.clear();
-            },
+            onClick: () =>
+              bulkDeleteWithUndo({
+                ids: sel.selectedIds,
+                items: rawPOs,
+                remove: removePO,
+                restore: restorePO,
+                toast,
+                noun: "PO",
+                onDone: sel.clear,
+              }),
           },
           {
             label: "Mark approved",
@@ -1106,6 +1134,9 @@ function ExpenseTab({
   const sel = useRowSelection();
   const updateExpense = useExpenseClaimsStore((s) => s.update);
   const removeExpense = useExpenseClaimsStore((s) => s.remove);
+  const restoreExpense = useExpenseClaimsStore((s) => s.restore);
+  const rawExpenses = useExpenseClaimsStore((s) => s.items);
+  const toast = useToast();
   const cols: SortableColumn<Row>[] = [
     {
       key: "no",
@@ -1169,10 +1200,16 @@ function ExpenseTab({
             label: "Delete",
             icon: Trash2,
             tone: "danger",
-            onClick: () => {
-              [...sel.selectedIds].forEach((id) => removeExpense(id));
-              sel.clear();
-            },
+            onClick: () =>
+              bulkDeleteWithUndo({
+                ids: sel.selectedIds,
+                items: rawExpenses,
+                remove: removeExpense,
+                restore: restoreExpense,
+                toast,
+                noun: "expense",
+                onDone: sel.clear,
+              }),
           },
           {
             label: "Mark approved",

@@ -31,6 +31,7 @@ import { Avatar } from "@/presentation/shared/Avatar";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
 import { relativeFromNow } from "@/lib/date";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 import { SourcePerformanceChart } from "./SourcePerformanceChart";
 import { ProjectCommercialPanel } from "./ProjectCommercialPanel";
 import { LeadDetailView } from "./LeadDetailView";
@@ -115,6 +116,7 @@ export function LeadsView() {
   const addLead = useLeadsStore((s) => s.add);
   const updateLead = useLeadsStore((s) => s.update);
   const removeLead = useLeadsStore((s) => s.remove);
+  const restoreLead = useLeadsStore((s) => s.restore);
   const sel = useRowSelection();
   const toast = useToast();
 
@@ -511,10 +513,16 @@ export function LeadsView() {
                 label: "Delete",
                 icon: Trash2,
                 tone: "danger",
-                onClick: () => {
-                  [...sel.selectedIds].forEach((id) => removeLead(id));
-                  sel.clear();
-                },
+                onClick: () =>
+                  bulkDeleteWithUndo({
+                    ids: sel.selectedIds,
+                    items: storeLeads,
+                    remove: removeLead,
+                    restore: restoreLead,
+                    toast,
+                    noun: "lead",
+                    onDone: sel.clear,
+                  }),
               },
               {
                 label: "Mark Lost",

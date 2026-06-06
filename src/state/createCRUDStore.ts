@@ -14,6 +14,9 @@ export interface CRUDStore<T extends HasId, Draft> {
   add: (draft: Draft) => T;
   update: (id: string, patch: Partial<Draft>) => T | null;
   remove: (id: string) => void;
+  /** Re-insert previously-removed records (preserving their ids). Powers
+   *  undo for delete / bulk-delete. Skips ids that already exist. */
+  restore: (records: T[]) => void;
   /** Reset back to seed data (useful for testing + a "Reset demo" affordance). */
   reset: () => void;
 }
@@ -124,6 +127,16 @@ export function createCRUDStore<T extends HasId, Draft>(
     },
     remove: (id) => {
       const next = get().items.filter((x) => x.id !== id);
+      set({ items: next });
+      persist(next);
+    },
+    restore: (records) => {
+      if (records.length === 0) return;
+      const existing = get().items;
+      const present = new Set(existing.map((x) => x.id));
+      const fresh = records.filter((r) => !present.has(r.id));
+      if (fresh.length === 0) return;
+      const next = [...fresh, ...existing];
       set({ items: next });
       persist(next);
     },

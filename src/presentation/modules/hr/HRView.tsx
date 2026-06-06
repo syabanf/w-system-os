@@ -32,6 +32,7 @@ import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
 import { EditableCell } from "@/presentation/shared/EditableCell";
 import { SkeletonLoadingView } from "@/presentation/shared/Skeleton";
 import { useToast } from "@/state/toast.store";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 
 type Tab = "people" | "attendance" | "leave" | "payroll" | "capacity" | "contracts";
 
@@ -156,6 +157,7 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
   const addEmployee = useEmployeesStore((s) => s.add);
   const updateEmployee = useEmployeesStore((s) => s.update);
   const removeEmployee = useEmployeesStore((s) => s.remove);
+  const restoreEmployee = useEmployeesStore((s) => s.restore);
   const toast = useToast();
   const sel = useRowSelection();
 
@@ -388,10 +390,16 @@ function PeopleTab({ data }: { data: HROverviewDTO }) {
               label: "Delete",
               icon: Trash2,
               tone: "danger",
-              onClick: () => {
-                [...sel.selectedIds].forEach((id) => removeEmployee(id));
-                sel.clear();
-              },
+              onClick: () =>
+                bulkDeleteWithUndo({
+                  ids: sel.selectedIds,
+                  items: employees,
+                  remove: removeEmployee,
+                  restore: restoreEmployee,
+                  toast,
+                  noun: "employee",
+                  onDone: sel.clear,
+                }),
             },
             {
               label: "Set on leave",

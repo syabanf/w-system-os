@@ -14,6 +14,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useTicketsStore } from "@/state/tickets.store";
 import { useToast } from "@/state/toast.store";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 import { useCommandIntentStore } from "@/state/commandIntent.store";
 import { useHotkey } from "@/hooks/useHotkey";
 import { useRowSelection } from "@/hooks/useRowSelection";
@@ -415,6 +416,7 @@ export function SupportTicketView() {
   const addTicket = useTicketsStore((s) => s.add);
   const updateTicket = useTicketsStore((s) => s.update);
   const removeTicket = useTicketsStore((s) => s.remove);
+  const restoreTicket = useTicketsStore((s) => s.restore);
   const toast = useToast();
   const sel = useRowSelection();
 
@@ -590,10 +592,16 @@ export function SupportTicketView() {
                         label: "Delete",
                         icon: Trash2,
                         tone: "danger",
-                        onClick: () => {
-                          [...sel.selectedIds].forEach((id) => removeTicket(id));
-                          sel.clear();
-                        },
+                        onClick: () =>
+                          bulkDeleteWithUndo({
+                            ids: sel.selectedIds,
+                            items: storeTickets,
+                            remove: removeTicket,
+                            restore: restoreTicket,
+                            toast,
+                            noun: "ticket",
+                            onDone: sel.clear,
+                          }),
                       },
                       {
                         label: "Mark Resolved",

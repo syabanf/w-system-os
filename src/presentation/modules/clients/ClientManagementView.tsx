@@ -10,6 +10,7 @@ import { ClientFormDialog } from "./ClientFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { ClientWorkflowTab } from "@/presentation/modules/integration/ClientWorkflowTab";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
+import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
 
 /** Clients module entry — mirrors the PDF Integrated Dashboard exactly by
  *  composing the same `ClientWorkflowTab` used by the Integration module, but
@@ -20,6 +21,7 @@ export function ClientManagementView() {
   const addClient = useClientsStore((s) => s.add);
   const updateClient = useClientsStore((s) => s.update);
   const removeClient = useClientsStore((s) => s.remove);
+  const restoreClient = useClientsStore((s) => s.restore);
   const toast = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -87,13 +89,16 @@ export function ClientManagementView() {
         }}
         onDeleteClient={(c) => setConfirmDelete(c)}
         onUpdateClient={(id, patch) => updateClient(id, patch)}
-        onBulkDelete={(clients) => {
-          clients.forEach((c) => removeClient(c.id));
-          toast.info(
-            "Clients removed",
-            `${clients.length} account${clients.length === 1 ? "" : "s"} archived.`,
-          );
-        }}
+        onBulkDelete={(clients) =>
+          bulkDeleteWithUndo({
+            ids: clients.map((c) => c.id),
+            items: clients,
+            remove: removeClient,
+            restore: restoreClient,
+            toast,
+            noun: "client",
+          })
+        }
       />
 
       <ClientFormDialog
