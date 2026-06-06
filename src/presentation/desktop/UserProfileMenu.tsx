@@ -5,13 +5,16 @@ import { LogOut, Settings, ShieldCheck, User, X } from "lucide-react";
 import { useDesktopStore } from "@/state/desktop.store";
 import { useAuthStore } from "@/state/auth.store";
 import { useToast } from "@/state/toast.store";
+import { useWindowStore } from "@/state/window.store";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { DismissLayer } from "@/presentation/shared/DismissLayer";
 
 export function UserProfileMenu() {
   const isProfileOpen = useDesktopStore((s) => s.isProfileOpen);
   const toggleProfile = useDesktopStore((s) => s.toggleProfile);
+  const toggleSettings = useDesktopStore((s) => s.toggleSettings);
   const closeAllPanels = useDesktopStore((s) => s.closeAllPanels);
+  const openApp = useWindowStore((s) => s.openApp);
   const signOut = useAuthStore((s) => s.signOut);
   const toast = useToast();
 
@@ -19,6 +22,12 @@ export function UserProfileMenu() {
     toggleProfile();
     signOut();
     toast.info("Signed out", "You can sign back in anytime.");
+  };
+
+  // Close the profile panel first, then run the item's action.
+  const run = (fn: () => void) => () => {
+    toggleProfile();
+    fn();
   };
 
   return (
@@ -55,9 +64,20 @@ export function UserProfileMenu() {
               </div>
             </div>
             <ul className="space-y-1">
-              <MenuItem icon={User}>My profile</MenuItem>
-              <MenuItem icon={ShieldCheck}>Roles & permissions</MenuItem>
-              <MenuItem icon={Settings}>Preferences</MenuItem>
+              <MenuItem
+                icon={User}
+                onClick={run(() =>
+                  toast.info("Damar Wicaksono", "Director of Operations · WIT.ID"),
+                )}
+              >
+                My profile
+              </MenuItem>
+              <MenuItem icon={ShieldCheck} onClick={run(() => openApp("admin"))}>
+                Roles & permissions
+              </MenuItem>
+              <MenuItem icon={Settings} onClick={run(() => toggleSettings())}>
+                Preferences
+              </MenuItem>
               <MenuItem icon={LogOut} tone="danger" onClick={handleSignOut}>
                 Sign out
               </MenuItem>

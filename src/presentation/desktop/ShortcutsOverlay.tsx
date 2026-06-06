@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { Keyboard, X } from "lucide-react";
+import { useShortcutsStore } from "@/state/shortcuts.store";
 
 interface Shortcut {
   keys: string[];
@@ -57,47 +58,47 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export function ShortcutsOverlay() {
-  const [open, setOpen] = useState(false);
+  const open = useShortcutsStore((s) => s.isOpen);
+  const close = useShortcutsStore((s) => s.close);
+  const toggle = useShortcutsStore((s) => s.toggle);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setOpen(false);
+        close();
         return;
       }
       // `?` is Shift+/ on most layouts. Ignore while typing.
       if (e.key === "?" && !isTypingTarget(e.target)) {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        toggle();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [close, toggle]);
 
   // Move focus into the panel when it opens so Esc / screen readers work.
   useEffect(() => {
     if (open) panelRef.current?.focus();
   }, [open]);
 
+  if (!open) return null;
+
   return (
-    <AnimatePresence>
-      {open ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 backdrop-blur-md"
-          onClick={() => setOpen(false)}
+          onClick={close}
         >
           <motion.div
             ref={panelRef}
             tabIndex={-1}
             initial={{ y: -8, opacity: 0, scale: 0.97 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -8, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
             className="glass-strong w-full max-w-md overflow-hidden rounded-2xl border border-white/12 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7)] outline-none"
@@ -118,7 +119,7 @@ export function ShortcutsOverlay() {
                 </div>
               </div>
               <button
-                onClick={() => setOpen(false)}
+                onClick={close}
                 aria-label="Close"
                 title="Close (Esc)"
                 className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
@@ -156,8 +157,6 @@ export function ShortcutsOverlay() {
             </footer>
           </motion.div>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
   );
 }
 

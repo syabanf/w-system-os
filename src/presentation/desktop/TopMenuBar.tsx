@@ -21,9 +21,29 @@ import { useNotificationStore } from "@/state/notification.store";
 import { useThemeStore } from "@/state/theme.store";
 import { useToast } from "@/state/toast.store";
 import { useWindowStore } from "@/state/window.store";
+import { useReddieStore } from "@/state/reddie.store";
+import { useShortcutsStore } from "@/state/shortcuts.store";
 import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
+import { APP_MODULES } from "@/constants/appModules";
 import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
 import { ClientPortalMegaMenu } from "@/presentation/desktop/ClientPortalMegaMenu";
+import { MenuBarMenu, type MenuBarItem } from "@/presentation/desktop/MenuBarMenu";
+
+const MODULE_NAME = new Map(APP_MODULES.map((m) => [m.id, m.shortName ?? m.name]));
+
+function toggleFullscreen() {
+  if (typeof document === "undefined") return;
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else document.documentElement.requestFullscreen?.().catch(() => {});
+}
+
+function execEdit(cmd: "cut" | "copy" | "paste" | "selectAll") {
+  try {
+    document.execCommand(cmd);
+  } catch {
+    // execCommand is best-effort; ignore when unsupported / no editable focus.
+  }
+}
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -47,6 +67,12 @@ export function TopMenuBar() {
   const toggleTheme = useThemeStore((s) => s.toggle);
   const toast = useToast();
   const openApp = useWindowStore((s) => s.openApp);
+  const closeApp = useWindowStore((s) => s.closeApp);
+  const focusApp = useWindowStore((s) => s.focusApp);
+  const openOrder = useWindowStore((s) => s.order);
+  const focused = useWindowStore((s) => s.focused);
+  const openReddie = useReddieStore((s) => s.open);
+  const openShortcuts = useShortcutsStore((s) => s.open);
   const setIntegrationCategory = useIntegrationFilterStore((s) => s.setCategory);
   const now = useClock();
   const [isClientPortalOpen, setClientPortalOpen] = useState(false);
@@ -79,11 +105,83 @@ export function TopMenuBar() {
             <LayoutGrid className="h-3 w-3" />
             Apps
           </button>
-          <button className="hover:text-zinc-100">File</button>
-          <button className="hover:text-zinc-100">Edit</button>
-          <button className="hover:text-zinc-100">View</button>
-          <button className="hover:text-zinc-100">Workspaces</button>
-          <button className="hover:text-zinc-100">Help</button>
+          <MenuBarMenu
+            label="File"
+            items={() => [
+              { label: "Open app…", shortcut: "⌘O", onClick: toggleLauncher },
+              { label: "Spotlight search", shortcut: "⌘K", onClick: openSpotlight },
+              { separator: true },
+              {
+                label: "Close window",
+                shortcut: "⌘W",
+                disabled: !focused,
+                onClick: () => focused && closeApp(focused),
+              },
+              {
+                label: "Close all windows",
+                disabled: openOrder.length === 0,
+                onClick: () => [...openOrder].forEach((id) => closeApp(id)),
+              },
+            ]}
+          />
+          <MenuBarMenu
+            label="Edit"
+            items={() => [
+              { label: "Cut", shortcut: "⌘X", onClick: () => execEdit("cut") },
+              { label: "Copy", shortcut: "⌘C", onClick: () => execEdit("copy") },
+              { label: "Paste", shortcut: "⌘V", onClick: () => execEdit("paste") },
+              { separator: true },
+              { label: "Select all", shortcut: "⌘A", onClick: () => execEdit("selectAll") },
+            ]}
+          />
+          <MenuBarMenu
+            label="View"
+            items={() => [
+              {
+                label: theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
+                onClick: toggleTheme,
+              },
+              { label: "Show all apps", onClick: toggleLauncher },
+              { label: "Notifications", onClick: toggleNotifications },
+              { label: "Reddie assistant", onClick: openReddie },
+              { separator: true },
+              { label: "Toggle full screen", shortcut: "⌃⌘F", onClick: toggleFullscreen },
+            ]}
+          />
+          <MenuBarMenu
+            label="Workspaces"
+            items={() => {
+              const windows: MenuBarItem[] =
+                openOrder.length === 0
+                  ? [{ label: "No open windows", disabled: true }]
+                  : openOrder.map((id) => ({
+                      label: MODULE_NAME.get(id) ?? id,
+                      onClick: () => focusApp(id),
+                    }));
+              return [
+                ...windows,
+                { separator: true },
+                {
+                  label: "Close all windows",
+                  disabled: openOrder.length === 0,
+                  onClick: () => [...openOrder].forEach((id) => closeApp(id)),
+                },
+              ];
+            }}
+          />
+          <MenuBarMenu
+            label="Help"
+            items={() => [
+              { label: "Keyboard shortcuts", shortcut: "?", onClick: openShortcuts },
+              { label: "Ask Reddie", onClick: openReddie },
+              { separator: true },
+              {
+                label: "About WIT ERP OS",
+                onClick: () =>
+                  toast.info("WIT ERP OS", "Demo build — a macOS-style ERP workspace shell."),
+              },
+            ]}
+          />
           <div className="relative">
             <button
               ref={clientPortalTriggerRef}
