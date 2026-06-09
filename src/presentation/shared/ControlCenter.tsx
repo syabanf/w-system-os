@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AirVent,
@@ -107,16 +107,17 @@ function ControlCenterContent() {
   const openReddie = useReddieStore((s) => s.open);
   const unread = useNotificationStore((s) => s.unread);
 
-  // Local-only toggles (no real radio state to drive — pure UI demo).
-  const [wifi, setWifi] = useState(true);
-  const [bluetooth, setBluetooth] = useState(true);
-  const [airdrop, setAirdrop] = useState(true);
-  const [focusMode, setFocusMode] = useState(false);
-  const [mute, setMute] = useState(false);
-  const [orientationLock, setOrientationLock] = useState(false);
-  const [musicPlaying, setMusicPlaying] = useState(false);
-  const [brightness, setBrightness] = useState(72);
-  const [volume, setVolume] = useState(48);
+  // Quick toggles persist across sessions (Wi-Fi, brightness, …) via the store.
+  const toggles = useControlCenterStore((s) => s.toggles);
+  const flip = useControlCenterStore((s) => s.flip);
+  const setToggle = useControlCenterStore((s) => s.setToggle);
+  const resetToggles = useControlCenterStore((s) => s.resetToggles);
+  const hydrate = useControlCenterStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+  const { wifi, bluetooth, airdrop, focusMode, mute, orientationLock, musicPlaying, brightness, volume } =
+    toggles;
 
   return (
     <div className="px-4 pb-5 pt-3">
@@ -130,7 +131,7 @@ function ControlCenterContent() {
         <div className="col-span-2 grid grid-cols-2 gap-1.5 rounded-[20px] bg-white/[0.06] p-2 sm:row-span-2">
           <ConnectivityTile
             active={wifi}
-            onClick={() => setWifi((v) => !v)}
+            onClick={() => flip("wifi")}
             activeIcon={Wifi}
             inactiveIcon={WifiOff}
             label="Wi-Fi"
@@ -139,7 +140,7 @@ function ControlCenterContent() {
           />
           <ConnectivityTile
             active={bluetooth}
-            onClick={() => setBluetooth((v) => !v)}
+            onClick={() => flip("bluetooth")}
             activeIcon={Bluetooth}
             inactiveIcon={Bluetooth}
             label="Bluetooth"
@@ -148,7 +149,7 @@ function ControlCenterContent() {
           />
           <ConnectivityTile
             active={airdrop}
-            onClick={() => setAirdrop((v) => !v)}
+            onClick={() => flip("airdrop")}
             activeIcon={AirVent}
             inactiveIcon={AirVent}
             label="AirDrop"
@@ -157,7 +158,7 @@ function ControlCenterContent() {
           />
           <ConnectivityTile
             active={focusMode}
-            onClick={() => setFocusMode((v) => !v)}
+            onClick={() => flip("focusMode")}
             activeIcon={Focus}
             inactiveIcon={Focus}
             label="Focus"
@@ -182,7 +183,7 @@ function ControlCenterContent() {
               <div className="truncate text-[10px] text-zinc-400">Spotify · Focus</div>
             </div>
             <button
-              onClick={() => setMusicPlaying((v) => !v)}
+              onClick={() => flip("musicPlaying")}
               aria-label={musicPlaying ? "Pause" : "Play"}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/12 text-zinc-50 transition-transform active:scale-90"
             >
@@ -194,14 +195,14 @@ function ControlCenterContent() {
         {/* Orientation lock + Mute (single row, 2 cols total, top-right cluster) */}
         <SquareTile
           active={orientationLock}
-          onClick={() => setOrientationLock((v) => !v)}
+          onClick={() => flip("orientationLock")}
           icon={Lock}
           label={orientationLock ? "Locked" : "Rotate"}
           accent="#EF4444"
         />
         <SquareTile
           active={mute}
-          onClick={() => setMute((v) => !v)}
+          onClick={() => flip("mute")}
           icon={mute ? BellOff : Bell}
           label={mute ? "Muted" : "Sounds"}
           accent="#F59E0B"
@@ -213,14 +214,14 @@ function ControlCenterContent() {
         icon={SunMedium}
         label="Brightness"
         value={brightness}
-        onChange={setBrightness}
+        onChange={(v) => setToggle("brightness", v)}
       />
       {/* Volume slider */}
       <SliderRow
         icon={Volume2}
         label="Volume"
         value={volume}
-        onChange={setVolume}
+        onChange={(v) => setToggle("volume", v)}
       />
 
       {/* App shortcuts — surface the desktop equivalents on a touch device */}
@@ -273,15 +274,7 @@ function ControlCenterContent() {
           <span>92%</span>
         </div>
         <button
-          onClick={() => {
-            // Soft reset — clear the in-session toggles by reloading the panel.
-            setWifi(true);
-            setBluetooth(true);
-            setAirdrop(true);
-            setFocusMode(false);
-            setMute(false);
-            setOrientationLock(false);
-          }}
+          onClick={resetToggles}
           className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-zinc-400 hover:bg-white/8 hover:text-zinc-200"
         >
           <RotateCcw className="h-2.5 w-2.5" /> Reset
