@@ -48,9 +48,9 @@ function renderModule(id: AppModuleId) {
 
 export function MobileAppCanvas({ id }: { id: AppModuleId }) {
   const closeApp = useWindowStore((s) => s.closeApp);
-  const module = APP_MODULE_MAP[id];
-  const accent = useAccent(module);
-  const Icon = module.icon;
+  const appModule = APP_MODULE_MAP[id];
+  const accent = useAccent(appModule);
+  const Icon = appModule.icon;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -79,7 +79,7 @@ export function MobileAppCanvas({ id }: { id: AppModuleId }) {
           >
             <Icon className="h-3 w-3" />
           </span>
-          <span className="truncate text-xs font-semibold text-zinc-50">{module.shortName}</span>
+          <span className="truncate text-xs font-semibold text-zinc-50">{appModule.shortName}</span>
         </div>
         <span className="w-12" />
       </header>

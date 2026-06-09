@@ -57,11 +57,11 @@ export function MobileLauncher({ activeId, onOpenDrawer }: MobileLauncherProps) 
     <div className="mx-auto mb-1.5 mt-1 flex justify-center">
       <div className="glass-strong flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-1.5 shadow-[0_14px_40px_-15px_rgba(0,0,0,0.55)]">
         {LAUNCHER_IDS.map((id) => {
-          const module = APP_MODULE_MAP[id];
+          const appModule = APP_MODULE_MAP[id];
           return (
             <LauncherIcon
               key={id}
-              module={module}
+              module={appModule}
               active={activeId === id}
               onClick={() => openApp(id)}
             />

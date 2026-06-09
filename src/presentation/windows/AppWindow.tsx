@@ -55,8 +55,8 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
   const setBounds = useWindowStore((s) => s.setBounds);
 
   const win = windows[id];
-  const module = APP_MODULE_MAP[id];
-  const accent = useAccent(module);
+  const appModule = APP_MODULE_MAP[id];
+  const accent = useAccent(appModule);
 
   // Track viewport so default bounds and clamping stay correct on resize.
   const [viewport, setViewport] = useState(() => ({
@@ -153,7 +153,7 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
   return (
     <motion.section
       role="dialog"
-      aria-label={module.name}
+      aria-label={appModule.name}
       onMouseDown={() => {
         if (focused !== id) focusApp(id);
       }}
@@ -194,9 +194,9 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
         cursor={isMax ? "default" : "grab"}
       >
         <WindowHeader
-          title={module.name}
-          subtitle={subtitle ?? module.shortName}
-          icon={module.icon}
+          title={appModule.name}
+          subtitle={subtitle ?? appModule.shortName}
+          icon={appModule.icon}
           accent={accent}
           focused={isFocused}
           onClose={() => closeApp(id)}
