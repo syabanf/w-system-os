@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Building2, X } from "lucide-react";
 import type { AccountHealth, Client } from "@/domain/entities/Client";
-import type { ClientDraft } from "@/state/clients.store";
+import { useClientsStore, type ClientDraft } from "@/state/clients.store";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
@@ -65,6 +65,11 @@ export function ClientFormDialog({
   onSubmit,
 }: ClientFormDialogProps) {
   const [draft, setDraft] = useState<ClientDraft>(emptyDraft);
+  // Mirror the backend clients_tenant_name_uniq constraint (migration 023):
+  // one client per (case-insensitive, trimmed) name. Read straight from the
+  // store so every entry path — Clients view, Integration tab, Reddie — is
+  // covered without prop threading.
+  const clients = useClientsStore((s) => s.items);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +86,16 @@ export function ClientFormDialog({
     setDraft((d) => ({ ...d, [key]: value }));
 
   const errors: Record<string, string> = {};
-  if (draft.name.trim().length === 0) errors.name = "Required";
+  const trimmedName = draft.name.trim();
+  if (trimmedName.length === 0) errors.name = "Required";
+  else if (
+    clients.some(
+      (c) =>
+        c.id !== editing?.id &&
+        c.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+    )
+  )
+    errors.name = "A client with this name already exists";
   if (draft.industry.trim().length === 0) errors.industry = "Required";
   if (draft.primaryContact.trim().length === 0) errors.primaryContact = "Required";
   if (draft.contactEmail.trim().length === 0) errors.contactEmail = "Required";

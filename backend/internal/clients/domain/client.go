@@ -81,7 +81,9 @@ type Repository interface {
 	Delete(ctx context.Context, tenantID, id uuid.UUID) error
 }
 
-// ErrNotFound is returned when a client row is absent for the tenant. There is
-// deliberately no ErrDuplicateName: clients.name carries no UNIQUE constraint,
-// so a "duplicate name" conflict can never originate from the database.
-var ErrNotFound = errors.New("client not found")
+var (
+	ErrNotFound = errors.New("client not found")
+	// ErrDuplicateName maps the clients_tenant_name_uniq violation (migration
+	// 023): one client per tenant per case-insensitive, trimmed name.
+	ErrDuplicateName = errors.New("client name already exists for this tenant")
+)

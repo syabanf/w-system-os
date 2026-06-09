@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/wit/erp-os/internal/clients/domain"
+	"github.com/wit/erp-os/internal/shared/pgerr"
 )
 
 type ClientRepo struct {
@@ -47,6 +48,9 @@ func (r *ClientRepo) Create(ctx context.Context, c *domain.Client) error {
 		c.AccountOwnerID, c.ContractValue, c.RetainerActive, c.ActiveProjects,
 		c.SatisfactionScore, string(c.Health), c.RenewalDate, c.JoinedAt, c.LogoColor,
 		c.CreatedAt)
+	if err != nil && pgerr.IsUniqueViolation(err) {
+		return domain.ErrDuplicateName
+	}
 	return err
 }
 
@@ -112,6 +116,9 @@ func (r *ClientRepo) Update(ctx context.Context, c *domain.Client) error {
 		c.SatisfactionScore, string(c.Health), c.RenewalDate, c.JoinedAt, c.LogoColor,
 		c.UpdatedAt, c.TenantID, c.ID)
 	if err != nil {
+		if pgerr.IsUniqueViolation(err) {
+			return domain.ErrDuplicateName
+		}
 		return err
 	}
 	if tag.RowsAffected() == 0 {

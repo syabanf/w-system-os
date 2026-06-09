@@ -171,8 +171,10 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := h.svc.Create(r.Context(), buildInput(tenantID, req))
 	if err != nil {
-		// No UNIQUE constraint on clients.name, so there is no duplicate-name
-		// conflict to translate here — bad input is the only failure mode.
+		if errors.Is(err, domain.ErrDuplicateName) {
+			httpx.Error(w, r, http.StatusConflict, "duplicate_name", err)
+			return
+		}
 		httpx.Error(w, r, http.StatusBadRequest, "create_failed", err)
 		return
 	}
@@ -198,6 +200,10 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			httpx.Error(w, r, http.StatusNotFound, "not_found", err)
+			return
+		}
+		if errors.Is(err, domain.ErrDuplicateName) {
+			httpx.Error(w, r, http.StatusConflict, "duplicate_name", err)
 			return
 		}
 		httpx.Error(w, r, http.StatusBadRequest, "update_failed", err)
