@@ -22,6 +22,12 @@ import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
 import { EditableCell } from "@/presentation/shared/EditableCell";
 import { useRowSelection } from "@/hooks/useRowSelection";
 import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
+import {
+  collectInvoicePayments,
+  removePayments,
+  restorePayments,
+  summarizePayments,
+} from "@/lib/cascade";
 import { formatIDR, formatIDRCompact } from "@/lib/currency";
 import { formatDate } from "@/lib/date";
 import { cn } from "@/lib/cn";
@@ -316,6 +322,7 @@ export function TransactionView() {
   const addInvoice = useInvoicesStore((s) => s.add);
   const updateInvoice = useInvoicesStore((s) => s.update);
   const removeInvoice = useInvoicesStore((s) => s.remove);
+  const restoreInvoice = useInvoicesStore((s) => s.restore);
 
   const storePOs = usePurchaseOrdersStore((s) => s.items);
   const hydratePOs = usePurchaseOrdersStore((s) => s.hydrate);
@@ -612,19 +619,38 @@ export function TransactionView() {
       <DeleteConfirmDialog
         open={confirmDeleteInvoice}
         title="Void & remove invoice?"
-        description={
-          confirmDeleteInvoice
-            ? `${confirmDeleteInvoice.number} (${confirmDeleteInvoice.currency} ${confirmDeleteInvoice.amount.toLocaleString("id-ID")}) will be removed from AR. Any linked payments stay but become orphaned.`
-            : ""
-        }
+        description={(() => {
+          if (!confirmDeleteInvoice) return "";
+          const pmts = collectInvoicePayments(confirmDeleteInvoice.id);
+          const head = `${confirmDeleteInvoice.number} (${confirmDeleteInvoice.currency} ${confirmDeleteInvoice.amount.toLocaleString("id-ID")})`;
+          return pmts.length
+            ? `${head} and its ${summarizePayments(pmts)} will be removed from AR. You can undo this.`
+            : `${head} will be removed from AR. You can undo this.`;
+        })()}
         onCancel={() => setConfirmDeleteInvoice(null)}
         onConfirm={() => {
           if (!confirmDeleteInvoice) return;
-          const ref = confirmDeleteInvoice.number;
-          removeInvoice(confirmDeleteInvoice.id);
+          const invoice = confirmDeleteInvoice;
+          const payments = collectInvoicePayments(invoice.id);
+          removeInvoice(invoice.id);
+          removePayments(payments);
           setConfirmDeleteInvoice(null);
           setDrillId(null);
-          toast.info("Invoice removed", `${ref} has been archived.`);
+          const summary = summarizePayments(payments);
+          toast.push({
+            tone: "info",
+            title: "Invoice removed",
+            description: summary
+              ? `${invoice.number} + ${summary} archived.`
+              : `${invoice.number} has been archived.`,
+            action: {
+              label: "Undo",
+              onClick: () => {
+                restoreInvoice([invoice]);
+                restorePayments(payments);
+              },
+            },
+          });
         }}
       />
 

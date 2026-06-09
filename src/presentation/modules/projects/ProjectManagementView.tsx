@@ -26,6 +26,12 @@ import { ProjectFormDialog } from "./ProjectFormDialog";
 import { EpicFormDialog } from "./EpicFormDialog";
 import { StoryFormDialog } from "./StoryFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import {
+  collectProjectChildren,
+  removeProjectChildren,
+  restoreProjectChildren,
+  summarizeProjectChildren,
+} from "@/lib/cascade";
 import { NewButton } from "@/presentation/shared/NewButton";
 import { type Crumb } from "@/presentation/shared/DrillBreadcrumb";
 import { DrillHeader } from "@/presentation/shared/DrillHeader";
@@ -88,6 +94,7 @@ export function ProjectManagementView() {
   const addProject = useProjectsStore((s) => s.add);
   const updateProject = useProjectsStore((s) => s.update);
   const removeProject = useProjectsStore((s) => s.remove);
+  const restoreProject = useProjectsStore((s) => s.restore);
 
   const epicsItems = useEpicsStore((s) => s.items);
   const hydrateEpics = useEpicsStore((s) => s.hydrate);
@@ -503,19 +510,37 @@ export function ProjectManagementView() {
       <DeleteConfirmDialog
         open={confirmDelete}
         title="Archive project?"
-        description={
-          confirmDelete
-            ? `${confirmDelete.code} · ${confirmDelete.name} will be removed from the portfolio. Linked epics, stories, tasks, tickets and invoices remain in storage but become orphans in this view.`
-            : ""
-        }
+        description={(() => {
+          if (!confirmDelete) return "";
+          const summary = summarizeProjectChildren(collectProjectChildren([confirmDelete.id]));
+          return summary
+            ? `${confirmDelete.code} · ${confirmDelete.name} and its ${summary} will be removed. You can undo this.`
+            : `${confirmDelete.code} · ${confirmDelete.name} will be removed from the portfolio. You can undo this.`;
+        })()}
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
           if (!confirmDelete) return;
-          const name = confirmDelete.name;
-          removeProject(confirmDelete.id);
+          const project = confirmDelete;
+          const children = collectProjectChildren([project.id]);
+          removeProject(project.id);
+          removeProjectChildren(children);
           setConfirmDelete(null);
           setDrill({ level: "portfolio" });
-          toast.info("Project archived", `${name} has been removed.`);
+          const summary = summarizeProjectChildren(children);
+          toast.push({
+            tone: "info",
+            title: "Project archived",
+            description: summary
+              ? `${project.name} + ${summary} removed.`
+              : `${project.name} has been removed.`,
+            action: {
+              label: "Undo",
+              onClick: () => {
+                restoreProject([project]);
+                restoreProjectChildren(children);
+              },
+            },
+          });
         }}
       />
 
