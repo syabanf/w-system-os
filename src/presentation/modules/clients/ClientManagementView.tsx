@@ -10,7 +10,12 @@ import { ClientFormDialog } from "./ClientFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { ClientWorkflowTab } from "@/presentation/modules/integration/ClientWorkflowTab";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
-import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
+import {
+  collectClientChildren,
+  removeClientChildren,
+  restoreClientChildren,
+  summarizeClientChildren,
+} from "@/lib/cascade";
 
 /** Clients module entry — mirrors the PDF Integrated Dashboard exactly by
  *  composing the same `ClientWorkflowTab` used by the Integration module, but
@@ -89,16 +94,33 @@ export function ClientManagementView() {
         }}
         onDeleteClient={(c) => setConfirmDelete(c)}
         onUpdateClient={(id, patch) => updateClient(id, patch)}
-        onBulkDelete={(clients) =>
-          bulkDeleteWithUndo({
-            ids: clients.map((c) => c.id),
-            items: clients,
-            remove: removeClient,
-            restore: restoreClient,
-            toast,
-            noun: "client",
-          })
-        }
+        onBulkDelete={(clients) => {
+          // Capture each client's children first so Undo can restore everything.
+          const batches = clients.map((c) => ({
+            client: c,
+            children: collectClientChildren(c.id),
+          }));
+          clients.forEach((c) => removeClient(c.id));
+          batches.forEach((b) => removeClientChildren(b.children));
+          const linked = batches.reduce(
+            (s, b) => s + b.children.projects.length + b.children.invoices.length,
+            0,
+          );
+          toast.push({
+            tone: "info",
+            title: `${clients.length} client${clients.length === 1 ? "" : "s"} deleted`,
+            description: linked
+              ? `Plus ${linked} linked record${linked === 1 ? "" : "s"} (projects · invoices).`
+              : undefined,
+            action: {
+              label: "Undo",
+              onClick: () => {
+                restoreClient(clients);
+                batches.forEach((b) => restoreClientChildren(b.children));
+              },
+            },
+          });
+        }}
       />
 
       <ClientFormDialog
@@ -122,18 +144,36 @@ export function ClientManagementView() {
       <DeleteConfirmDialog
         open={confirmDelete}
         title="Remove client?"
-        description={
-          confirmDelete
-            ? `${confirmDelete.name} will be removed from the portfolio. Linked projects and invoices remain orphaned for now.`
-            : ""
-        }
+        description={(() => {
+          if (!confirmDelete) return "";
+          const summary = summarizeClientChildren(collectClientChildren(confirmDelete.id));
+          return summary
+            ? `${confirmDelete.name} and its linked ${summary} will be removed. You can undo this.`
+            : `${confirmDelete.name} will be removed from the portfolio. You can undo this.`;
+        })()}
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
           if (!confirmDelete) return;
-          const name = confirmDelete.name;
-          removeClient(confirmDelete.id);
+          const client = confirmDelete;
+          const children = collectClientChildren(client.id);
+          removeClient(client.id);
+          removeClientChildren(children);
           setConfirmDelete(null);
-          toast.info("Client removed", `${name} has been archived.`);
+          const summary = summarizeClientChildren(children);
+          toast.push({
+            tone: "info",
+            title: "Client removed",
+            description: summary
+              ? `${client.name} + ${summary} archived.`
+              : `${client.name} has been archived.`,
+            action: {
+              label: "Undo",
+              onClick: () => {
+                restoreClient([client]);
+                restoreClientChildren(children);
+              },
+            },
+          });
         }}
       />
     </div>
