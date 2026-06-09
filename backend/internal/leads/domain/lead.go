@@ -22,6 +22,17 @@ const (
 	StageLost        Stage = "Lost"
 )
 
+// Valid reports whether s is a recognised pipeline stage. Used by the HTTP
+// layer to reject unknown filter values with 400 instead of silently
+// returning an empty list.
+func (s Stage) Valid() bool {
+	switch s {
+	case StageNew, StageQualified, StageDiscovery, StageProposal, StageNegotiation, StageWon, StageLost:
+		return true
+	}
+	return false
+}
+
 type Lead struct {
 	ID            uuid.UUID
 	TenantID      uuid.UUID

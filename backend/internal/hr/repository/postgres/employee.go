@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/wit/erp-os/internal/hr/domain"
+	"github.com/wit/erp-os/internal/shared/pgerr"
 )
 
 type EmployeeRepo struct {
@@ -23,11 +24,14 @@ func NewEmployeeRepo(pool *pgxpool.Pool) *EmployeeRepo {
 	return &EmployeeRepo{pool: pool}
 }
 
+// basic_salary is numeric(15,2) in Postgres but int64 minor units in Go.
+// (e.basic_salary*100)::bigint reads exact; $n::numeric/100 writes exact — the
+// value never passes through float64, so cents can't drift.
 const selectColumns = `
 	e.id, e.tenant_id, e.user_profile_id, e.employee_number,
 	e.entity_id, e.department_id, e.position_id, e.manager_id,
 	e.employment_type, e.status, e.join_date, e.end_date,
-	e.basic_salary, e.bpjs_kes, e.bpjs_tk, e.bank_account,
+	(e.basic_salary*100)::bigint, e.bpjs_kes, e.bpjs_tk, e.bank_account,
 	up.first_name, up.last_name, up.email, up.phone,
 	e.created_at, e.updated_at
 `
@@ -56,11 +60,11 @@ func (r *EmployeeRepo) Create(ctx context.Context, e *domain.Employee) error {
 			employment_type, status, join_date, end_date,
 			basic_salary, bpjs_kes, bpjs_tk, bank_account,
 			created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::numeric/100,$14,$15,$16,$17,$17)`,
 		e.ID, e.TenantID, e.UserProfileID, e.EmployeeNumber,
 		e.EntityID, e.DepartmentID, e.PositionID, e.ManagerID,
 		string(e.EmploymentType), string(e.Status), e.JoinDate, e.EndDate,
-		float64(e.BasicSalary)/100.0, e.BpjsKes, e.BpjsTk, e.BankAccount,
+		e.BasicSalary, e.BpjsKes, e.BpjsTk, e.BankAccount,
 		e.CreatedAt)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -169,11 +173,11 @@ func (r *EmployeeRepo) Update(ctx context.Context, e *domain.Employee) error {
 		UPDATE employees SET
 			employee_number=$1, entity_id=$2, department_id=$3, position_id=$4, manager_id=$5,
 			employment_type=$6, status=$7, join_date=$8, end_date=$9,
-			basic_salary=$10, bpjs_kes=$11, bpjs_tk=$12, bank_account=$13, updated_at=$14
+			basic_salary=$10::numeric/100, bpjs_kes=$11, bpjs_tk=$12, bank_account=$13, updated_at=$14
 		WHERE id=$15 AND tenant_id=$16`,
 		e.EmployeeNumber, e.EntityID, e.DepartmentID, e.PositionID, e.ManagerID,
 		string(e.EmploymentType), string(e.Status), e.JoinDate, e.EndDate,
-		float64(e.BasicSalary)/100.0, e.BpjsKes, e.BpjsTk, e.BankAccount, e.UpdatedAt,
+		e.BasicSalary, e.BpjsKes, e.BpjsTk, e.BankAccount, e.UpdatedAt,
 		e.ID, e.TenantID)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -204,20 +208,20 @@ type rowScanner interface {
 
 func scan(row rowScanner) (*domain.Employee, error) {
 	var (
-		e         domain.Employee
-		basicNum  float64
-		empType   string
-		status    string
-		entityID  *uuid.UUID
-		deptID    *uuid.UUID
-		posID     *uuid.UUID
-		mgrID     *uuid.UUID
+		e        domain.Employee
+		empType  string
+		status   string
+		entityID *uuid.UUID
+		deptID   *uuid.UUID
+		posID    *uuid.UUID
+		mgrID    *uuid.UUID
 	)
+	// basic_salary arrives as bigint minor units (see selectColumns).
 	if err := row.Scan(
 		&e.ID, &e.TenantID, &e.UserProfileID, &e.EmployeeNumber,
 		&entityID, &deptID, &posID, &mgrID,
 		&empType, &status, &e.JoinDate, &e.EndDate,
-		&basicNum, &e.BpjsKes, &e.BpjsTk, &e.BankAccount,
+		&e.BasicSalary, &e.BpjsKes, &e.BpjsTk, &e.BankAccount,
 		&e.FirstName, &e.LastName, &e.Email, &e.Phone,
 		&e.CreatedAt, &e.UpdatedAt,
 	); err != nil {
@@ -226,7 +230,6 @@ func scan(row rowScanner) (*domain.Employee, error) {
 	e.EntityID, e.DepartmentID, e.PositionID, e.ManagerID = entityID, deptID, posID, mgrID
 	e.EmploymentType = domain.EmploymentType(empType)
 	e.Status = domain.EmployeeStatus(status)
-	e.BasicSalary = int64(basicNum * 100)
 	return &e, nil
 }
 
@@ -244,7 +247,8 @@ func itoa(i int) string {
 	return out
 }
 
-// isUniqueViolation sniffs pgx's PostgreSQL error code 23505.
+// isUniqueViolation reports a Postgres unique-violation (SQLSTATE 23505) via
+// the typed driver error, not brittle string matching.
 func isUniqueViolation(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "23505")
+	return pgerr.IsUniqueViolation(err)
 }

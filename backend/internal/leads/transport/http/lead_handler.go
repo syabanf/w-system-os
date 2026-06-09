@@ -55,6 +55,7 @@ type writeReq struct {
 	FollowUpDate  string     `json:"followUpDate"`
 	OwnerID       *uuid.UUID `json:"ownerId"`
 	Notes         string     `json:"notes"`
+	WonClientID   *uuid.UUID `json:"wonClientId"`
 }
 
 func toDTO(l *domain.Lead) dto {
@@ -102,6 +103,10 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	f := domain.Filter{TenantID: tid, Search: q.Get("search"), Source: q.Get("source"), Limit: limit, Offset: offset}
 	if v := q.Get("stage"); v != "" {
 		s := domain.Stage(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_stage", errors.New("invalid stage: "+v))
+			return
+		}
 		f.Stage = &s
 	}
 	rows, total, err := h.svc.List(r.Context(), f)
@@ -209,6 +214,6 @@ func build(tid uuid.UUID, req writeReq) usecase.WriteInput {
 		TenantID: tid, CompanyName: req.CompanyName, ContactPerson: req.ContactPerson,
 		ContactEmail: req.ContactEmail, DealValue: req.DealValue, Stage: domain.Stage(req.Stage),
 		Source: req.Source, Probability: req.Probability, FollowUpDate: parseDate(req.FollowUpDate),
-		OwnerID: req.OwnerID, Notes: req.Notes,
+		OwnerID: req.OwnerID, Notes: req.Notes, WonClientID: req.WonClientID,
 	}
 }

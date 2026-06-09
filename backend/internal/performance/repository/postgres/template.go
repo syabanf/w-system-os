@@ -35,7 +35,7 @@ func (r *TemplateRepo) Create(ctx context.Context, t *domain.Template) error {
 }
 
 func (r *TemplateRepo) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Template, error) {
-	row := r.pool.QueryRow(ctx, `SELECT `+cols+` FROM performance_360_templates WHERE tenant_id=$1 AND id=$2`, tenantID, id)
+	row := r.pool.QueryRow(ctx, `SELECT `+cols+` FROM performance_360_templates WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tenantID, id)
 	t, err := scan(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -48,7 +48,7 @@ func (r *TemplateRepo) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*do
 
 func (r *TemplateRepo) List(ctx context.Context, f domain.Filter) ([]*domain.Template, int, error) {
 	args := []any{f.TenantID}
-	conds := []string{"tenant_id=$1"}
+	conds := []string{"tenant_id=$1", "deleted_at IS NULL"}
 	if f.Status != nil {
 		args = append(args, string(*f.Status))
 		conds = append(conds, "status=$"+strconv.Itoa(len(args)))
@@ -98,7 +98,10 @@ func (r *TemplateRepo) Update(ctx context.Context, t *domain.Template) error {
 }
 
 func (r *TemplateRepo) Delete(ctx context.Context, tenantID, id uuid.UUID) error {
-	tag, err := r.pool.Exec(ctx, `DELETE FROM performance_360_templates WHERE tenant_id=$1 AND id=$2`, tenantID, id)
+	// Soft delete: the table carries deleted_at and reads filter it out.
+	tag, err := r.pool.Exec(ctx,
+		`UPDATE performance_360_templates SET deleted_at=now() WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`,
+		tenantID, id)
 	if err != nil {
 		return err
 	}

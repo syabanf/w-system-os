@@ -117,6 +117,10 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	f := domain.Filter{TenantID: tid, Search: q.Get("search"), Health: q.Get("health"), Limit: limit, Offset: offset}
 	if v := q.Get("status"); v != "" {
 		s := domain.Status(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_status", errors.New("invalid status: "+v))
+			return
+		}
 		f.Status = &s
 	}
 	rows, total, err := h.svc.List(r.Context(), f)

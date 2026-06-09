@@ -49,12 +49,12 @@ func tenantOrErr(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 // ─── Dashboard ───────────────────────────────────────────────────────
 
 type overviewDTO struct {
-	MonthlyRevenue  int64   `json:"monthlyRevenue"`
-	ActiveProjects  int     `json:"activeProjects"`
-	UtilizationPct  float64 `json:"utilizationPct"`
-	OutstandingAR   int64   `json:"outstandingAR"`
-	SLABreaches     int     `json:"slaBreaches"`
-	WinRatePct      float64 `json:"winRatePct"`
+	MonthlyRevenue int64   `json:"monthlyRevenue"`
+	ActiveProjects int     `json:"activeProjects"`
+	UtilizationPct float64 `json:"utilizationPct"`
+	OutstandingAR  int64   `json:"outstandingAR"`
+	SLABreaches    int     `json:"slaBreaches"`
+	WinRatePct     float64 `json:"winRatePct"`
 }
 
 func (h *Handler) dashboardOverview(w http.ResponseWriter, r *http.Request) {
@@ -65,31 +65,53 @@ func (h *Handler) dashboardOverview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	out := overviewDTO{}
 
+	// A failed metric query is a real error (DB down / schema drift), not a
+	// silent zero — surface it as 500 and log via httpx.Error.
+	fail := func(err error) bool {
+		if err != nil {
+			httpx.Error(w, r, http.StatusInternalServerError, "query_failed", err)
+			return true
+		}
+		return false
+	}
+
 	// Outstanding AR
-	_ = h.pool.QueryRow(ctx, `
+	if fail(h.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM((amount - paid_amount) * 100)::bigint, 0)
-		FROM invoices WHERE tenant_id=$1 AND status IN ('sent','overdue')`, tid).Scan(&out.OutstandingAR)
+		FROM invoices WHERE tenant_id=$1 AND status IN ('sent','overdue')`, tid).Scan(&out.OutstandingAR)) {
+		return
+	}
 
 	// Monthly revenue (current calendar month)
-	_ = h.pool.QueryRow(ctx, `
+	if fail(h.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(amount * 100)::bigint, 0)
 		FROM invoices
-		WHERE tenant_id=$1 AND date_trunc('month', issue_date) = date_trunc('month', now())`, tid).Scan(&out.MonthlyRevenue)
+		WHERE tenant_id=$1 AND date_trunc('month', issue_date) = date_trunc('month', now())`, tid).Scan(&out.MonthlyRevenue)) {
+		return
+	}
 
 	// Active projects
-	_ = h.pool.QueryRow(ctx, `
+	if fail(h.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM projects
-		WHERE tenant_id=$1 AND status NOT IN ('Delivered','Maintenance')`, tid).Scan(&out.ActiveProjects)
+		WHERE tenant_id=$1 AND status NOT IN ('Delivered','Maintenance')`, tid).Scan(&out.ActiveProjects)) {
+		return
+	}
 
 	// SLA breaches (open tickets past deadline)
-	_ = h.pool.QueryRow(ctx, `
+	if fail(h.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM support_tickets
-		WHERE tenant_id=$1 AND status NOT IN ('Resolved','Closed') AND sla_deadline < now()`, tid).Scan(&out.SLABreaches)
+		WHERE tenant_id=$1 AND status NOT IN ('Resolved','Closed') AND sla_deadline < now()`, tid).Scan(&out.SLABreaches)) {
+		return
+	}
 
 	// Win rate (closed-won / closed-* leads)
 	var won, closed int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage='Won'`, tid).Scan(&won)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage IN ('Won','Lost')`, tid).Scan(&closed)
+	if fail(h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage='Won'`, tid).Scan(&won)) {
+		return
+	}
+	if fail(h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage IN ('Won','Lost')`, tid).Scan(&closed)) {
+		return
+	}
 	if closed > 0 {
 		out.WinRatePct = float64(won) / float64(closed) * 100
 	}
@@ -103,16 +125,16 @@ func (h *Handler) dashboardOverview(w http.ResponseWriter, r *http.Request) {
 // ─── KPIs ────────────────────────────────────────────────────────────
 
 type kpiDTO struct {
-	ID         string  `json:"id"`
-	Name       string  `json:"name"`
-	Pillar     string  `json:"pillar"`
-	Unit       string  `json:"unit"`
-	Current    float64 `json:"current"`
-	Target     float64 `json:"target"`
-	Direction  string  `json:"direction"` // higher | lower
-	Status     string  `json:"status"`    // on-track | at-risk | off-track
-	Owner      string  `json:"owner"`
-	Cadence    string  `json:"cadence"`
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Pillar    string  `json:"pillar"`
+	Unit      string  `json:"unit"`
+	Current   float64 `json:"current"`
+	Target    float64 `json:"target"`
+	Direction string  `json:"direction"` // higher | lower
+	Status    string  `json:"status"`    // on-track | at-risk | off-track
+	Owner     string  `json:"owner"`
+	Cadence   string  `json:"cadence"`
 }
 
 func (h *Handler) kpis(w http.ResponseWriter, r *http.Request) {
@@ -121,18 +143,33 @@ func (h *Handler) kpis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	fail := func(err error) bool {
+		if err != nil {
+			httpx.Error(w, r, http.StatusInternalServerError, "query_failed", err)
+			return true
+		}
+		return false
+	}
 
 	var monthlyRev, outstanding float64
-	_ = h.pool.QueryRow(ctx,
+	if fail(h.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(amount),0) FROM invoices WHERE tenant_id=$1 AND date_trunc('month', issue_date) = date_trunc('month', now())`,
-		tid).Scan(&monthlyRev)
-	_ = h.pool.QueryRow(ctx,
+		tid).Scan(&monthlyRev)) {
+		return
+	}
+	if fail(h.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(amount - paid_amount),0) FROM invoices WHERE tenant_id=$1 AND status IN ('sent','overdue')`,
-		tid).Scan(&outstanding)
+		tid).Scan(&outstanding)) {
+		return
+	}
 
 	var won, closed int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage='Won'`, tid).Scan(&won)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage IN ('Won','Lost')`, tid).Scan(&closed)
+	if fail(h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage='Won'`, tid).Scan(&won)) {
+		return
+	}
+	if fail(h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM leads WHERE tenant_id=$1 AND stage IN ('Won','Lost')`, tid).Scan(&closed)) {
+		return
+	}
 	winRate := 0.0
 	if closed > 0 {
 		winRate = float64(won) / float64(closed) * 100

@@ -30,22 +30,41 @@ const (
 	StatusClosed        Status = "Closed"
 )
 
+// Valid reports whether s is a recognised severity. Lets the HTTP layer reject
+// unknown filter values with 400 rather than returning an empty list.
+func (s Severity) Valid() bool {
+	switch s {
+	case SeverityLow, SeverityMedium, SeverityHigh, SeverityCritical:
+		return true
+	}
+	return false
+}
+
+// Valid reports whether s is a recognised ticket status.
+func (s Status) Valid() bool {
+	switch s {
+	case StatusOpen, StatusInvestigating, StatusWaitingClient, StatusInProgress, StatusResolved, StatusClosed:
+		return true
+	}
+	return false
+}
+
 type Ticket struct {
-	ID                    uuid.UUID
-	TenantID              uuid.UUID
-	Code                  string
-	Title                 string
-	Description           string
-	ClientID              *uuid.UUID
-	ProjectID             *uuid.UUID
-	Severity              Severity
-	Status                Status
-	AssignedToID          *uuid.UUID
-	IsChangeRequest       bool
-	EstimatedEffortHours  float64
-	SLADeadline           *time.Time
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	ID                   uuid.UUID
+	TenantID             uuid.UUID
+	Code                 string
+	Title                string
+	Description          string
+	ClientID             *uuid.UUID
+	ProjectID            *uuid.UUID
+	Severity             Severity
+	Status               Status
+	AssignedToID         *uuid.UUID
+	IsChangeRequest      bool
+	EstimatedEffortHours float64
+	SLADeadline          *time.Time
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 func (t *Ticket) Validate() error {
@@ -59,14 +78,14 @@ func (t *Ticket) Validate() error {
 }
 
 type Filter struct {
-	TenantID         uuid.UUID
-	Search           string
-	Status           *Status
-	Severity         *Severity
-	IsChangeRequest  *bool
-	ClientID         *uuid.UUID
-	Limit            int
-	Offset           int
+	TenantID        uuid.UUID
+	Search          string
+	Status          *Status
+	Severity        *Severity
+	IsChangeRequest *bool
+	ClientID        *uuid.UUID
+	Limit           int
+	Offset          int
 }
 
 type Repository interface {

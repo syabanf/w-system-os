@@ -13,31 +13,41 @@ import (
 type Health string
 
 const (
-	HealthExcellent  Health = "excellent"
-	HealthStable     Health = "stable"
-	HealthAtRisk     Health = "at-risk"
-	HealthChurnRisk  Health = "churn-risk"
+	HealthExcellent Health = "excellent"
+	HealthStable    Health = "stable"
+	HealthAtRisk    Health = "at-risk"
+	HealthChurnRisk Health = "churn-risk"
 )
 
+// Valid reports whether h is a recognised health value. Lets the HTTP layer
+// reject unknown filter values with 400 rather than returning an empty list.
+func (h Health) Valid() bool {
+	switch h {
+	case HealthExcellent, HealthStable, HealthAtRisk, HealthChurnRisk:
+		return true
+	}
+	return false
+}
+
 type Client struct {
-	ID                 uuid.UUID
-	TenantID           uuid.UUID
-	Name               string
-	Industry           string
-	Region             string
-	PrimaryContact     string
-	ContactEmail       string
-	AccountOwnerID     *uuid.UUID
-	ContractValue      int64 // IDR cents
-	RetainerActive     bool
-	ActiveProjects     int
-	SatisfactionScore  int
-	Health             Health
-	RenewalDate        *time.Time
-	JoinedAt           *time.Time
-	LogoColor          string
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	ID                uuid.UUID
+	TenantID          uuid.UUID
+	Name              string
+	Industry          string
+	Region            string
+	PrimaryContact    string
+	ContactEmail      string
+	AccountOwnerID    *uuid.UUID
+	ContractValue     int64 // IDR cents
+	RetainerActive    bool
+	ActiveProjects    int
+	SatisfactionScore int
+	Health            Health
+	RenewalDate       *time.Time
+	JoinedAt          *time.Time
+	LogoColor         string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 func (c *Client) Validate() error {
@@ -71,7 +81,7 @@ type Repository interface {
 	Delete(ctx context.Context, tenantID, id uuid.UUID) error
 }
 
-var (
-	ErrNotFound      = errors.New("client not found")
-	ErrDuplicateName = errors.New("client name already exists for this tenant")
-)
+// ErrNotFound is returned when a client row is absent for the tenant. There is
+// deliberately no ErrDuplicateName: clients.name carries no UNIQUE constraint,
+// so a "duplicate name" conflict can never originate from the database.
+var ErrNotFound = errors.New("client not found")

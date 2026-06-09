@@ -11,14 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/wit/erp-os/internal/projects/domain"
+	"github.com/wit/erp-os/internal/shared/pgerr"
 )
 
 type ProjectRepo struct{ pool *pgxpool.Pool }
 
 func NewProjectRepo(p *pgxpool.Pool) *ProjectRepo { return &ProjectRepo{pool: p} }
 
+// Money columns are numeric(15,2) in Postgres but int64 minor units in Go.
+// Cast in SQL — (col*100)::bigint reads exact, $n::numeric/100 writes exact —
+// so values never round-trip through float64 and lose precision.
 const cols = `
-	id, tenant_id, code, name, client_id, status, progress, budget, actual_cost,
+	id, tenant_id, code, name, client_id, status, progress,
+	(budget*100)::bigint, (actual_cost*100)::bigint,
 	risk_level, start_date, end_date, project_manager_id, health, tech_stack,
 	open_tickets, change_requests, created_at, updated_at
 `
@@ -29,12 +34,12 @@ func (r *ProjectRepo) Create(ctx context.Context, p *domain.Project) error {
 			id, tenant_id, code, name, client_id, status, progress, budget, actual_cost,
 			risk_level, start_date, end_date, project_manager_id, health, tech_stack,
 			open_tickets, change_requests, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric/100,$9::numeric/100,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
 		p.ID, p.TenantID, p.Code, p.Name, p.ClientID, string(p.Status), p.Progress,
-		float64(p.Budget)/100.0, float64(p.ActualCost)/100.0, p.RiskLevel,
+		p.Budget, p.ActualCost, p.RiskLevel,
 		p.StartDate, p.EndDate, p.ProjectManagerID, p.Health, p.TechStack,
 		p.OpenTickets, p.ChangeRequests, p.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
+	if err != nil && pgerr.IsUniqueViolation(err) {
 		return domain.ErrDuplicateCode
 	}
 	return err
@@ -92,16 +97,16 @@ func (r *ProjectRepo) List(ctx context.Context, f domain.Filter) ([]*domain.Proj
 func (r *ProjectRepo) Update(ctx context.Context, p *domain.Project) error {
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE projects SET code=$1, name=$2, client_id=$3, status=$4, progress=$5,
-			budget=$6, actual_cost=$7, risk_level=$8, start_date=$9, end_date=$10,
+			budget=$6::numeric/100, actual_cost=$7::numeric/100, risk_level=$8, start_date=$9, end_date=$10,
 			project_manager_id=$11, health=$12, tech_stack=$13, open_tickets=$14,
 			change_requests=$15, updated_at=$16
 		WHERE tenant_id=$17 AND id=$18`,
 		p.Code, p.Name, p.ClientID, string(p.Status), p.Progress,
-		float64(p.Budget)/100.0, float64(p.ActualCost)/100.0, p.RiskLevel,
+		p.Budget, p.ActualCost, p.RiskLevel,
 		p.StartDate, p.EndDate, p.ProjectManagerID, p.Health, p.TechStack,
 		p.OpenTickets, p.ChangeRequests, p.UpdatedAt, p.TenantID, p.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
+		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrDuplicateCode
 		}
 		return err
@@ -127,16 +132,15 @@ type rowScanner interface{ Scan(...any) error }
 
 func scan(row rowScanner) (*domain.Project, error) {
 	var (
-		p           domain.Project
-		clientID    *uuid.UUID
-		pmID        *uuid.UUID
-		statusStr   string
-		budgetNum   float64
-		actualNum   float64
+		p         domain.Project
+		clientID  *uuid.UUID
+		pmID      *uuid.UUID
+		statusStr string
 	)
+	// budget / actual_cost arrive as bigint minor units (see cols).
 	if err := row.Scan(
 		&p.ID, &p.TenantID, &p.Code, &p.Name, &clientID, &statusStr, &p.Progress,
-		&budgetNum, &actualNum, &p.RiskLevel, &p.StartDate, &p.EndDate, &pmID,
+		&p.Budget, &p.ActualCost, &p.RiskLevel, &p.StartDate, &p.EndDate, &pmID,
 		&p.Health, &p.TechStack, &p.OpenTickets, &p.ChangeRequests,
 		&p.CreatedAt, &p.UpdatedAt,
 	); err != nil {
@@ -144,7 +148,5 @@ func scan(row rowScanner) (*domain.Project, error) {
 	}
 	p.ClientID, p.ProjectManagerID = clientID, pmID
 	p.Status = domain.Status(statusStr)
-	p.Budget = int64(budgetNum * 100)
-	p.ActualCost = int64(actualNum * 100)
 	return &p, nil
 }

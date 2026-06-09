@@ -38,16 +38,23 @@ func NoContent(w http.ResponseWriter) {
 }
 
 // Error writes a structured error envelope and logs via the request-scoped logger.
+// The full error is always logged, but only client-safe messages are returned:
+// 4xx responses surface err.Error() (validation / not-found messages), while
+// 5xx responses return a generic string so internal/DB details never leak.
 func Error(w http.ResponseWriter, r *http.Request, status int, code string, err error) {
-	msg := "internal_error"
-	if err != nil {
-		msg = err.Error()
-	}
 	hlog.FromRequest(r).Warn().
 		Int("status", status).
 		Str("code", code).
 		Err(err).
 		Msg("request failed")
+
+	msg := "internal error"
+	switch {
+	case status < http.StatusInternalServerError && err != nil:
+		msg = err.Error()
+	case status < http.StatusInternalServerError:
+		msg = code
+	}
 	JSON(w, status, Envelope{Error: msg, Code: code})
 }
 

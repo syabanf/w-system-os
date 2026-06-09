@@ -17,8 +17,9 @@ type LeadRepo struct{ pool *pgxpool.Pool }
 
 func NewLeadRepo(p *pgxpool.Pool) *LeadRepo { return &LeadRepo{pool: p} }
 
+// deal_value is numeric(15,2); read back as exact int64 minor units.
 const cols = `
-	id, tenant_id, company_name, contact_person, contact_email, deal_value,
+	id, tenant_id, company_name, contact_person, contact_email, (deal_value*100)::bigint,
 	stage, source, probability, follow_up_date, owner_id, notes, won_client_id,
 	created_at, updated_at
 `
@@ -29,9 +30,9 @@ func (r *LeadRepo) Create(ctx context.Context, l *domain.Lead) error {
 			id, tenant_id, company_name, contact_person, contact_email, deal_value,
 			stage, source, probability, follow_up_date, owner_id, notes, won_client_id,
 			created_at, updated_at)
-		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11,$12,$13,$14,$14)`,
+		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6::numeric/100,$7,$8,$9,$10,$11,$12,$13,$14,$14)`,
 		l.ID, l.TenantID, l.CompanyName, l.ContactPerson, l.ContactEmail,
-		float64(l.DealValue)/100.0, string(l.Stage), l.Source, l.Probability,
+		l.DealValue, string(l.Stage), l.Source, l.Probability,
 		l.FollowUpDate, l.OwnerID, l.Notes, l.WonClientID, l.CreatedAt)
 	return err
 }
@@ -88,12 +89,12 @@ func (r *LeadRepo) List(ctx context.Context, f domain.Filter) ([]*domain.Lead, i
 func (r *LeadRepo) Update(ctx context.Context, l *domain.Lead) error {
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE leads SET company_name=$1, contact_person=$2, contact_email=NULLIF($3,''),
-			deal_value=$4, stage=$5, source=$6, probability=$7, follow_up_date=$8,
-			owner_id=$9, notes=$10, updated_at=$11
-		WHERE tenant_id=$12 AND id=$13`,
-		l.CompanyName, l.ContactPerson, l.ContactEmail, float64(l.DealValue)/100.0,
+			deal_value=$4::numeric/100, stage=$5, source=$6, probability=$7, follow_up_date=$8,
+			owner_id=$9, notes=$10, won_client_id=$11, updated_at=$12
+		WHERE tenant_id=$13 AND id=$14`,
+		l.CompanyName, l.ContactPerson, l.ContactEmail, l.DealValue,
 		string(l.Stage), l.Source, l.Probability, l.FollowUpDate, l.OwnerID, l.Notes,
-		l.UpdatedAt, l.TenantID, l.ID)
+		l.WonClientID, l.UpdatedAt, l.TenantID, l.ID)
 	if err != nil {
 		return err
 	}
@@ -118,14 +119,13 @@ type rowScanner interface{ Scan(...any) error }
 
 func scan(row rowScanner) (*domain.Lead, error) {
 	var (
-		l        domain.Lead
-		owner    *uuid.UUID
-		won      *uuid.UUID
-		stage    string
-		valueNum float64
+		l     domain.Lead
+		owner *uuid.UUID
+		won   *uuid.UUID
+		stage string
 	)
 	if err := row.Scan(
-		&l.ID, &l.TenantID, &l.CompanyName, &l.ContactPerson, &l.ContactEmail, &valueNum,
+		&l.ID, &l.TenantID, &l.CompanyName, &l.ContactPerson, &l.ContactEmail, &l.DealValue,
 		&stage, &l.Source, &l.Probability, &l.FollowUpDate, &owner, &l.Notes, &won,
 		&l.CreatedAt, &l.UpdatedAt,
 	); err != nil {
@@ -133,6 +133,5 @@ func scan(row rowScanner) (*domain.Lead, error) {
 	}
 	l.OwnerID, l.WonClientID = owner, won
 	l.Stage = domain.Stage(stage)
-	l.DealValue = int64(valueNum * 100)
 	return &l, nil
 }

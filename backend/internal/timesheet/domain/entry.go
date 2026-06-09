@@ -18,6 +18,16 @@ const (
 	StatusRejected  Status = "rejected"
 )
 
+// Valid reports whether s is a recognised entry status. Lets the HTTP layer
+// reject unknown filter values with 400 rather than returning an empty list.
+func (s Status) Valid() bool {
+	switch s {
+	case StatusDraft, StatusSubmitted, StatusApproved, StatusRejected:
+		return true
+	}
+	return false
+}
+
 type Entry struct {
 	ID             uuid.UUID
 	TenantID       uuid.UUID

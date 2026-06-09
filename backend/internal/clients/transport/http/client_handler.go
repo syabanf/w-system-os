@@ -119,6 +119,10 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	filter := domain.Filter{TenantID: tenantID, Search: q.Get("search"), Limit: limit, Offset: offset}
 	if v := q.Get("health"); v != "" {
 		h := domain.Health(v)
+		if !h.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_health", errors.New("invalid health: "+v))
+			return
+		}
 		filter.Health = &h
 	}
 	rows, total, err := h.svc.List(r.Context(), filter)
@@ -167,10 +171,8 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 	c, err := h.svc.Create(r.Context(), buildInput(tenantID, req))
 	if err != nil {
-		if errors.Is(err, domain.ErrDuplicateName) {
-			httpx.Error(w, r, http.StatusConflict, "duplicate", err)
-			return
-		}
+		// No UNIQUE constraint on clients.name, so there is no duplicate-name
+		// conflict to translate here — bad input is the only failure mode.
 		httpx.Error(w, r, http.StatusBadRequest, "create_failed", err)
 		return
 	}

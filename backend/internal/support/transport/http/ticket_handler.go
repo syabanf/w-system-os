@@ -89,10 +89,18 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	f := domain.Filter{TenantID: tid, Search: q.Get("search"), Limit: limit, Offset: offset}
 	if v := q.Get("status"); v != "" {
 		s := domain.Status(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_status", errors.New("invalid status: "+v))
+			return
+		}
 		f.Status = &s
 	}
 	if v := q.Get("severity"); v != "" {
 		s := domain.Severity(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_severity", errors.New("invalid severity: "+v))
+			return
+		}
 		f.Severity = &s
 	}
 	if v := q.Get("isChangeRequest"); v != "" {

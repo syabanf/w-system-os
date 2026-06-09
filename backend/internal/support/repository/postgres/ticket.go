@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/wit/erp-os/internal/shared/pgerr"
 	"github.com/wit/erp-os/internal/support/domain"
 )
 
@@ -33,7 +34,7 @@ func (r *TicketRepo) Create(ctx context.Context, t *domain.Ticket) error {
 		t.ID, t.TenantID, t.Code, t.Title, t.Description, t.ClientID, t.ProjectID,
 		string(t.Severity), string(t.Status), t.AssignedToID, t.IsChangeRequest,
 		t.EstimatedEffortHours, t.SLADeadline, t.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
+	if err != nil && pgerr.IsUniqueViolation(err) {
 		return domain.ErrDuplicateCode
 	}
 	return err
@@ -106,7 +107,7 @@ func (r *TicketRepo) Update(ctx context.Context, t *domain.Ticket) error {
 		string(t.Severity), string(t.Status), t.AssignedToID, t.IsChangeRequest,
 		t.EstimatedEffortHours, t.SLADeadline, t.UpdatedAt, t.TenantID, t.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
+		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrDuplicateCode
 		}
 		return err

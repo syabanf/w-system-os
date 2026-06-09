@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/wit/erp-os/internal/knowledge/domain"
+	"github.com/wit/erp-os/internal/shared/pgerr"
 )
 
 type ArticleRepo struct {
@@ -34,7 +35,7 @@ func (r *ArticleRepo) Create(ctx context.Context, a *domain.Article) error {
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13)`,
 		a.ID, a.TenantID, a.CategoryID, a.Title, a.Slug, a.Excerpt, a.BodyMarkdown,
 		a.AuthorID, string(a.Status), a.Pinned, a.ViewCount, a.PublishedAt, a.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
+	if err != nil && pgerr.IsUniqueViolation(err) {
 		return domain.ErrDuplicateSlug
 	}
 	return err
@@ -58,7 +59,10 @@ func (r *ArticleRepo) List(ctx context.Context, f domain.Filter) ([]*domain.Arti
 	conds := []string{"tenant_id = $1"}
 	if f.Search != "" {
 		args = append(args, "%"+f.Search+"%")
-		conds = append(conds, "(title ILIKE $"+itoa(len(args))+" OR excerpt ILIKE $"+itoa(len(args))+")")
+		// Match the expression carried by the gin_trgm_ops index (migration 019:
+		// (title || ' ' || COALESCE(excerpt,''))). Filtering the two columns
+		// separately with OR could not use that index; this can.
+		conds = append(conds, "(title || ' ' || COALESCE(excerpt,'')) ILIKE $"+itoa(len(args)))
 	}
 	if f.CategoryID != nil {
 		args = append(args, *f.CategoryID)
@@ -108,7 +112,7 @@ func (r *ArticleRepo) Update(ctx context.Context, a *domain.Article) error {
 		a.AuthorID, string(a.Status), a.Pinned, a.PublishedAt, a.UpdatedAt,
 		a.TenantID, a.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
+		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrDuplicateSlug
 		}
 		return err

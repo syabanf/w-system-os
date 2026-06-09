@@ -121,16 +121,30 @@ func (h *EmployeeHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	if v := q.Get("status"); v != "" {
 		s := domain.EmployeeStatus(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_status", errors.New("invalid status: "+v))
+			return
+		}
 		filter.Status = &s
 	}
 	if v := q.Get("employmentType"); v != "" {
 		t := domain.EmploymentType(v)
+		if !t.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_employment_type", errors.New("invalid employmentType: "+v))
+			return
+		}
 		filter.EmploymentType = &t
 	}
 	if v := q.Get("departmentId"); v != "" {
 		id, perr := uuid.Parse(v)
 		if perr == nil {
 			filter.Department = &id
+		}
+	}
+	if v := q.Get("positionId"); v != "" {
+		id, perr := uuid.Parse(v)
+		if perr == nil {
+			filter.Position = &id
 		}
 	}
 
@@ -144,9 +158,9 @@ func (h *EmployeeHandler) list(w http.ResponseWriter, r *http.Request) {
 		out = append(out, toDTO(e))
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"data":  out,
-		"total": total,
-		"limit": filter.Limit,
+		"data":   out,
+		"total":  total,
+		"limit":  filter.Limit,
 		"offset": filter.Offset,
 	})
 }

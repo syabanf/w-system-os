@@ -30,6 +30,16 @@ const (
 	StatusArchived Status = "archived"
 )
 
+// Valid reports whether s is a recognised template status. Lets the HTTP layer
+// reject unknown filter values with 400 rather than returning an empty list.
+func (s Status) Valid() bool {
+	switch s {
+	case StatusDraft, StatusActive, StatusClosed, StatusArchived:
+		return true
+	}
+	return false
+}
+
 type Template struct {
 	ID                uuid.UUID
 	TenantID          uuid.UUID

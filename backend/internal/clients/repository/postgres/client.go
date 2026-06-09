@@ -21,9 +21,16 @@ func NewClientRepo(pool *pgxpool.Pool) *ClientRepo {
 	return &ClientRepo{pool: pool}
 }
 
+// Money is stored as numeric(15,2) but carried in Go as int64 minor units.
+// (contract_value*100)::bigint reads it back exactly (no float round-trip);
+// writes bind the int64 and divide by 100 in SQL ($n::numeric/100).
+//
+// active_projects is derived live from the projects table so it can't drift
+// from reality (the stored column, if any, is ignored on read).
 const cols = `
 	id, tenant_id, name, industry, region, primary_contact, contact_email,
-	account_owner_id, contract_value, retainer_active, active_projects,
+	account_owner_id, (contract_value*100)::bigint, retainer_active,
+	(SELECT COUNT(*) FROM projects p WHERE p.client_id = clients.id AND p.tenant_id = clients.tenant_id)::int,
 	satisfaction_score, health, renewal_date, joined_at, logo_color,
 	created_at, updated_at
 `
@@ -35,14 +42,11 @@ func (r *ClientRepo) Create(ctx context.Context, c *domain.Client) error {
 			account_owner_id, contract_value, retainer_active, active_projects,
 			satisfaction_score, health, renewal_date, joined_at, logo_color,
 			created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,NULLIF($7,''),$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17)`,
+		VALUES ($1,$2,$3,$4,$5,$6,NULLIF($7,''),$8,$9::numeric/100,$10,$11,$12,$13,$14,$15,$16,$17,$17)`,
 		c.ID, c.TenantID, c.Name, c.Industry, c.Region, c.PrimaryContact, c.ContactEmail,
-		c.AccountOwnerID, float64(c.ContractValue)/100.0, c.RetainerActive, c.ActiveProjects,
+		c.AccountOwnerID, c.ContractValue, c.RetainerActive, c.ActiveProjects,
 		c.SatisfactionScore, string(c.Health), c.RenewalDate, c.JoinedAt, c.LogoColor,
 		c.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
-		return domain.ErrDuplicateName
-	}
 	return err
 }
 
@@ -99,12 +103,12 @@ func (r *ClientRepo) Update(ctx context.Context, c *domain.Client) error {
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE clients SET
 			name=$1, industry=$2, region=$3, primary_contact=$4, contact_email=NULLIF($5,''),
-			account_owner_id=$6, contract_value=$7, retainer_active=$8, active_projects=$9,
+			account_owner_id=$6, contract_value=$7::numeric/100, retainer_active=$8, active_projects=$9,
 			satisfaction_score=$10, health=$11, renewal_date=$12, joined_at=$13, logo_color=$14,
 			updated_at=$15
 		WHERE tenant_id=$16 AND id=$17`,
 		c.Name, c.Industry, c.Region, c.PrimaryContact, c.ContactEmail,
-		c.AccountOwnerID, float64(c.ContractValue)/100.0, c.RetainerActive, c.ActiveProjects,
+		c.AccountOwnerID, c.ContractValue, c.RetainerActive, c.ActiveProjects,
 		c.SatisfactionScore, string(c.Health), c.RenewalDate, c.JoinedAt, c.LogoColor,
 		c.UpdatedAt, c.TenantID, c.ID)
 	if err != nil {
@@ -131,16 +135,13 @@ type rowScanner interface{ Scan(...any) error }
 
 func scan(row rowScanner) (*domain.Client, error) {
 	var (
-		c          domain.Client
-		ownerID    *uuid.UUID
-		health     string
-		valueNum   float64
-		renewal    *struct{} // placeholder; pgx scans nullable date into *time.Time below
+		c       domain.Client
+		ownerID *uuid.UUID
+		health  string
 	)
-	_ = renewal
 	if err := row.Scan(
 		&c.ID, &c.TenantID, &c.Name, &c.Industry, &c.Region, &c.PrimaryContact, &c.ContactEmail,
-		&ownerID, &valueNum, &c.RetainerActive, &c.ActiveProjects,
+		&ownerID, &c.ContractValue, &c.RetainerActive, &c.ActiveProjects,
 		&c.SatisfactionScore, &health, &c.RenewalDate, &c.JoinedAt, &c.LogoColor,
 		&c.CreatedAt, &c.UpdatedAt,
 	); err != nil {
@@ -148,7 +149,6 @@ func scan(row rowScanner) (*domain.Client, error) {
 	}
 	c.AccountOwnerID = ownerID
 	c.Health = domain.Health(health)
-	c.ContractValue = int64(valueNum * 100)
 	return &c, nil
 }
 

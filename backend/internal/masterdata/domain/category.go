@@ -12,10 +12,12 @@ import (
 )
 
 type Category struct {
-	ID          uuid.UUID
-	TenantID    uuid.UUID
-	Code        string
-	ModuleID    *uuid.UUID
+	ID       uuid.UUID
+	TenantID uuid.UUID
+	Code     string
+	// ModuleID is the frontend AppModuleId namespace ("leads", "finance", …),
+	// stored as varchar(40) NOT NULL — not a UUID.
+	ModuleID    string
 	Label       string
 	Description string
 	Fields      json.RawMessage
@@ -33,13 +35,16 @@ func (c *Category) Validate() error {
 	if strings.TrimSpace(c.Label) == "" {
 		return errors.New("label is required")
 	}
+	if strings.TrimSpace(c.ModuleID) == "" {
+		return errors.New("moduleId is required")
+	}
 	return nil
 }
 
 type CategoryFilter struct {
 	TenantID uuid.UUID
 	Search   string
-	ModuleID *uuid.UUID
+	ModuleID *string
 	IsActive *bool
 	Limit    int
 	Offset   int

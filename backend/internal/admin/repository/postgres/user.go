@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/wit/erp-os/internal/admin/domain"
+	"github.com/wit/erp-os/internal/shared/pgerr"
 )
 
 type UserRepo struct {
@@ -34,7 +35,7 @@ func (r *UserRepo) Create(ctx context.Context, u *domain.User) error {
 		VALUES ($1,$2,$3,NULLIF($4,''),NULLIF($5,''),$6,$7,$8,$9,$10,$11,$11)`,
 		u.ID, u.TenantID, u.Email, u.PasswordHash, u.MFASecret, u.UserProfileID,
 		u.IsActive, u.LastLoginAt, u.FailedAttempts, u.LockedUntil, u.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
+	if err != nil && pgerr.IsUniqueViolation(err) {
 		return domain.ErrDuplicateEmail
 	}
 	return err
@@ -99,7 +100,7 @@ func (r *UserRepo) Update(ctx context.Context, u *domain.User) error {
 		u.IsActive, u.LastLoginAt, u.FailedAttempts, u.LockedUntil, u.UpdatedAt,
 		u.TenantID, u.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
+		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrDuplicateEmail
 		}
 		return err

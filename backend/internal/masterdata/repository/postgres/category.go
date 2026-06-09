@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/wit/erp-os/internal/masterdata/domain"
+	"github.com/wit/erp-os/internal/shared/pgerr"
 )
 
 type CategoryRepo struct {
@@ -34,7 +35,7 @@ func (r *CategoryRepo) Create(ctx context.Context, c *domain.Category) error {
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11)`,
 		c.ID, c.TenantID, c.Code, c.ModuleID, c.Label, c.Description,
 		[]byte(c.Fields), c.DisplayKeys, c.IsSystem, c.IsActive, c.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
+	if err != nil && pgerr.IsUniqueViolation(err) {
 		return domain.ErrDuplicateCategoryCode
 	}
 	return err
@@ -103,7 +104,7 @@ func (r *CategoryRepo) Update(ctx context.Context, c *domain.Category) error {
 		[]byte(c.Fields), c.DisplayKeys, c.IsSystem, c.IsActive, c.UpdatedAt,
 		c.TenantID, c.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
+		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrDuplicateCategoryCode
 		}
 		return err

@@ -23,6 +23,16 @@ const (
 	StatusMaintenance Status = "Maintenance"
 )
 
+// Valid reports whether s is a recognised project status. Lets the HTTP layer
+// reject unknown filter values with 400 rather than returning an empty list.
+func (s Status) Valid() bool {
+	switch s {
+	case StatusDiscovery, StatusPlanning, StatusInDev, StatusQA, StatusUAT, StatusDelivered, StatusMaintenance:
+		return true
+	}
+	return false
+}
+
 type Project struct {
 	ID               uuid.UUID
 	TenantID         uuid.UUID

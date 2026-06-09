@@ -30,26 +30,45 @@ const (
 	StatusTerminated EmployeeStatus = "terminated"
 )
 
+// Valid reports whether t is a recognised employment type. Lets the HTTP layer
+// reject unknown filter values with 400 rather than returning an empty list.
+func (t EmploymentType) Valid() bool {
+	switch t {
+	case Permanent, Contract, Probation, Intern:
+		return true
+	}
+	return false
+}
+
+// Valid reports whether s is a recognised employee status.
+func (s EmployeeStatus) Valid() bool {
+	switch s {
+	case StatusActive, StatusProbation, StatusOnLeave, StatusResigned, StatusTerminated:
+		return true
+	}
+	return false
+}
+
 // Employee is the aggregate root. user_profiles.id is the natural identity
 // (1:1 with the profile), but employees.id stays our internal handle so we
 // can change profile→employee mapping later without breaking foreign keys.
 type Employee struct {
-	ID              uuid.UUID
-	TenantID        uuid.UUID
-	UserProfileID   uuid.UUID
-	EmployeeNumber  string
-	EntityID        *uuid.UUID
-	DepartmentID    *uuid.UUID
-	PositionID      *uuid.UUID
-	ManagerID       *uuid.UUID
-	EmploymentType  EmploymentType
-	Status          EmployeeStatus
-	JoinDate        time.Time
-	EndDate         *time.Time
-	BasicSalary     int64 // stored as IDR cents to avoid float drift; converts cleanly to numeric(15,2)
-	BpjsKes         bool
-	BpjsTk          bool
-	BankAccount     string
+	ID             uuid.UUID
+	TenantID       uuid.UUID
+	UserProfileID  uuid.UUID
+	EmployeeNumber string
+	EntityID       *uuid.UUID
+	DepartmentID   *uuid.UUID
+	PositionID     *uuid.UUID
+	ManagerID      *uuid.UUID
+	EmploymentType EmploymentType
+	Status         EmployeeStatus
+	JoinDate       time.Time
+	EndDate        *time.Time
+	BasicSalary    int64 // stored as IDR cents to avoid float drift; converts cleanly to numeric(15,2)
+	BpjsKes        bool
+	BpjsTk         bool
+	BankAccount    string
 
 	// Denormalised display fields hydrated from user_profiles in repo joins.
 	// Kept on the aggregate so the use case can return a fully populated DTO
@@ -94,12 +113,12 @@ func (e *Employee) Validate() error {
 // Filter is the query shape the HTTP layer accepts and the repository serves.
 // Lives in the domain layer so usecase + repo share one definition.
 type Filter struct {
-	TenantID      uuid.UUID
-	Search        string // matches first/last name + employee number
-	Department    *uuid.UUID
-	Position      *uuid.UUID
-	Status        *EmployeeStatus
+	TenantID       uuid.UUID
+	Search         string // matches first/last name + employee number
+	Department     *uuid.UUID
+	Position       *uuid.UUID
+	Status         *EmployeeStatus
 	EmploymentType *EmploymentType
-	Limit         int
-	Offset        int
+	Limit          int
+	Offset         int
 }

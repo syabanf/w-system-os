@@ -29,6 +29,7 @@ type WriteInput struct {
 	FollowUpDate  *time.Time
 	OwnerID       *uuid.UUID
 	Notes         string
+	WonClientID   *uuid.UUID
 }
 
 func (s *LeadService) Create(ctx context.Context, in WriteInput) (*domain.Lead, error) {
@@ -42,7 +43,8 @@ func (s *LeadService) Create(ctx context.Context, in WriteInput) (*domain.Lead, 
 		ContactPerson: in.ContactPerson, ContactEmail: strings.TrimSpace(in.ContactEmail),
 		DealValue: in.DealValue, Stage: in.Stage, Source: in.Source,
 		Probability: in.Probability, FollowUpDate: in.FollowUpDate, OwnerID: in.OwnerID, Notes: in.Notes,
-		CreatedAt: now, UpdatedAt: now,
+		WonClientID: in.WonClientID,
+		CreatedAt:   now, UpdatedAt: now,
 	}
 	if err := l.Validate(); err != nil {
 		return nil, err
@@ -60,6 +62,9 @@ func (s *LeadService) Get(ctx context.Context, tenantID, id uuid.UUID) (*domain.
 func (s *LeadService) List(ctx context.Context, f domain.Filter) ([]*domain.Lead, int, error) {
 	if f.Limit <= 0 || f.Limit > 200 {
 		f.Limit = 50
+	}
+	if f.Offset < 0 {
+		f.Offset = 0
 	}
 	return s.repo.List(ctx, f)
 }
@@ -81,6 +86,7 @@ func (s *LeadService) Update(ctx context.Context, id uuid.UUID, in WriteInput) (
 	existing.FollowUpDate = in.FollowUpDate
 	existing.OwnerID = in.OwnerID
 	existing.Notes = in.Notes
+	existing.WonClientID = in.WonClientID
 	existing.UpdatedAt = s.now()
 	if err := existing.Validate(); err != nil {
 		return nil, err

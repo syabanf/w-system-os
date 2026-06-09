@@ -108,6 +108,10 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	if v := q.Get("status"); v != "" {
 		s := domain.Status(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_status", errors.New("invalid status: "+v))
+			return
+		}
 		filter.Status = &s
 	}
 	if v := q.Get("dateFrom"); v != "" {

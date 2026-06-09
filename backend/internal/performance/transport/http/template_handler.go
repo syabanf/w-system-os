@@ -59,7 +59,7 @@ func toDTO(t *domain.Template) dto {
 		ID: t.ID, Name: t.Name, Description: t.Description,
 		PeriodKind: string(t.PeriodKind), PeriodYear: t.PeriodYear,
 		PeriodCustomLabel: t.PeriodCustomLabel,
-		RatingScaleMax: t.RatingScaleMax, Status: string(t.Status),
+		RatingScaleMax:    t.RatingScaleMax, Status: string(t.Status),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 	}
 	if t.PeriodStart != nil {
@@ -104,6 +104,10 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	f := domain.Filter{TenantID: tid, Limit: limit, Offset: offset}
 	if v := q.Get("status"); v != "" {
 		s := domain.Status(v)
+		if !s.Valid() {
+			httpx.Error(w, r, http.StatusBadRequest, "invalid_status", errors.New("invalid status: "+v))
+			return
+		}
 		f.Status = &s
 	}
 	if v := q.Get("year"); v != "" {
@@ -217,7 +221,7 @@ func build(tid uuid.UUID, req writeReq) usecase.WriteInput {
 		TenantID: tid, Name: req.Name, Description: req.Description,
 		PeriodKind: domain.PeriodKind(req.PeriodKind), PeriodYear: req.PeriodYear,
 		PeriodCustomLabel: req.PeriodCustomLabel,
-		PeriodStart: parseDate(req.PeriodStart), PeriodEnd: parseDate(req.PeriodEnd),
+		PeriodStart:       parseDate(req.PeriodStart), PeriodEnd: parseDate(req.PeriodEnd),
 		RatingScaleMax: req.RatingScaleMax, Status: domain.Status(req.Status),
 	}
 }

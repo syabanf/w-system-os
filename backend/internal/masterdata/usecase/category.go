@@ -23,7 +23,7 @@ func NewCategoryService(repo domain.CategoryRepository) *CategoryService {
 type CategoryWriteInput struct {
 	TenantID    uuid.UUID
 	Code        string
-	ModuleID    *uuid.UUID
+	ModuleID    string
 	Label       string
 	Description string
 	Fields      json.RawMessage
@@ -76,6 +76,9 @@ func (s *CategoryService) Get(ctx context.Context, tenantID, id uuid.UUID) (*dom
 func (s *CategoryService) List(ctx context.Context, f domain.CategoryFilter) ([]*domain.Category, int, error) {
 	if f.Limit <= 0 || f.Limit > 200 {
 		f.Limit = 50
+	}
+	if f.Offset < 0 {
+		f.Offset = 0
 	}
 	return s.repo.List(ctx, f)
 }

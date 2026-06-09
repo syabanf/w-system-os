@@ -34,7 +34,7 @@ func (h *CategoryHandler) Routes(r chi.Router) {
 type categoryDTO struct {
 	ID          uuid.UUID       `json:"id"`
 	Code        string          `json:"code"`
-	ModuleID    *uuid.UUID      `json:"moduleId,omitempty"`
+	ModuleID    string          `json:"moduleId"`
 	Label       string          `json:"label"`
 	Description string          `json:"description"`
 	Fields      json.RawMessage `json:"fields"`
@@ -47,7 +47,7 @@ type categoryDTO struct {
 
 type categoryWriteReq struct {
 	Code        string          `json:"code"`
-	ModuleID    *uuid.UUID      `json:"moduleId"`
+	ModuleID    string          `json:"moduleId"`
 	Label       string          `json:"label"`
 	Description string          `json:"description"`
 	Fields      json.RawMessage `json:"fields"`
@@ -83,9 +83,7 @@ func (h *CategoryHandler) list(w http.ResponseWriter, r *http.Request) {
 	offset, _ := strconv.Atoi(q.Get("offset"))
 	filter := domain.CategoryFilter{TenantID: tenantID, Search: q.Get("search"), Limit: limit, Offset: offset}
 	if v := q.Get("moduleId"); v != "" {
-		if id, err := uuid.Parse(v); err == nil {
-			filter.ModuleID = &id
-		}
+		filter.ModuleID = &v
 	}
 	if v := q.Get("isActive"); v != "" {
 		b := v == "true" || v == "1"

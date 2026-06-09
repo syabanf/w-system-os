@@ -65,6 +65,9 @@ func (s *ThreadService) List(ctx context.Context, f domain.Filter) ([]*domain.Th
 	if f.Limit <= 0 || f.Limit > 200 {
 		f.Limit = 50
 	}
+	if f.Offset < 0 {
+		f.Offset = 0
+	}
 	return s.repo.List(ctx, f)
 }
 

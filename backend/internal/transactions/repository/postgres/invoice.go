@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/wit/erp-os/internal/shared/pgerr"
 	"github.com/wit/erp-os/internal/transactions/domain"
 )
 
@@ -17,9 +18,12 @@ type InvoiceRepo struct{ pool *pgxpool.Pool }
 
 func NewInvoiceRepo(p *pgxpool.Pool) *InvoiceRepo { return &InvoiceRepo{pool: p} }
 
+// amount / paid_amount are numeric(15,2) in Postgres, int64 minor units in Go.
+// (col*100)::bigint reads exact; $n::numeric/100 writes exact — no float64
+// round-trip, no lost cents.
 const cols = `
 	id, tenant_id, number, client_id, project_id, issue_date, due_date,
-	amount, paid_amount, status, currency, created_at, updated_at
+	(amount*100)::bigint, (paid_amount*100)::bigint, status, currency, created_at, updated_at
 `
 
 func (r *InvoiceRepo) Create(ctx context.Context, i *domain.Invoice) error {
@@ -27,11 +31,11 @@ func (r *InvoiceRepo) Create(ctx context.Context, i *domain.Invoice) error {
 		INSERT INTO invoices (
 			id, tenant_id, number, client_id, project_id, issue_date, due_date,
 			amount, paid_amount, status, currency, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$12)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8::numeric/100,$9::numeric/100,$10,$11,$12,$12)`,
 		i.ID, i.TenantID, i.Number, i.ClientID, i.ProjectID, i.IssueDate, i.DueDate,
-		float64(i.Amount)/100.0, float64(i.PaidAmount)/100.0, string(i.Status), i.Currency,
+		i.Amount, i.PaidAmount, string(i.Status), i.Currency,
 		i.CreatedAt)
-	if err != nil && strings.Contains(err.Error(), "23505") {
+	if err != nil && pgerr.IsUniqueViolation(err) {
 		return domain.ErrDuplicateNumber
 	}
 	return err
@@ -89,13 +93,13 @@ func (r *InvoiceRepo) List(ctx context.Context, f domain.Filter) ([]*domain.Invo
 func (r *InvoiceRepo) Update(ctx context.Context, i *domain.Invoice) error {
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE invoices SET number=$1, client_id=$2, project_id=$3, issue_date=$4, due_date=$5,
-			amount=$6, paid_amount=$7, status=$8, currency=$9, updated_at=$10
+			amount=$6::numeric/100, paid_amount=$7::numeric/100, status=$8, currency=$9, updated_at=$10
 		WHERE tenant_id=$11 AND id=$12`,
 		i.Number, i.ClientID, i.ProjectID, i.IssueDate, i.DueDate,
-		float64(i.Amount)/100.0, float64(i.PaidAmount)/100.0, string(i.Status), i.Currency,
+		i.Amount, i.PaidAmount, string(i.Status), i.Currency,
 		i.UpdatedAt, i.TenantID, i.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
+		if pgerr.IsUniqueViolation(err) {
 			return domain.ErrDuplicateNumber
 		}
 		return err
@@ -124,18 +128,15 @@ func scan(row rowScanner) (*domain.Invoice, error) {
 		i         domain.Invoice
 		projectID *uuid.UUID
 		st        string
-		amount    float64
-		paid      float64
 	)
+	// amount / paid_amount arrive as bigint minor units (see cols).
 	if err := row.Scan(
 		&i.ID, &i.TenantID, &i.Number, &i.ClientID, &projectID, &i.IssueDate, &i.DueDate,
-		&amount, &paid, &st, &i.Currency, &i.CreatedAt, &i.UpdatedAt,
+		&i.Amount, &i.PaidAmount, &st, &i.Currency, &i.CreatedAt, &i.UpdatedAt,
 	); err != nil {
 		return nil, err
 	}
 	i.ProjectID = projectID
 	i.Status = domain.InvoiceStatus(st)
-	i.Amount = int64(amount * 100)
-	i.PaidAmount = int64(paid * 100)
 	return &i, nil
 }

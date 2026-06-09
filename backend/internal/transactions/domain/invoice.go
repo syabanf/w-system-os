@@ -22,6 +22,16 @@ const (
 	InvoiceVoid    InvoiceStatus = "void"
 )
 
+// Valid reports whether s is a recognised invoice status. Lets the HTTP layer
+// reject unknown filter values with 400 rather than returning an empty list.
+func (s InvoiceStatus) Valid() bool {
+	switch s {
+	case InvoiceDraft, InvoiceSent, InvoicePaid, InvoiceOverdue, InvoiceVoid:
+		return true
+	}
+	return false
+}
+
 type Invoice struct {
 	ID         uuid.UUID
 	TenantID   uuid.UUID
