@@ -21,9 +21,9 @@ import {
   X,
 } from "lucide-react";
 import { mockClients } from "@/infrastructure/data/clients.mock";
-import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
-import { mockKnowledge } from "@/infrastructure/data/knowledge.mock";
+import { useProjectsStore } from "@/state/projects.store";
+import { useKnowledgeStore } from "@/state/knowledge.store";
 import type { Client } from "@/domain/entities/Client";
 import type { Project } from "@/domain/entities/Project";
 import { Avatar } from "@/presentation/shared/Avatar";
@@ -148,6 +148,18 @@ export function ClientWorkflowTab({
   const sel = useRowSelection();
   const selectable = !!onBulkDelete;
 
+  // Live data: read projects / knowledge from their stores so created, edited,
+  // or cascade-deleted records show up here too (previously these read the
+  // frozen mock arrays). Team has no store, so it stays on the mock roster.
+  const projects = useProjectsStore((s) => s.items);
+  const knowledge = useKnowledgeStore((s) => s.items);
+  const hydrateProjects = useProjectsStore((s) => s.hydrate);
+  const hydrateKnowledge = useKnowledgeStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrateProjects();
+    hydrateKnowledge();
+  }, [hydrateProjects, hydrateKnowledge]);
+
   // Source of truth: store-injected list (Clients module) or static mock
   // (Integration Dashboard demo).
   const clientsSource = clientsProp ?? mockClients;
@@ -162,14 +174,14 @@ export function ClientWorkflowTab({
   // KPI counts (live from source).
   const companyCount = clientsSource.length;
   const clientCount = clientsSource.length;
-  const projectCount = mockProjects.length;
+  const projectCount = projects.length;
   // No projects use "Cancelled" status in mock; PDF shows the tile anyway.
   const cancelCount =
-    mockProjects.filter((p) => p.status === "Delivered").length || 100;
+    projects.filter((p) => p.status === "Delivered").length || 100;
 
   const topViewed = useMemo(
-    () => [...mockKnowledge].sort((a, b) => b.readMinutes - a.readMinutes).slice(0, 3),
-    [],
+    () => [...knowledge].sort((a, b) => b.readMinutes - a.readMinutes).slice(0, 3),
+    [knowledge],
   );
 
   const filtered = useMemo(() => {
@@ -198,7 +210,7 @@ export function ClientWorkflowTab({
   // A client owns MANY projects — collect them all so the drill view can list
   // and switch between them (Client → Projects → Milestones hierarchy).
   const drillClientProjects = drillClient
-    ? mockProjects.filter((p) => p.clientId === drillClient.id)
+    ? projects.filter((p) => p.clientId === drillClient.id)
     : [];
 
   if (drillClient) {

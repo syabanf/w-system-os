@@ -21,7 +21,7 @@ import { type Column } from "@/presentation/shared/DataTable";
 import { BulkActionBar } from "@/presentation/shared/BulkActionBar";
 import { EditableCell } from "@/presentation/shared/EditableCell";
 import { useRowSelection } from "@/hooks/useRowSelection";
-import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
+import { bulkDeleteWithUndo, bulkDeleteWithCascade } from "@/lib/bulkDelete";
 import {
   collectInvoicePayments,
   removePayments,
@@ -850,11 +850,16 @@ function InvoicesTab({
             icon: Trash2,
             tone: "danger",
             onClick: () =>
-              bulkDeleteWithUndo({
+              bulkDeleteWithCascade({
                 ids: invSel.selectedIds,
                 items: rawInvoices,
                 remove: removeInvoice,
                 restore: restoreInvoice,
+                collectChildren: collectInvoicePayments,
+                removeChildren: removePayments,
+                restoreChildren: restorePayments,
+                countChildren: (pmts) => pmts.length,
+                childLabel: "payment",
                 toast,
                 noun: "invoice",
                 onDone: invSel.clear,

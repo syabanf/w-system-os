@@ -11,7 +11,13 @@ import { useRowSelection } from "@/hooks/useRowSelection";
 import { useProjectsStore } from "@/state/projects.store";
 import { useToast } from "@/state/toast.store";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
-import { bulkDeleteWithUndo } from "@/lib/bulkDelete";
+import { bulkDeleteWithCascade } from "@/lib/bulkDelete";
+import {
+  collectProjectChildren,
+  removeProjectChildren,
+  restoreProjectChildren,
+  countProjectChildren,
+} from "@/lib/cascade";
 
 const STATUS_OPTIONS = ["Planning", "Discovery", "In Development", "QA", "UAT", "Delivered", "Maintenance"];
 const HEALTH_OPTIONS = ["green", "amber", "red"];
@@ -164,11 +170,16 @@ export function ProjectTable({
             icon: Trash2,
             tone: "danger",
             onClick: () =>
-              bulkDeleteWithUndo({
+              bulkDeleteWithCascade({
                 ids: sel.selectedIds,
                 items: rawProjects,
                 remove: removeProject,
                 restore: restoreProject,
+                collectChildren: (id) => collectProjectChildren([id]),
+                removeChildren: removeProjectChildren,
+                restoreChildren: restoreProjectChildren,
+                countChildren: countProjectChildren,
+                childLabel: "work item",
                 toast,
                 noun: "project",
                 onDone: sel.clear,
