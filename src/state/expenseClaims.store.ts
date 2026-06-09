@@ -2,6 +2,7 @@
 
 import type { ExpenseClaim } from "@/domain/entities/Transaction";
 import { mockExpenseClaims } from "@/infrastructure/data/transactions.mock";
+import { DEMO_YEAR } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type ExpenseClaimDraft = Omit<ExpenseClaim, "id" | "number"> & { number?: string };
@@ -9,7 +10,7 @@ export type ExpenseClaimDraft = Omit<ExpenseClaim, "id" | "number"> & { number?:
 let counter = mockExpenseClaims.length;
 const nextNumber = () => {
   counter += 1;
-  return `EXP-${new Date().getFullYear()}-${String(counter).padStart(4, "0")}`;
+  return `EXP-${DEMO_YEAR}-${String(counter).padStart(4, "0")}`;
 };
 
 export const useExpenseClaimsStore = createCRUDStore<ExpenseClaim, ExpenseClaimDraft>({

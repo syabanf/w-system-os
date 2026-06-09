@@ -2,6 +2,7 @@
 
 import type { Invoice } from "@/domain/entities/Invoice";
 import { mockInvoices } from "@/infrastructure/data/invoices.mock";
+import { DEMO_YEAR } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type InvoiceDraft = Omit<Invoice, "id" | "number"> & { number?: string };
@@ -9,7 +10,7 @@ export type InvoiceDraft = Omit<Invoice, "id" | "number"> & { number?: string };
 let counter = mockInvoices.length;
 const nextNumber = () => {
   counter += 1;
-  return `INV-${new Date().getFullYear()}-${String(counter).padStart(4, "0")}`;
+  return `INV-${DEMO_YEAR}-${String(counter).padStart(4, "0")}`;
 };
 
 export const useInvoicesStore = createCRUDStore<Invoice, InvoiceDraft>({

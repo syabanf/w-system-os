@@ -7,6 +7,7 @@ import type { AccountHealth, Client } from "@/domain/entities/Client";
 import type { ClientDraft } from "@/state/clients.store";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 
 const HEALTH_OPTIONS: AccountHealth[] = ["excellent", "stable", "at-risk", "churn-risk"];
 const REGION_OPTIONS = ["Jakarta", "Bandung", "Surabaya", "Yogyakarta", "Medan", "Denpasar", "Remote"];
@@ -45,7 +46,7 @@ function emptyDraft(): ClientDraft {
     activeProjects: 0,
     satisfactionScore: 80,
     health: "stable",
-    renewalDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10),
+    renewalDate: (() => { const d = demoNow(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); })(),
     logoColor: LOGO_COLORS[0],
   };
 }

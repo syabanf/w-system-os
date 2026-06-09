@@ -12,6 +12,7 @@ import {
   parsePaymentScheme,
   type SchemeProposal,
 } from "@/lib/paymentScheme";
+import { demoDateInput, demoNowISO } from "@/lib/date";
 
 const STORAGE_KEY = "wit-erp-os.commercial";
 
@@ -276,7 +277,7 @@ export const useCommercialStore = create<CommercialState>((set, get) => ({
     const invoiceId = genId("inv");
     const journalId = genId("je");
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = demoDateInput();
     const grossAmount = termin.amountDue;
     // Indonesian PPN 11% — termin amount is treated as PPN-inclusive; revenue
     // and tax-payable derive from it.
@@ -308,7 +309,7 @@ export const useCommercialStore = create<CommercialState>((set, get) => ({
       sourceRef: invoiceNumber,
       status: "posted",
       postedBy: "System",
-      postedAt: new Date().toISOString(),
+      postedAt: demoNowISO(),
       totalDebit: grossAmount,
       totalCredit: grossAmount,
       lines: [

@@ -2,6 +2,8 @@
 
 import { create } from "zustand";
 
+import { demoNowISO } from "@/lib/date";
+
 export type NotificationKind = "deadline" | "invoice" | "blocker" | "approval" | "follow-up" | "sla";
 
 export interface DesktopNotification {
@@ -81,7 +83,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     const item: DesktopNotification = {
       ...n,
       id,
-      at: new Date().toISOString(),
+      at: demoNowISO(),
       read: false,
     };
     set((s) => {

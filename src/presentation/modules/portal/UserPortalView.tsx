@@ -24,6 +24,7 @@ import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { demoNow, demoNowISO, demoDateInput } from "@/lib/date";
 import {
   mockOnboardingTasks,
   mockChatThreads,
@@ -131,7 +132,7 @@ function CheckinTab() {
   const [clockInAt, setClockInAt] = useState("08:55");
   const [toast, setToast] = useState<string | null>(null);
 
-  const now = new Date();
+  const now = demoNow();
   const nowTime = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const handleClockIn = () => {
@@ -255,7 +256,7 @@ function OnboardingTab() {
           ? {
               ...t,
               status: t.status === "Done" ? "In Progress" : "Done",
-              completedAt: t.status === "Done" ? undefined : new Date().toISOString().slice(0, 10),
+              completedAt: t.status === "Done" ? undefined : demoDateInput(),
             }
           : t,
       ),
@@ -416,7 +417,7 @@ function ChatTab() {
       threadId: activeId,
       fromMemberId: PORTAL_EMPLOYEE_ID,
       content: draft.trim(),
-      at: new Date().toISOString(),
+      at: demoNowISO(),
     });
     setDraft("");
   };
@@ -600,7 +601,7 @@ function LeaveRequestTab() {
       days: Math.max(1, days),
       reason: reason.trim() || "—",
       status: "pending",
-      submittedAt: new Date().toISOString().slice(0, 10),
+      submittedAt: demoDateInput(),
     });
     setStartDate("");
     setEndDate("");

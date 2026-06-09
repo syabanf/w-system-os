@@ -4,6 +4,7 @@ import {
   mockPerformanceTemplates,
   type Performance360Template,
 } from "@/infrastructure/data/performance360.mock";
+import { demoDateInput } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type PerformanceTemplateDraft = Omit<
@@ -21,6 +22,6 @@ export const usePerformanceTemplatesStore = createCRUDStore<
   fromDraft: (draft, { id }) => ({
     ...draft,
     id,
-    createdAt: draft.createdAt ?? new Date().toISOString().slice(0, 10),
+    createdAt: draft.createdAt ?? demoDateInput(),
   }),
 });

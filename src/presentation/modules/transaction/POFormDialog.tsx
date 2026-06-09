@@ -6,6 +6,7 @@ import { FileSignature, X } from "lucide-react";
 import type { POStatus, PurchaseOrder } from "@/domain/entities/Transaction";
 import type { PurchaseOrderDraft } from "@/state/purchaseOrders.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { demoNow } from "@/lib/date";
 
 const STATUSES: POStatus[] = [
   "draft",
@@ -24,7 +25,7 @@ interface Props {
 }
 
 function emptyDraft(): PurchaseOrderDraft {
-  const today = new Date();
+  const today = demoNow();
   const delivery = new Date(today);
   delivery.setDate(today.getDate() + 14);
   return {

@@ -11,6 +11,7 @@ import type {
 import type { ExpenseClaimDraft } from "@/state/expenseClaims.store";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoDateInput } from "@/lib/date";
 
 const CATEGORIES: ExpenseCategory[] = ["Travel", "Meals", "Software", "Equipment", "Marketing", "Other"];
 const STATUSES: ExpenseStatus[] = ["draft", "submitted", "approved", "rejected", "reimbursed"];
@@ -25,7 +26,7 @@ interface Props {
 function emptyDraft(): ExpenseClaimDraft {
   return {
     employeeName: "",
-    date: new Date().toISOString().slice(0, 10),
+    date: demoDateInput(),
     category: "Travel",
     amount: 0,
     status: "draft",

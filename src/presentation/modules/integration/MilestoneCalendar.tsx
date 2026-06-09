@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useProjectMilestones } from "@/state/milestones.store";
 import type { ProjectMilestone } from "@/domain/entities/ProjectMilestone";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 import {
   CATEGORY_ACCENT,
   CATEGORY_LABEL,
@@ -46,7 +47,7 @@ function sameDay(a: Date, b: Date): boolean {
 
 export function MilestoneCalendar({ projectId }: MilestoneCalendarProps) {
   const milestones = useProjectMilestones(projectId);
-  const today = new Date();
+  const today = demoNow();
   const [cursor, setCursor] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   );

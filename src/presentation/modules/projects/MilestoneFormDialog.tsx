@@ -12,6 +12,7 @@ import type { ProjectMilestoneDraft } from "@/state/milestones.store";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 
 const STATUSES: ReadonlyArray<{ value: MilestoneStatus; label: string }> = [
   { value: "waiting-action", label: "Waiting action" },
@@ -49,7 +50,7 @@ function emptyDraft(
   projectId: string,
   defaultSection: MilestoneSection,
 ): ProjectMilestoneDraft {
-  const today = new Date();
+  const today = demoNow();
   const due = new Date(today);
   due.setDate(today.getDate() + 14);
   return {

@@ -8,6 +8,7 @@ import { PROJECT_STATUSES, type ProjectStatus } from "@/domain/value-objects/Pro
 import type { RiskLevel } from "@/domain/value-objects/RiskLevel";
 import type { ProjectDraft } from "@/state/projects.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { demoDateInput } from "@/lib/date";
 
 const RISKS: RiskLevel[] = ["low", "medium", "high", "critical"];
 const HEALTHS: Project["health"][] = ["green", "amber", "red"];
@@ -21,7 +22,7 @@ interface Props {
 }
 
 function emptyDraft(): ProjectDraft {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = demoDateInput();
   const inSixMonths = new Date(Date.now() + 180 * 86400_000).toISOString().slice(0, 10);
   return {
     name: "",

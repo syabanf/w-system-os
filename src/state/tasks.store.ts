@@ -2,6 +2,7 @@
 
 import type { Task } from "@/domain/entities/Task";
 import { mockTasks } from "@/infrastructure/data/tasks.mock";
+import { demoNowISO } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type TaskDraft = Omit<Task, "id" | "code" | "createdAt"> & {
@@ -23,6 +24,6 @@ export const useTasksStore = createCRUDStore<Task, TaskDraft>({
     ...draft,
     id,
     code: draft.code ?? nextCode(),
-    createdAt: draft.createdAt ?? new Date().toISOString(),
+    createdAt: draft.createdAt ?? demoNowISO(),
   }),
 });

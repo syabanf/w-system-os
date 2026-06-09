@@ -20,6 +20,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { demoNowISO } from "@/lib/date";
 import { mockClients } from "@/infrastructure/data/clients.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { useProjectsStore } from "@/state/projects.store";
@@ -626,7 +627,7 @@ function DrillView({
     downloadJSON(`${client.name.replace(/\s+/g, "-").toLowerCase()}-dossier.json`, {
       client,
       projects,
-      exportedAt: new Date().toISOString(),
+      exportedAt: demoNowISO(),
     });
     toast.success("Dossier exported", `${client.name} · ${projects.length} projects`);
   };

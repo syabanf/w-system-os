@@ -10,6 +10,7 @@ import type {
 import type { PerformanceTemplateDraft } from "@/state/performanceTemplates.store";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { DEMO_YEAR } from "@/lib/date";
 
 type PeriodKind = Performance360Template["periodKind"];
 
@@ -29,7 +30,7 @@ interface Draft {
 }
 
 function emptyDraft(): Draft {
-  const year = new Date().getFullYear();
+  const year = DEMO_YEAR;
   return {
     name: "",
     description: "",
@@ -109,7 +110,7 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
         name: draft.name.trim(),
         description: draft.description.trim(),
         periodKind: draft.periodKind,
-        periodYear: Number(draft.periodYear) || new Date().getFullYear(),
+        periodYear: Number(draft.periodYear) || DEMO_YEAR,
         periodLabel: draft.periodLabel.trim(),
         periodStart: draft.periodStart,
         periodEnd: draft.periodEnd,

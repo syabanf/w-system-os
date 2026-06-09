@@ -12,6 +12,7 @@ import type {
 import type { PaymentDraft } from "@/state/payments.store";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoDateInput } from "@/lib/date";
 
 const TYPES: PaymentType[] = ["incoming", "outgoing"];
 const METHODS: PaymentMethod[] = ["Bank Transfer", "Cash", "Cheque", "E-Wallet", "Card"];
@@ -27,7 +28,7 @@ interface Props {
 function emptyDraft(): PaymentDraft {
   return {
     type: "incoming",
-    date: new Date().toISOString().slice(0, 10),
+    date: demoDateInput(),
     amount: 0,
     method: "Bank Transfer",
     bankAccount: "BCA · 123-456-7890",

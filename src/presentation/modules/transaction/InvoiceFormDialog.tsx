@@ -10,6 +10,7 @@ import { mockClients } from "@/infrastructure/data/clients.mock";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 
 const STATUSES: InvoiceStatus[] = ["draft", "sent", "paid", "overdue", "void"];
 
@@ -21,7 +22,7 @@ interface Props {
 }
 
 function emptyDraft(): InvoiceDraft {
-  const today = new Date();
+  const today = demoNow();
   const due = new Date(today);
   due.setDate(today.getDate() + 30);
   return {

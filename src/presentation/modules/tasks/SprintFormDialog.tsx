@@ -8,6 +8,7 @@ import type { SprintDraft } from "@/state/sprints.store";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 
 const STATUSES: Sprint["status"][] = ["planning", "active", "completed"];
 
@@ -19,7 +20,7 @@ interface Props {
 }
 
 function emptyDraft(): SprintDraft {
-  const today = new Date();
+  const today = demoNow();
   const end = new Date(today);
   end.setDate(today.getDate() + 14);
   return {

@@ -1,6 +1,7 @@
 "use client";
 
 import { createCRUDStore } from "@/state/createCRUDStore";
+import { demoNow } from "@/lib/date";
 import {
   RECENT_RUNS,
   SCHEDULED,
@@ -33,7 +34,7 @@ export const useReportSchedulesStore = createCRUDStore<
 
 /** "YYYY-MM-DD HH:mm" stamp matching the seed format. */
 export function nowStamp(): string {
-  const d = new Date();
+  const d = demoNow();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
     d.getHours(),

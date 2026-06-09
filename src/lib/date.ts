@@ -34,3 +34,28 @@ export function formatDemoToday(pattern?: string): string {
     month: "long",
   });
 }
+
+/** Calendar year of the demo timeline (e.g. for INV-2026-… id generators). */
+export const DEMO_YEAR = DEMO_TODAY.getFullYear();
+
+/**
+ * Canonical demo "now": the pinned demo DAY with the live wall-clock TIME, so
+ * clocks still tick while every date stays on the demo timeline. Use this
+ * anywhere a bare `new Date()` would otherwise drift off the seed data (record
+ * timestamps, "today" defaults, SLA / overdue calcs). This is the ONE place a
+ * real `new Date()` is allowed.
+ */
+export function demoNow(): Date {
+  const t = new Date();
+  return new Date(2026, 4, 18, t.getHours(), t.getMinutes(), t.getSeconds(), t.getMilliseconds());
+}
+
+/** ISO timestamp for the demo "now" — for record createdAt/updatedAt/etc. */
+export function demoNowISO(): string {
+  return demoNow().toISOString();
+}
+
+/** "yyyy-MM-dd" for the demo day — for date-only fields / `<input type="date">`. */
+export function demoDateInput(): string {
+  return format(DEMO_TODAY, "yyyy-MM-dd");
+}

@@ -15,6 +15,7 @@ import {
   CloudSun,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 import { useDesktopStore } from "@/state/desktop.store";
 import { useSpotlightStore } from "@/state/spotlight.store";
 import { useNotificationStore } from "@/state/notification.store";
@@ -48,8 +49,8 @@ function execEdit(cmd: "cut" | "copy" | "paste" | "selectAll") {
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 30_000);
+    setNow(demoNow());
+    const id = setInterval(() => setNow(demoNow()), 30_000);
     return () => clearInterval(id);
   }, []);
   return now;

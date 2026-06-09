@@ -3,6 +3,7 @@
 import { mockTickets } from "@/infrastructure/data/tickets.mock";
 import type { Ticket } from "@/domain/entities/Ticket";
 import { SLA_HOURS_BY_SEVERITY } from "@/domain/value-objects/TicketSeverity";
+import { demoNowISO } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type TicketDraft = Omit<Ticket, "id" | "code" | "createdAt" | "slaDeadline"> & {
@@ -23,7 +24,7 @@ export const useTicketsStore = createCRUDStore<Ticket, TicketDraft>({
   seed: mockTickets,
   idPrefix: "tk",
   fromDraft: (draft, { id }) => {
-    const createdAt = draft.createdAt ?? new Date().toISOString();
+    const createdAt = draft.createdAt ?? demoNowISO();
     const slaHours = SLA_HOURS_BY_SEVERITY[draft.severity];
     const slaDeadline =
       draft.slaDeadline ?? new Date(new Date(createdAt).getTime() + slaHours * 3600_000).toISOString();

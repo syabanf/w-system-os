@@ -2,6 +2,7 @@
 
 import { mockLeads } from "@/infrastructure/data/leads.mock";
 import type { Lead } from "@/domain/entities/Lead";
+import { demoNowISO } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type LeadDraft = Omit<Lead, "id" | "createdAt"> & { createdAt?: string };
@@ -13,6 +14,6 @@ export const useLeadsStore = createCRUDStore<Lead, LeadDraft>({
   fromDraft: (draft, { id }) => ({
     ...draft,
     id,
-    createdAt: draft.createdAt ?? new Date().toISOString(),
+    createdAt: draft.createdAt ?? demoNowISO(),
   }),
 });

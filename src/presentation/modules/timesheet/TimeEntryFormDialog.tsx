@@ -9,6 +9,7 @@ import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoDateInput } from "@/lib/date";
 
 const APPROVAL_STATUSES: ApprovalStatus[] = ["draft", "submitted", "approved", "rejected"];
 
@@ -23,7 +24,7 @@ function emptyDraft(): TimeEntryDraft {
   return {
     memberId: mockTeam[0]?.id ?? "tm-001",
     projectId: mockProjects[0]?.id ?? "pr-001",
-    date: new Date().toISOString().slice(0, 10),
+    date: demoDateInput(),
     hours: 8,
     billable: true,
     description: "",

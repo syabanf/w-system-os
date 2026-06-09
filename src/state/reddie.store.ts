@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { demoNowISO } from "@/lib/date";
 import { runReddieCommand } from "./reddieCommands";
 
 export type ReddieRole = "user" | "assistant";
@@ -157,7 +158,7 @@ export const useReddieStore = create<ReddieState>((set, get) => ({
       id: nextId(),
       role: "user",
       content: trimmed,
-      at: new Date().toISOString(),
+      at: demoNowISO(),
     };
     set((s) => ({ messages: [...s.messages, userMsg], isTyping: true }));
 
@@ -172,7 +173,7 @@ export const useReddieStore = create<ReddieState>((set, get) => ({
         role: "assistant",
         content: reply.content,
         suggestions: reply.suggestions,
-        at: new Date().toISOString(),
+        at: demoNowISO(),
       };
       const state = get();
       set({

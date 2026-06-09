@@ -10,6 +10,7 @@ import type {
 } from "@/domain/entities/Employee";
 import type { EmployeeDraft } from "@/state/employees.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { demoDateInput } from "@/lib/date";
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ["Permanent", "Contract", "Probation", "Intern"];
 const STATUSES: EmployeeStatus[] = ["active", "probation", "on-leave", "resigned", "terminated"];
@@ -38,7 +39,7 @@ function emptyDraft(): EmployeeDraft {
     lastName: "",
     email: "",
     phone: "",
-    joinDate: new Date().toISOString().slice(0, 10),
+    joinDate: demoDateInput(),
     employmentType: "Permanent",
     status: "active",
     department: DEPARTMENTS[0],

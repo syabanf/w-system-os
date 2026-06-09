@@ -8,6 +8,7 @@ import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
 import { useAuthStore } from "@/state/auth.store";
 import { useToast } from "@/state/toast.store";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 
 const USER = {
   name: "Damar Wicaksono",
@@ -19,8 +20,8 @@ const USER = {
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 30_000);
+    setNow(demoNow());
+    const id = setInterval(() => setNow(demoNow()), 30_000);
     return () => clearInterval(id);
   }, []);
   return now;

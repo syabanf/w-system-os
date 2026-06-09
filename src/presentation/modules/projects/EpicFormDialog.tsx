@@ -9,6 +9,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
+import { demoNow } from "@/lib/date";
 
 const STATUSES: EpicStatus[] = ["Discovery", "In Progress", "At Risk", "Done", "Cancelled"];
 const ACCENT_PALETTE = [
@@ -32,7 +33,7 @@ interface Props {
 }
 
 function emptyDraft(defaultProjectId?: string): EpicDraft {
-  const today = new Date();
+  const today = demoNow();
   const target = new Date(today);
   target.setDate(today.getDate() + 90);
   return {

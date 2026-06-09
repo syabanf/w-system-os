@@ -8,6 +8,7 @@ import type {
 } from "@/domain/entities/ProjectMilestone";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
+import { demoNow } from "@/lib/date";
 import { createCRUDStore } from "./createCRUDStore";
 
 export type ProjectMilestoneDraft = Omit<ProjectMilestone, "id">;
@@ -73,7 +74,7 @@ function hashSeed(input: string): number {
 
 function seedDueDate(projectId: string, kind: string): string {
   const offsetDays = hashSeed(`${projectId}:${kind}`) % 60; // 0..59
-  const d = new Date();
+  const d = demoNow();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + offsetDays);
   return d.toISOString().slice(0, 10);
