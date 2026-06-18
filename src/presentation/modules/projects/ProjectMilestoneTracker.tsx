@@ -346,9 +346,11 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
   const [open, setOpen] = useState(false);
   return (
     <li className="group rounded-lg border border-white/6 bg-white/[0.02] transition-colors hover:bg-white/[0.05]">
-      {/* Summary line — clicking it expands the detailed items below. */}
+      {/* Summary — two rows so the title, status, and date never collide in a
+          narrow board column: line 1 is title + actions, line 2 is status +
+          due date (aligned under the title). */}
       <div
-        className="flex items-center gap-2 px-2 py-2"
+        className="px-2.5 py-2"
         onClick={() => setOpen((o) => !o)}
         role="button"
         tabIndex={0}
@@ -360,59 +362,61 @@ function MilestoneRow({ milestone, onEdit, onDelete }: MilestoneRowProps) {
           }
         }}
       >
-        <ChevronRight
-          className={cn(
-            "h-3 w-3 shrink-0 text-zinc-500 transition-transform",
-            open && "rotate-90 text-zinc-300",
-          )}
-        />
-        <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 shrink-0 text-zinc-500 transition-transform",
+              open && "rotate-90 text-zinc-300",
+            )}
+          />
+          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-zinc-100">
+            {label}
+          </span>
           {driveLink ? (
             <a
               href={driveLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 truncate text-[11px] font-medium text-zinc-100 hover:underline"
               onClick={(e) => e.stopPropagation()}
+              className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-200"
+              aria-label={`Open ${label} link`}
+              title="Open link"
             >
-              <span className="truncate">{label}</span>
-              <ExternalLink className="h-2.5 w-2.5 shrink-0 text-zinc-400" />
+              <ExternalLink className="h-3 w-3" />
             </a>
-          ) : (
-            <span className="block truncate text-[11px] font-medium text-zinc-100">
-              {label}
-            </span>
-          )}
+          ) : null}
+          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="grid h-7 w-7 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+              aria-label={`Edit ${label}`}
+              title="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="grid h-7 w-7 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
+              aria-label={`Delete ${label}`}
+              title="Delete"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
-        <StatusPill status={status} />
-        <span className="w-12 shrink-0 text-right font-mono text-[11px] text-zinc-400">
-          {formatMilestoneDate(dueDate)}
-        </span>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-            aria-label={`Edit ${label}`}
-            title="Edit"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="grid h-8 w-8 place-items-center rounded text-zinc-400 hover:bg-rose-500/15 hover:text-rose-300"
-            aria-label={`Delete ${label}`}
-            title="Delete"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        <div className="mt-1.5 flex items-center gap-2 pl-5">
+          <StatusPill status={status} />
+          <span className="font-mono text-[10px] text-zinc-400">
+            {formatMilestoneDate(dueDate)}
+          </span>
         </div>
       </div>
       {open ? (
