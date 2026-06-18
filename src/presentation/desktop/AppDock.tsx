@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
+import { type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
+import { useEnabledModules } from "@/state/setup.store";
 import { preloadModule } from "@/presentation/desktop/WindowManager";
 import { cn } from "@/lib/cn";
 
@@ -70,6 +71,7 @@ export function AppDock() {
   const focused = useWindowStore((s) => s.focused);
   const openApp = useWindowStore((s) => s.openApp);
   const restore = useWindowStore((s) => s.restore);
+  const modules = useEnabledModules();
 
   const handleClick = (id: AppModuleId) => {
     const win = windows[id];
@@ -86,7 +88,7 @@ export function AppDock() {
         transition={{ type: "spring", stiffness: 280, damping: 24 }}
         className="glass-strong pointer-events-auto flex items-end gap-1.5 rounded-2xl border border-white/8 px-2.5 py-2 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"
       >
-        {APP_MODULES.map((module) => (
+        {modules.map((module) => (
           <DockIcon
             key={module.id}
             module={module}

@@ -24,6 +24,7 @@ import { useToast } from "@/state/toast.store";
 import { useWindowStore } from "@/state/window.store";
 import { useReddieStore } from "@/state/reddie.store";
 import { useShortcutsStore } from "@/state/shortcuts.store";
+import { useSetupStore } from "@/state/setup.store";
 import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { APP_MODULES } from "@/constants/appModules";
 import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
@@ -74,6 +75,7 @@ export function TopMenuBar() {
   const focused = useWindowStore((s) => s.focused);
   const openReddie = useReddieStore((s) => s.open);
   const openShortcuts = useShortcutsStore((s) => s.open);
+  const reopenSetup = useSetupStore((s) => s.reopen);
   const setIntegrationCategory = useIntegrationFilterStore((s) => s.setCategory);
   const now = useClock();
   const [isClientPortalOpen, setClientPortalOpen] = useState(false);
@@ -145,6 +147,7 @@ export function TopMenuBar() {
               { label: "Show all apps", onClick: toggleLauncher },
               { label: "Notifications", onClick: toggleNotifications },
               { label: "Reddie assistant", onClick: openReddie },
+              { label: "Set up workspace…", onClick: reopenSetup },
               { separator: true },
               { label: "Toggle full screen", shortcut: "⌃⌘F", onClick: toggleFullscreen },
             ]}

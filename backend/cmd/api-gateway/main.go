@@ -58,6 +58,9 @@ import (
 	txrepo "github.com/wit/erp-os/internal/transactions/repository/postgres"
 	txhttp "github.com/wit/erp-os/internal/transactions/transport/http"
 	txuse "github.com/wit/erp-os/internal/transactions/usecase"
+	wsrepo "github.com/wit/erp-os/internal/workspace/repository/postgres"
+	wshttp "github.com/wit/erp-os/internal/workspace/transport/http"
+	wsuse "github.com/wit/erp-os/internal/workspace/usecase"
 )
 
 func main() {
@@ -167,4 +170,7 @@ func mountRoutes(r chi.Router, pool *pgxpool.Pool) {
 	r.Route("/api/v1/dashboard", ah.DashboardRoutes)
 	r.Route("/api/v1/kpis", ah.KPIsRoutes)
 	r.Route("/api/v1/reports", ah.ReportsRoutes)
+
+	// Workspace — per-tenant shell setup (enabled modules + first-run flag)
+	r.Route("/api/v1/workspace", wshttp.NewHandler(wsuse.NewService(wsrepo.NewSetupRepo(pool))).Routes)
 }

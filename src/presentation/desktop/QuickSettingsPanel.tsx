@@ -3,7 +3,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bluetooth,
+  ChevronRight,
   Focus,
+  LayoutGrid,
   Monitor,
   Moon,
   Palette,
@@ -15,6 +17,7 @@ import {
 import { useDesktopStore } from "@/state/desktop.store";
 import { useThemeStore } from "@/state/theme.store";
 import { useNotificationStore } from "@/state/notification.store";
+import { useSetupStore } from "@/state/setup.store";
 import { DismissLayer } from "@/presentation/shared/DismissLayer";
 
 export function QuickSettingsPanel() {
@@ -25,6 +28,7 @@ export function QuickSettingsPanel() {
   const toggleTheme = useThemeStore((s) => s.toggle);
   const dnd = useNotificationStore((s) => s.dnd);
   const setDnd = useNotificationStore((s) => s.setDnd);
+  const reopenSetup = useSetupStore((s) => s.reopen);
 
   return (
     <>
@@ -93,6 +97,26 @@ export function QuickSettingsPanel() {
                 ))}
               </div>
             </div>
+            <button
+              onClick={() => {
+                reopenSetup();
+                closeAllPanels();
+              }}
+              className="qs-toggle qs-toggle--inactive group flex w-full items-center gap-2 rounded-xl border border-white/8 px-3 py-2.5 text-left transition-all hover:border-white/20 active:scale-[0.98]"
+            >
+              <span className="qs-toggle-ico grid h-7 w-7 place-items-center rounded-md text-zinc-300">
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11px] font-medium text-zinc-100">
+                  Set up workspace
+                </span>
+                <span className="block truncate text-[9px] uppercase tracking-wider text-zinc-500">
+                  Choose enabled modules
+                </span>
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-zinc-500" />
+            </button>
           </div>
         </motion.aside>
       ) : null}

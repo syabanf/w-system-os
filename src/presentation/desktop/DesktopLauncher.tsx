@@ -6,6 +6,7 @@ import { Search, X } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useDesktopStore } from "@/state/desktop.store";
 import { useWindowStore } from "@/state/window.store";
+import { useSetupStore } from "@/state/setup.store";
 import { cn } from "@/lib/cn";
 
 interface LauncherTileProps {
@@ -53,6 +54,7 @@ export function DesktopLauncher() {
   const closeLauncher = useDesktopStore((s) => s.closeLauncher);
   const openApp = useWindowStore((s) => s.openApp);
   const openWindows = useWindowStore((s) => s.windows);
+  const enabled = useSetupStore((s) => s.enabled);
 
   const [query, setQuery] = useState("");
 
@@ -69,16 +71,18 @@ export function DesktopLauncher() {
   }, [isOpen, closeLauncher]);
 
   const filtered = useMemo(() => {
+    const allow = new Set(enabled);
+    const available = APP_MODULES.filter((m) => allow.has(m.id));
     const q = query.trim().toLowerCase();
-    if (!q) return APP_MODULES;
-    return APP_MODULES.filter(
+    if (!q) return available;
+    return available.filter(
       (m) =>
         m.name.toLowerCase().includes(q) ||
         m.shortName.toLowerCase().includes(q) ||
         m.description.toLowerCase().includes(q) ||
         m.group.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, enabled]);
 
   const launch = (id: AppModuleId) => {
     openApp(id);
@@ -127,7 +131,7 @@ export function DesktopLauncher() {
 
             <div className="px-5 pb-5 pt-3">
               <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-zinc-400">
-                <span>App library · {filtered.length} of {APP_MODULES.length}</span>
+                <span>App library · {filtered.length} of {enabled.length}</span>
                 <span>Click to launch · ⌘K for Spotlight</span>
               </div>
               {filtered.length === 0 ? (

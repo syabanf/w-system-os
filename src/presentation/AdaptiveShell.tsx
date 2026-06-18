@@ -14,6 +14,8 @@ import { LoginPage } from "@/presentation/auth/LoginPage";
 import { ToastViewport } from "@/presentation/shared/ToastViewport";
 import { ReddieChat } from "@/presentation/desktop/ReddieChat";
 import { ReddieLauncher } from "@/presentation/desktop/ReddieLauncher";
+import { SetupWizard } from "@/presentation/shared/SetupWizard";
+import { useSetupStore } from "@/state/setup.store";
 
 export function AdaptiveShell() {
   const { mode, ready } = useViewportMode();
@@ -23,11 +25,15 @@ export function AdaptiveShell() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isAuthHydrated = useAuthStore((s) => s.isHydrated);
   const hydrateAuth = useAuthStore((s) => s.hydrate);
+  const isSetupComplete = useSetupStore((s) => s.isComplete);
+  const isSetupHydrated = useSetupStore((s) => s.isHydrated);
+  const hydrateSetup = useSetupStore((s) => s.hydrate);
 
   useEffect(() => {
     hydrateThemeFromStorage();
     hydrateAuth();
-  }, [hydrateAuth]);
+    hydrateSetup();
+  }, [hydrateAuth, hydrateSetup]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -39,18 +45,39 @@ export function AdaptiveShell() {
   // Gated on `ready` + auth so phone/tablet visitors don't get auto-opened during
   // the SSR-to-client viewport detection, and the dashboard only opens post-sign-in.
   useEffect(() => {
-    if (ready && isAuthenticated && mode === "desktop" && orderLength === 0) {
+    if (
+      ready &&
+      isAuthenticated &&
+      isSetupComplete &&
+      mode === "desktop" &&
+      orderLength === 0
+    ) {
       openApp(DEFAULT_OPEN_MODULE);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, ready, isAuthenticated]);
+  }, [mode, ready, isAuthenticated, isSetupComplete]);
 
-  if (!ready || !isAuthHydrated) return null;
+  if (!ready || !isAuthHydrated || !isSetupHydrated) return null;
 
   return (
     <>
       <AnimatePresence mode="wait">
-        {isAuthenticated ? (
+        {!isAuthenticated ? (
+          <motion.div
+            key="login"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            transition={{ duration: 0.24 }}
+          >
+            <LoginPage />
+          </motion.div>
+        ) : !isSetupComplete ? (
+          // Full-screen takeover — render without an animated wrapper so the
+          // surface is always fully opaque (avoids a Framer entry animation
+          // stalling mid-fade and washing the wizard out).
+          <SetupWizard key="setup" />
+        ) : (
           <motion.div
             key="shell"
             initial={{ opacity: 0, scale: 0.985 }}
@@ -67,16 +94,6 @@ export function AdaptiveShell() {
             )}
             <ReddieLauncher />
             <ReddieChat />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="login"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.24 }}
-          >
-            <LoginPage />
           </motion.div>
         )}
       </AnimatePresence>
