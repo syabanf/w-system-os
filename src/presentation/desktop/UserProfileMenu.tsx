@@ -43,6 +43,8 @@ export function UserProfileMenu() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 360, opacity: 0 }}
           transition={{ type: "spring", stiffness: 320, damping: 32 }}
+          // position:fixed inline so it beats .glass-strong's `position: relative`.
+          style={{ position: "fixed" }}
           className="glass-strong fixed right-3 top-12 z-40 w-[300px] overflow-hidden rounded-2xl border border-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
         >
           <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">

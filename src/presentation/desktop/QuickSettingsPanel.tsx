@@ -49,10 +49,16 @@ export function QuickSettingsPanel() {
       <AnimatePresence>
       {isSettingsOpen ? (
         <motion.aside
-          initial={{ x: 360, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 360, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 32 }}
+          // macOS Control Center: drops down from its top-right menu-bar icon
+          // (scale + fade from the top-right origin) rather than sliding in from
+          // the right edge — that edge-slide is reserved for Notification Center.
+          initial={{ opacity: 0, scale: 0.92, y: -8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: -6 }}
+          transition={{ type: "spring", stiffness: 420, damping: 30 }}
+          // position:fixed inline so it beats .glass-strong's `position: relative`
+          // (otherwise the panel falls back to in-flow at the top-left).
+          style={{ position: "fixed", transformOrigin: "top right" }}
           className="glass-strong fixed right-3 top-12 z-40 w-[320px] overflow-hidden rounded-2xl border border-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
         >
           <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
