@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { mockInvoices } from "@/infrastructure/data/invoices.mock";
+import { useEffect, useMemo } from "react";
 import type { Invoice } from "@/domain/entities/Invoice";
+import { useInvoicesStore } from "@/state/invoices.store";
 import { DataTable, type Column } from "@/presentation/shared/DataTable";
 import { StatusBadge, type StatusTone } from "@/presentation/shared/StatusBadge";
 
 interface InvoiceMiniListProps {
-  clientId: string;
+  projectId: string;
 }
 
 const STATUS_TONE: Record<Invoice["status"], StatusTone> = {
@@ -24,10 +24,16 @@ function formatIDR(n: number): string {
   return n.toLocaleString();
 }
 
-export function InvoiceMiniList({ clientId }: InvoiceMiniListProps) {
+export function InvoiceMiniList({ projectId }: InvoiceMiniListProps) {
+  const all = useInvoicesStore((s) => s.items);
+  const hydrate = useInvoicesStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
   const invoices = useMemo(
-    () => mockInvoices.filter((i) => i.clientId === clientId),
-    [clientId],
+    () => all.filter((i) => i.projectId === projectId),
+    [all, projectId],
   );
 
   const columns: Column<Invoice>[] = [
@@ -84,7 +90,7 @@ export function InvoiceMiniList({ clientId }: InvoiceMiniListProps) {
         rows={invoices}
         rowKey={(i) => i.id}
         dense
-        empty="No invoices for this client yet."
+        empty="No invoices for this project yet."
       />
     </div>
   );

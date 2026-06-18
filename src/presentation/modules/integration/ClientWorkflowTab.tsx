@@ -45,6 +45,7 @@ import { ProjectMilestoneTable } from "@/presentation/modules/projects/ProjectMi
 import { PastelKPITile } from "./PastelKPITile";
 import { MilestoneCalendar } from "./MilestoneCalendar";
 import { InvoiceMiniList } from "./InvoiceMiniList";
+import { QuotationMiniList } from "./QuotationMiniList";
 
 const PAGE_SIZE = 7;
 
@@ -78,7 +79,7 @@ const STATUS_OPTIONS: { id: string; label: string }[] = [
   { id: "churn-risk", label: "Churn risk" },
 ];
 
-type DrillView = "board" | "table" | "calendar" | "invoices";
+type DrillView = "board" | "table" | "calendar" | "invoices" | "quotations";
 
 /** View-mode segmented control options for the project data step. */
 const DATA_VIEW_MODES: ReadonlyArray<{
@@ -93,6 +94,7 @@ const DATA_VIEW_MODES: ReadonlyArray<{
 
 const FILTER_TASK_OPTIONS = [
   { id: "invoices" as const, label: "Invoice List" },
+  { id: "quotations" as const, label: "Quotation List" },
   { id: "tasks" as const, label: "Task List" },
   { id: "dev-doc" as const, label: "Development Document" },
   { id: "demo" as const, label: "Demo Link" },
@@ -918,6 +920,8 @@ function DrillView({
                         onCloseFilterMenu();
                         if (opt.id === "invoices") {
                           onChangeView("invoices");
+                        } else if (opt.id === "quotations") {
+                          onChangeView("quotations");
                         } else {
                           onChangeView("board");
                           toast.info(opt.label, "Demo only");
@@ -983,7 +987,9 @@ function DrillView({
             {view === "calendar" ? (
               <MilestoneCalendar projectId={selectedProject.id} />
             ) : view === "invoices" ? (
-              <InvoiceMiniList clientId={client.id} />
+              <InvoiceMiniList projectId={selectedProject.id} />
+            ) : view === "quotations" ? (
+              <QuotationMiniList projectId={selectedProject.id} />
             ) : view === "table" ? (
               <ProjectMilestoneTable projectId={selectedProject.id} />
             ) : (
