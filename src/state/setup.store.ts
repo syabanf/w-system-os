@@ -31,9 +31,18 @@ interface Persisted {
   isComplete: boolean;
   /** Module ids the user chose to surface in the shell. */
   enabled: AppModuleId[];
+  /** Industry picked in the wizard — drives the module recommendation. */
+  industry: string;
+  /** Rough company size picked in the wizard. */
+  companySize: string;
 }
 
-const DEFAULTS: Persisted = { isComplete: false, enabled: ALL_IDS };
+const DEFAULTS: Persisted = {
+  isComplete: false,
+  enabled: ALL_IDS,
+  industry: "",
+  companySize: "",
+};
 
 /** Re-order to the registry's canonical order, drop unknown ids, and force the
  *  required modules on — so persisted data, presets, and user toggles all
@@ -56,6 +65,8 @@ function load(): Persisted {
       enabled: Array.isArray(parsed.enabled)
         ? normalizeEnabled(parsed.enabled as AppModuleId[])
         : ALL_IDS,
+      industry: typeof parsed.industry === "string" ? parsed.industry : "",
+      companySize: typeof parsed.companySize === "string" ? parsed.companySize : "",
     };
   } catch {
     return DEFAULTS;
@@ -74,11 +85,16 @@ function persist(s: Persisted) {
 interface SetupState {
   isComplete: boolean;
   enabled: AppModuleId[];
+  industry: string;
+  companySize: string;
   isHydrated: boolean;
   /** Load persisted state on the client (avoids an SSR hydration mismatch). */
   hydrate: () => void;
-  /** Persist the chosen module set and mark first-run setup done. */
-  complete: (enabled: AppModuleId[]) => void;
+  /** Persist the chosen module set (+ optional company meta) and mark setup done. */
+  complete: (
+    enabled: AppModuleId[],
+    meta?: { industry?: string; companySize?: string },
+  ) => void;
   /** Re-open the wizard, keeping the current selection as the starting point. */
   reopen: () => void;
   /** Factory reset: every module on, wizard shows again on next load. */
@@ -88,18 +104,30 @@ interface SetupState {
 export const useSetupStore = create<SetupState>((set, get) => ({
   isComplete: false,
   enabled: ALL_IDS,
+  industry: "",
+  companySize: "",
   isHydrated: false,
   hydrate: () => {
     if (get().isHydrated) return;
     set({ ...load(), isHydrated: true });
   },
-  complete: (enabled) => {
-    const next: Persisted = { isComplete: true, enabled: normalizeEnabled(enabled) };
+  complete: (enabled, meta) => {
+    const next: Persisted = {
+      isComplete: true,
+      enabled: normalizeEnabled(enabled),
+      industry: meta?.industry ?? get().industry,
+      companySize: meta?.companySize ?? get().companySize,
+    };
     persist(next);
     set(next);
   },
   reopen: () => {
-    persist({ isComplete: false, enabled: get().enabled });
+    persist({
+      isComplete: false,
+      enabled: get().enabled,
+      industry: get().industry,
+      companySize: get().companySize,
+    });
     set({ isComplete: false });
   },
   reset: () => {

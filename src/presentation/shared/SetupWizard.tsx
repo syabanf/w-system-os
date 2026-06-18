@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  Building2,
   Check,
   Lock,
   Rocket,
@@ -13,7 +14,12 @@ import {
 } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import {
-  RECOMMENDED_MODULES,
+  COMPANY_SIZES,
+  INDUSTRIES,
+  industryById,
+  recommendedFor,
+} from "@/constants/industries";
+import {
   REQUIRED_MODULES,
   normalizeEnabled,
   useSetupStore,
@@ -40,17 +46,22 @@ const GROUP_ORDER: AppModule["group"][] = [
 ];
 
 const REQUIRED = new Set<AppModuleId>(REQUIRED_MODULES);
-const STEPS = ["Welcome", "Features", "Confirm"] as const;
+const STEPS = ["Welcome", "Company", "Features", "Confirm"] as const;
 
-/** First-run setup. Lets a new workspace choose which modules (features) the
- *  shell surfaces. Rendered in place of the shell by AdaptiveShell while
- *  setup.isComplete is false. Always dark (a boot screen), and it uses
- *  white/opacity text so the light-mode colour remap can't invert it. */
+/** First-run setup. Collects the company's industry first, suggests a tailored
+ *  module set from it (rule-based "AI" recommendation), then lets the user
+ *  fine-tune which modules the shell surfaces. Rendered in place of the shell
+ *  by AdaptiveShell while setup.isComplete is false. Always dark (a boot
+ *  screen), using white/opacity text so the light-mode remap can't invert it. */
 export function SetupWizard() {
   const storedEnabled = useSetupStore((s) => s.enabled);
+  const storedIndustry = useSetupStore((s) => s.industry);
+  const storedCompanySize = useSetupStore((s) => s.companySize);
   const complete = useSetupStore((s) => s.complete);
 
   const [step, setStep] = useState(0);
+  const [industry, setIndustry] = useState(storedIndustry);
+  const [companySize, setCompanySize] = useState(storedCompanySize);
   const [selected, setSelected] = useState<Set<AppModuleId>>(
     () => new Set(storedEnabled),
   );
@@ -67,6 +78,13 @@ export function SetupWizard() {
     () => APP_MODULES.filter((m) => selected.has(m.id)),
     [selected],
   );
+  const activeIndustry = industryById(industry);
+
+  // Picking an industry applies its recommended module set — the suggestion.
+  const pickIndustry = (id: string) => {
+    setIndustry(id);
+    setSelected(new Set(recommendedFor(id)));
+  };
 
   const toggle = (id: AppModuleId) => {
     if (REQUIRED.has(id)) return; // locked on
@@ -78,12 +96,12 @@ export function SetupWizard() {
     });
   };
 
+  const applySuggestion = () => setSelected(new Set(recommendedFor(industry)));
   const selectAll = () => setSelected(new Set(APP_MODULES.map((m) => m.id)));
-  const selectRecommended = () => setSelected(new Set(RECOMMENDED_MODULES));
   const clearOptional = () => setSelected(new Set(REQUIRED_MODULES));
 
   const finish = (ids: Iterable<AppModuleId> = selected) =>
-    complete(normalizeEnabled([...ids]));
+    complete(normalizeEnabled([...ids]), { industry, companySize });
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#070710] text-white">
@@ -150,22 +168,98 @@ export function SetupWizard() {
           >
             {step === 0 ? (
               <div className="flex flex-col items-center text-center">
-                  <span className="grid h-16 w-16 place-items-center rounded-3xl bg-gradient-to-br from-sky-400/30 to-violet-400/30 ring-1 ring-white/15">
-                    <Rocket className="h-7 w-7 text-white" />
-                  </span>
-                  <h1 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
-                    Let&apos;s set up your workspace
-                  </h1>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-white/60">
-                    WIT ERP OS ships with {APP_MODULES.length}{" "}modules. Pick
-                    the
-                    ones your team needs now — they&apos;ll appear in the dock and
-                    launcher. You can change this anytime from{" "}
-                    <span className="text-white/80">View → Set up workspace</span>.
-                  </p>
-                </div>
+                <span className="grid h-16 w-16 place-items-center rounded-3xl bg-gradient-to-br from-sky-400/30 to-violet-400/30 ring-1 ring-white/15">
+                  <Rocket className="h-7 w-7 text-white" />
+                </span>
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
+                  Let&apos;s set up your workspace
+                </h1>
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-white/60">
+                  Tell us your industry and we&apos;ll suggest the right modules
+                  from WIT ERP OS&apos;s {APP_MODULES.length}. Adjust anything
+                  before you finish — change it later from{" "}
+                  <span className="text-white/80">View → Set up workspace</span>.
+                </p>
+              </div>
             ) : step === 1 ? (
               <>
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight">
+                    Tell us about your company
+                  </h2>
+                  <p className="mt-0.5 text-xs text-white/50">
+                    We&apos;ll tailor a module suggestion to your industry — you
+                    fine-tune it next.
+                  </p>
+                </div>
+
+                <div className="mt-5">
+                  <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                    <Building2 className="h-3 w-3" />
+                    Industry
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {INDUSTRIES.map((ind) => (
+                      <button
+                        key={ind.id}
+                        type="button"
+                        onClick={() => pickIndustry(ind.id)}
+                        aria-pressed={industry === ind.id}
+                        className={cn(
+                          "flex items-center justify-between gap-2 rounded-2xl border p-3 text-left text-sm transition-all",
+                          industry === ind.id
+                            ? "border-white/30 bg-white/[0.08] text-white"
+                            : "border-white/8 bg-white/[0.02] text-white/80 hover:border-white/15 hover:bg-white/[0.04]",
+                        )}
+                      >
+                        <span>{ind.label}</span>
+                        {industry === ind.id ? (
+                          <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                    Company size
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {COMPANY_SIZES.map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setCompanySize(sz)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs transition-colors",
+                          companySize === sz
+                            ? "border-white/30 bg-white/15 text-white"
+                            : "border-white/12 bg-white/5 text-white/70 hover:text-white",
+                        )}
+                      >
+                        {sz}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : step === 2 ? (
+              <>
+                {activeIndustry ? (
+                  <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-violet-300/20 bg-violet-400/10 p-3">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
+                    <div className="text-xs">
+                      <span className="font-semibold text-white">
+                        Suggested for {activeIndustry.label}
+                      </span>
+                      <span className="mt-0.5 block text-white/55">
+                        {activeIndustry.rationale}
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold tracking-tight">
@@ -177,8 +271,8 @@ export function SetupWizard() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <PresetButton onClick={selectRecommended} icon={Sparkles}>
-                      Recommended
+                    <PresetButton onClick={applySuggestion} icon={Sparkles}>
+                      AI pick
                     </PresetButton>
                     <PresetButton onClick={selectAll} icon={Wand2}>
                       Select all
@@ -218,8 +312,9 @@ export function SetupWizard() {
                     {chosen.length} module{chosen.length === 1 ? "" : "s"} ready
                   </h2>
                   <p className="mt-2 max-w-md text-sm text-white/60">
-                    These will appear in your dock and app launcher. Everything
-                    else stays one click away in{" "}
+                    {activeIndustry ? `${activeIndustry.label} workspace. ` : ""}
+                    These appear in your dock and app launcher; everything else
+                    stays one click away in{" "}
                     <span className="text-white/80">View → Set up workspace</span>.
                   </p>
                 </div>
@@ -261,7 +356,7 @@ export function SetupWizard() {
             </button>
           )}
 
-          {step < 2 ? (
+          {step < 3 ? (
             <button
               onClick={() => setStep((s) => s + 1)}
               className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-zinc-900 transition-transform hover:scale-[1.02] active:scale-95"
