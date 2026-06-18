@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useSetupStore } from "@/state/setup.store";
 import { useProfileStore } from "@/state/profile.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { useWindowStore } from "@/state/window.store";
 import { formatDemoToday } from "@/lib/date";
 
@@ -18,7 +19,6 @@ interface MobileIconProps {
 
 function MobileIcon({ module, index = 0, size = "grid", onClick }: MobileIconProps) {
   const tile = module.accentLight;
-  const Icon = module.icon;
   const tileClass = size === "grid"
     ? "h-[60px] w-[60px] rounded-[28%]"
     : "h-[54px] w-[54px] rounded-[28%]";
@@ -31,7 +31,8 @@ function MobileIcon({ module, index = 0, size = "grid", onClick }: MobileIconPro
         boxShadow: `0 8px 22px -10px ${tile}66, inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -2px 0 rgba(0,0,0,0.22)`,
       }}
     >
-      <Icon
+      <ModuleIcon
+        module={module}
         className={`text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.30)] ${
           size === "grid" ? "h-[34px] w-[34px]" : "h-[30px] w-[30px]"
         }`}

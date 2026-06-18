@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { type AppModuleId, APP_MODULE_MAP } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { useAccent } from "@/hooks/useAccent";
 import { ExecutiveDashboardView } from "@/presentation/modules/dashboard/ExecutiveDashboardView";
 import { LeadsView } from "@/presentation/modules/leads/LeadsView";
@@ -47,7 +48,6 @@ export function TabletAppCanvas({ id }: { id: AppModuleId }) {
   const closeApp = useWindowStore((s) => s.closeApp);
   const appModule = APP_MODULE_MAP[id];
   const accent = useAccent(appModule);
-  const Icon = appModule.icon;
 
   return (
     <motion.div
@@ -72,7 +72,7 @@ export function TabletAppCanvas({ id }: { id: AppModuleId }) {
             className="grid h-7 w-7 place-items-center rounded-lg"
             style={{ background: `${accent}33`, color: accent }}
           >
-            <Icon className="h-4 w-4" />
+            <ModuleIcon module={appModule} className="h-4 w-4" />
           </span>
           <span className="text-sm font-semibold text-zinc-50">{appModule.name}</span>
         </div>

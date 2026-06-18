@@ -7,6 +7,7 @@ import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appMo
 import { useDesktopStore } from "@/state/desktop.store";
 import { useWindowStore } from "@/state/window.store";
 import { useSetupStore } from "@/state/setup.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { cn } from "@/lib/cn";
 
 interface LauncherTileProps {
@@ -17,7 +18,6 @@ interface LauncherTileProps {
 
 function LauncherTile({ module, isOpen, onLaunch }: LauncherTileProps) {
   const tile = module.accentLight;
-  const Icon = module.icon;
   return (
     <motion.button
       onClick={onLaunch}
@@ -37,7 +37,7 @@ function LauncherTile({ module, isOpen, onLaunch }: LauncherTileProps) {
           boxShadow: `0 12px 28px -12px ${tile}66, inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -2px 0 rgba(0,0,0,0.25)`,
         }}
       >
-        <Icon className="h-[44px] w-[44px] text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.30)]" strokeWidth={2.2} />
+        <ModuleIcon module={module} className="h-[44px] w-[44px] text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.30)]" strokeWidth={2.2} />
       </span>
       <div className="text-center">
         <div className="text-xs font-semibold text-zinc-100">{module.shortName}</div>

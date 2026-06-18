@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { type AppModuleId, APP_MODULE_MAP } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { useAccent } from "@/hooks/useAccent";
 import { ExecutiveDashboardView } from "@/presentation/modules/dashboard/ExecutiveDashboardView";
 import { LeadsView } from "@/presentation/modules/leads/LeadsView";
@@ -50,7 +51,6 @@ export function MobileAppCanvas({ id }: { id: AppModuleId }) {
   const closeApp = useWindowStore((s) => s.closeApp);
   const appModule = APP_MODULE_MAP[id];
   const accent = useAccent(appModule);
-  const Icon = appModule.icon;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -77,7 +77,7 @@ export function MobileAppCanvas({ id }: { id: AppModuleId }) {
             className="grid h-6 w-6 place-items-center rounded-md"
             style={{ background: `${accent}33`, color: accent }}
           >
-            <Icon className="h-3 w-3" />
+            <ModuleIcon module={appModule} className="h-3 w-3" />
           </span>
           <span className="truncate text-xs font-semibold text-zinc-50">{appModule.shortName}</span>
         </div>

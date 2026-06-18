@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
 import { useEnabledModules } from "@/state/setup.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { preloadModule } from "@/presentation/desktop/WindowManager";
 import { cn } from "@/lib/cn";
 
@@ -16,7 +17,6 @@ interface DockIconProps {
 
 function DockIcon({ module, open, isFocused, onClick }: DockIconProps) {
   const tile = module.accentLight;
-  const Icon = module.icon;
   // Warm this module's chunk as soon as the user hovers or tabs to the icon,
   // so a subsequent click opens it without waiting on a network round-trip.
   const prefetch = () => preloadModule(module.id);
@@ -41,7 +41,7 @@ function DockIcon({ module, open, isFocused, onClick }: DockIconProps) {
             : `0 6px 18px -8px ${tile}66, inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.22)`,
         }}
       >
-        <Icon className="h-[26px] w-[26px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.30)]" strokeWidth={2.5} />
+        <ModuleIcon module={module} className="h-[26px] w-[26px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.30)]" strokeWidth={2.5} />
       </span>
       <span
         aria-hidden

@@ -17,6 +17,7 @@ import { ReddieLauncher } from "@/presentation/desktop/ReddieLauncher";
 import { SetupWizard } from "@/presentation/shared/SetupWizard";
 import { useSetupStore } from "@/state/setup.store";
 import { useProfileStore } from "@/state/profile.store";
+import { useIconSetStore } from "@/state/iconSet.store";
 
 export function AdaptiveShell() {
   const { mode, ready } = useViewportMode();
@@ -30,13 +31,15 @@ export function AdaptiveShell() {
   const isSetupHydrated = useSetupStore((s) => s.isHydrated);
   const hydrateSetup = useSetupStore((s) => s.hydrate);
   const hydrateProfile = useProfileStore((s) => s.hydrate);
+  const hydrateIconSet = useIconSetStore((s) => s.hydrate);
 
   useEffect(() => {
     hydrateThemeFromStorage();
     hydrateAuth();
     hydrateSetup();
     hydrateProfile();
-  }, [hydrateAuth, hydrateSetup, hydrateProfile]);
+    hydrateIconSet();
+  }, [hydrateAuth, hydrateSetup, hydrateProfile, hydrateIconSet]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {

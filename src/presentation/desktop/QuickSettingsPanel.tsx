@@ -10,6 +10,7 @@ import {
   Monitor,
   Moon,
   Palette,
+  Shapes,
   Sun,
   Volume2,
   Wifi,
@@ -22,6 +23,8 @@ import { useSetupStore } from "@/state/setup.store";
 import { useProfileStore } from "@/state/profile.store";
 import { useCurrentWallpaper, useWallpaperStore } from "@/state/wallpaper.store";
 import { WALLPAPERS } from "@/constants/wallpapers";
+import { useIconSetStore } from "@/state/iconSet.store";
+import { ICON_SETS, previewIcons } from "@/constants/iconSets";
 import { DismissLayer } from "@/presentation/shared/DismissLayer";
 import { cn } from "@/lib/cn";
 
@@ -37,6 +40,8 @@ export function QuickSettingsPanel() {
   const setWallpaper = useWallpaperStore((s) => s.setWallpaper);
   const wallpaper = useCurrentWallpaper();
   const profile = useProfileStore((s) => s.profile);
+  const iconSetId = useIconSetStore((s) => s.id);
+  const setIconSet = useIconSetStore((s) => s.setIconSet);
 
   return (
     <>
@@ -128,6 +133,41 @@ export function QuickSettingsPanel() {
                     )}
                     style={{ background: w.css }}
                   />
+                ))}
+              </div>
+            </div>
+            <div className="glass-soft rounded-xl p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="inline-flex items-center gap-2 text-xs text-zinc-200">
+                  <Shapes className="h-3.5 w-3.5 text-zinc-100" />
+                  App icons
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                  {ICON_SETS.find((s) => s.id === iconSetId)?.name}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {ICON_SETS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setIconSet(s.id)}
+                    aria-label={`Use ${s.name} icons`}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2 transition-colors",
+                      iconSetId === s.id
+                        ? "border-white/40 bg-white/10"
+                        : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                    )}
+                  >
+                    <span className="flex gap-1">
+                      {previewIcons(s.id)
+                        .slice(0, 3)
+                        .map((Ic, i) => (
+                          <Ic key={i} className="h-3.5 w-3.5 text-zinc-100" />
+                        ))}
+                    </span>
+                    <span className="text-[9px] text-zinc-300">{s.name}</span>
+                  </button>
                 ))}
               </div>
             </div>

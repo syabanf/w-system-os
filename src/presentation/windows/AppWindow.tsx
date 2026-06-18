@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { type AppModuleId, APP_MODULE_MAP } from "@/constants/appModules";
+import { useModuleIcon } from "@/state/iconSet.store";
 import { useWindowStore, type WindowBounds } from "@/state/window.store";
 import { useAccent } from "@/hooks/useAccent";
 import { cn } from "@/lib/cn";
@@ -57,6 +58,7 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
   const win = windows[id];
   const appModule = APP_MODULE_MAP[id];
   const accent = useAccent(appModule);
+  const iconFor = useModuleIcon();
 
   // Track viewport so default bounds and clamping stay correct on resize.
   const [viewport, setViewport] = useState(() => ({
@@ -196,7 +198,7 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
         <WindowHeader
           title={appModule.name}
           subtitle={subtitle ?? appModule.shortName}
-          icon={appModule.icon}
+          icon={iconFor(appModule)}
           accent={accent}
           focused={isFocused}
           onClose={() => closeApp(id)}

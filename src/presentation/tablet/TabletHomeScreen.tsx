@@ -17,6 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useSetupStore } from "@/state/setup.store";
 import { useProfileStore } from "@/state/profile.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { useWindowStore } from "@/state/window.store";
 import { useSpotlightStore } from "@/state/spotlight.store";
 import { formatDemoToday } from "@/lib/date";
@@ -64,7 +65,6 @@ interface TabletIconProps {
 
 function TabletIcon({ module, index = 0, size = "grid", onClick }: TabletIconProps) {
   const tile = module.accentLight;
-  const Icon = module.icon;
   const tileClass = size === "grid"
     ? "h-[78px] w-[78px] rounded-[28%]"
     : "h-[58px] w-[58px] rounded-[28%]";
@@ -78,7 +78,8 @@ function TabletIcon({ module, index = 0, size = "grid", onClick }: TabletIconPro
         boxShadow: `0 10px 30px -10px ${tile}66, inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -2px 0 rgba(0,0,0,0.25)`,
       }}
     >
-      <Icon
+      <ModuleIcon
+        module={module}
         className={`text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.30)] ${iconClass}`}
         strokeWidth={2.2}
       />

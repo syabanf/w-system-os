@@ -24,6 +24,7 @@ import {
   normalizeEnabled,
   useSetupStore,
 } from "@/state/setup.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
 import { cn } from "@/lib/cn";
 
@@ -320,13 +321,12 @@ export function SetupWizard() {
                 </div>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   {chosen.map((m) => {
-                    const Icon = m.icon;
                     return (
                       <span
                         key={m.id}
                         className="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1.5 text-xs text-white/85 ring-1 ring-white/10"
                       >
-                        <Icon className="h-3.5 w-3.5" style={{ color: m.accent }} />
+                        <ModuleIcon module={m} className="h-3.5 w-3.5" style={{ color: m.accent }} />
                         {m.shortName}
                       </span>
                     );
@@ -410,7 +410,6 @@ function FeatureTile({
   locked: boolean;
   onToggle: () => void;
 }) {
-  const Icon = module.icon;
   return (
     <button
       type="button"
@@ -436,7 +435,8 @@ function FeatureTile({
             : "none",
         }}
       >
-        <Icon
+        <ModuleIcon
+          module={module}
           className="h-5 w-5"
           style={{ color: selected ? "#fff" : module.accent }}
           strokeWidth={2.4}

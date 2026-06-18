@@ -3,6 +3,7 @@
 import { Grid3x3 } from "lucide-react";
 import { APP_MODULE_MAP, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useWindowStore } from "@/state/window.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { cn } from "@/lib/cn";
 
 const LAUNCHER_IDS: AppModuleId[] = ["dashboard", "leads", "projects", "finance"];
@@ -15,7 +16,6 @@ interface LauncherIconProps {
 
 function LauncherIcon({ module, active, onClick }: LauncherIconProps) {
   const tile = module.accentLight;
-  const Icon = module.icon;
   return (
     <button
       onClick={onClick}
@@ -32,7 +32,7 @@ function LauncherIcon({ module, active, onClick }: LauncherIconProps) {
           boxShadow: `0 6px 14px -8px ${tile}66, inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -2px 0 rgba(0,0,0,0.22)`,
         }}
       >
-        <Icon className="h-[22px] w-[22px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" strokeWidth={2.4} />
+        <ModuleIcon module={module} className="h-[22px] w-[22px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" strokeWidth={2.4} />
       </span>
       <span
         aria-hidden

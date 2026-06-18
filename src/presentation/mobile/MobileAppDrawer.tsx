@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
 import { useSetupStore } from "@/state/setup.store";
+import { ModuleIcon } from "@/presentation/shared/ModuleIcon";
 import { useWindowStore } from "@/state/window.store";
 import { useAccent } from "@/hooks/useAccent";
 import { cn } from "@/lib/cn";
@@ -16,7 +17,6 @@ interface DrawerIconProps {
 
 function DrawerIcon({ module, active, onSelect }: DrawerIconProps) {
   const accent = useAccent(module);
-  const Icon = module.icon;
   return (
     <button
       onClick={onSelect}
@@ -34,7 +34,7 @@ function DrawerIcon({ module, active, onSelect }: DrawerIconProps) {
             "0 8px 22px -10px var(--icon-tile-shadow), inset 0 1px 0 var(--icon-tile-inner)",
         }}
       >
-        <Icon className="h-7 w-7" style={{ color: accent }} />
+        <ModuleIcon module={module} className="h-7 w-7" style={{ color: accent }} />
       </span>
       <span className="text-[10px] font-medium text-zinc-100/95">{module.shortName}</span>
     </button>
