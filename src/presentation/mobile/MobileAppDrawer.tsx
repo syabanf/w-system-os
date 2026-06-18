@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
+import { useSetupStore } from "@/state/setup.store";
 import { useWindowStore } from "@/state/window.store";
 import { useAccent } from "@/hooks/useAccent";
 import { cn } from "@/lib/cn";
@@ -48,6 +49,7 @@ interface MobileAppDrawerProps {
 
 export function MobileAppDrawer({ open, onClose, activeId }: MobileAppDrawerProps) {
   const openApp = useWindowStore((s) => s.openApp);
+  const enabled = useSetupStore((s) => s.enabled);
 
   const handleSelect = (id: AppModuleId) => {
     openApp(id);
@@ -94,7 +96,7 @@ export function MobileAppDrawer({ open, onClose, activeId }: MobileAppDrawerProp
               </button>
             </header>
             <div className="grid grid-cols-4 gap-x-3 gap-y-4">
-              {APP_MODULES.map((module) => (
+              {APP_MODULES.filter((module) => enabled.includes(module.id)).map((module) => (
                 <DrawerIcon
                   key={module.id}
                   module={module}

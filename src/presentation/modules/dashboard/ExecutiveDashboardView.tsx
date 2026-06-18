@@ -7,6 +7,7 @@ import type { DashboardSummaryDTO } from "@/application/dtos/DashboardDTO";
 import { ChartCard } from "@/presentation/shared/ChartCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { Avatar } from "@/presentation/shared/Avatar";
+import { useProfileStore } from "@/state/profile.store";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { DashboardMetricGrid } from "./DashboardMetricGrid";
 import { RevenueTrendChart } from "./RevenueTrendChart";
@@ -18,6 +19,7 @@ const teamMap = new Map(mockTeam.map((m) => [m.id, m]));
 
 export function ExecutiveDashboardView() {
   const [data, setData] = useState<DashboardSummaryDTO | null>(null);
+  const profile = useProfileStore((s) => s.profile);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +42,7 @@ export function ExecutiveDashboardView() {
             Executive Briefing · {formatDemoToday()}
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
-            Good morning, <span className="headline-gradient">Damar</span>. Here is your firm.
+            Good morning, <span className="headline-gradient">{profile.name.split(" ")[0]}</span>. Here is your firm.
           </h1>
           <p className="mt-1 max-w-2xl text-xs text-zinc-400">
             A composite view of revenue, delivery health, people utilization, and risks across all

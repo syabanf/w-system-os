@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
+import { useSetupStore } from "@/state/setup.store";
+import { useProfileStore } from "@/state/profile.store";
 import { useWindowStore } from "@/state/window.store";
 import { formatDemoToday } from "@/lib/date";
 
@@ -64,16 +66,21 @@ function MobileIcon({ module, index = 0, size = "grid", onClick }: MobileIconPro
 
 export function MobileHomeScreen() {
   const openApp = useWindowStore((s) => s.openApp);
+  const enabled = useSetupStore((s) => s.enabled);
+  const profile = useProfileStore((s) => s.profile);
 
   const dockSet = new Set(DOCK_IDS);
-  const gridApps = APP_MODULES.filter((m) => !dockSet.has(m.id));
-  const dockApps = DOCK_IDS.map((id) => APP_MODULES.find((m) => m.id === id)!).filter(Boolean);
+  const enabledSet = new Set(enabled);
+  const gridApps = APP_MODULES.filter((m) => !dockSet.has(m.id) && enabledSet.has(m.id));
+  const dockApps = DOCK_IDS.map((id) => APP_MODULES.find((m) => m.id === id)).filter(
+    (m): m is AppModule => m !== undefined && enabledSet.has(m.id),
+  );
 
   return (
     <div className="flex h-full flex-col px-6 pb-3 pt-2">
       <div className="mb-3 px-1">
         <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/80">Good morning</div>
-        <div className="text-2xl font-semibold tracking-tight text-zinc-50">Damar Wicaksono</div>
+        <div className="text-2xl font-semibold tracking-tight text-zinc-50">{profile.name}</div>
         <div className="mt-0.5 text-[11px] text-zinc-300/70">
           {formatDemoToday()} · 7 signals waiting
         </div>

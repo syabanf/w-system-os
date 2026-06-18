@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { APP_MODULES } from "@/constants/appModules";
+import { useSetupStore } from "@/state/setup.store";
 import { useClientsStore } from "@/state/clients.store";
 import { useProjectsStore } from "@/state/projects.store";
 import { useInvoicesStore } from "@/state/invoices.store";
@@ -50,6 +51,7 @@ export function useSpotlightSearch(query: string) {
   const kpis = useKpisStore((s) => s.items);
   const tasks = useTasksStore((s) => s.items);
   const employees = useEmployeesStore((s) => s.employees);
+  const enabled = useSetupStore((s) => s.enabled);
 
   // Make sure every store has pulled its persisted data at least once, so search
   // reflects the real workspace even before a module window has been opened.
@@ -66,7 +68,7 @@ export function useSpotlightSearch(query: string) {
 
   const index = useMemo<SpotlightResult[]>(
     () => [
-      ...APP_MODULES.map((m) => ({
+      ...APP_MODULES.filter((m) => enabled.includes(m.id)).map((m) => ({
         id: `app-${m.id}`,
         category: "App" as const,
         title: m.name,
@@ -147,7 +149,7 @@ export function useSpotlightSearch(query: string) {
         recordId: e.id,
       })),
     ],
-    [clients, projects, invoices, leads, tickets, kpis, tasks, employees],
+    [clients, projects, invoices, leads, tickets, kpis, tasks, employees, enabled],
   );
 
   return useMemo(() => {

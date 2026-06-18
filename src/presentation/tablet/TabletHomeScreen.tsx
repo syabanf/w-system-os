@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { APP_MODULES, type AppModule, type AppModuleId } from "@/constants/appModules";
+import { useSetupStore } from "@/state/setup.store";
+import { useProfileStore } from "@/state/profile.store";
 import { useWindowStore } from "@/state/window.store";
 import { useSpotlightStore } from "@/state/spotlight.store";
 import { formatDemoToday } from "@/lib/date";
@@ -113,10 +115,15 @@ export function TabletHomeScreen() {
   const notifications = useNotificationStore((s) => s.notifications);
   const unread = useNotificationStore((s) => s.unread);
   const markRead = useNotificationStore((s) => s.markRead);
+  const enabled = useSetupStore((s) => s.enabled);
+  const profile = useProfileStore((s) => s.profile);
 
   const dockSet = new Set(DOCK_IDS);
-  const gridApps = APP_MODULES.filter((m) => !dockSet.has(m.id));
-  const dockApps = DOCK_IDS.map((id) => APP_MODULES.find((m) => m.id === id)!).filter(Boolean);
+  const enabledSet = new Set(enabled);
+  const gridApps = APP_MODULES.filter((m) => !dockSet.has(m.id) && enabledSet.has(m.id));
+  const dockApps = DOCK_IDS.map((id) => APP_MODULES.find((m) => m.id === id)).filter(
+    (m): m is AppModule => m !== undefined && enabledSet.has(m.id),
+  );
 
   // Unread first, then most recent — the inbox preview.
   const inbox = useMemo(
@@ -145,7 +152,7 @@ export function TabletHomeScreen() {
       <div className="mb-5 flex items-end justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/80">Good morning</div>
-          <div className="text-3xl font-semibold tracking-tight text-zinc-50">Damar Wicaksono</div>
+          <div className="text-3xl font-semibold tracking-tight text-zinc-50">{profile.name}</div>
           <div className="mt-0.5 text-xs text-zinc-300/70">
             {formatDemoToday()} · {unread} {unread === 1 ? "signal" : "signals"} waiting in your inbox
           </div>
