@@ -16,6 +16,7 @@ import { ReddieChat } from "@/presentation/desktop/ReddieChat";
 import { ReddieLauncher } from "@/presentation/desktop/ReddieLauncher";
 import { SetupWizard } from "@/presentation/shared/SetupWizard";
 import { useSetupStore } from "@/state/setup.store";
+import { useProfileStore } from "@/state/profile.store";
 
 export function AdaptiveShell() {
   const { mode, ready } = useViewportMode();
@@ -28,12 +29,14 @@ export function AdaptiveShell() {
   const isSetupComplete = useSetupStore((s) => s.isComplete);
   const isSetupHydrated = useSetupStore((s) => s.isHydrated);
   const hydrateSetup = useSetupStore((s) => s.hydrate);
+  const hydrateProfile = useProfileStore((s) => s.hydrate);
 
   useEffect(() => {
     hydrateThemeFromStorage();
     hydrateAuth();
     hydrateSetup();
-  }, [hydrateAuth, hydrateSetup]);
+    hydrateProfile();
+  }, [hydrateAuth, hydrateSetup, hydrateProfile]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {

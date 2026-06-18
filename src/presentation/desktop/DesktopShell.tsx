@@ -13,6 +13,7 @@ import { DesktopLauncher } from "./DesktopLauncher";
 import { MasterDataDrawer } from "@/presentation/shared/MasterDataDrawer";
 import { useWindowStore } from "@/state/window.store";
 import { DesktopWelcome } from "./DesktopWelcome";
+import { ProfileDialog } from "@/presentation/shared/ProfileDialog";
 
 export function DesktopShell() {
   const hasAnyWindow = useWindowStore((s) => s.order.length > 0);
@@ -31,6 +32,7 @@ export function DesktopShell() {
       <ShortcutsOverlay />
       <DesktopLauncher />
       <MasterDataDrawer />
+      <ProfileDialog />
     </main>
   );
 }

@@ -6,6 +6,7 @@ import { useDesktopStore } from "@/state/desktop.store";
 import { useAuthStore } from "@/state/auth.store";
 import { useToast } from "@/state/toast.store";
 import { useWindowStore } from "@/state/window.store";
+import { useProfileStore } from "@/state/profile.store";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { DismissLayer } from "@/presentation/shared/DismissLayer";
 
@@ -16,6 +17,8 @@ export function UserProfileMenu() {
   const closeAllPanels = useDesktopStore((s) => s.closeAllPanels);
   const openApp = useWindowStore((s) => s.openApp);
   const signOut = useAuthStore((s) => s.signOut);
+  const openProfileEdit = useDesktopStore((s) => s.openProfileEdit);
+  const profile = useProfileStore((s) => s.profile);
   const toast = useToast();
 
   const handleSignOut = () => {
@@ -54,23 +57,18 @@ export function UserProfileMenu() {
           </header>
           <div className="p-4">
             <div className="mb-3 flex items-center gap-3">
-              <Avatar name="Damar Wicaksono" color="#E8C170" size="lg" />
-              <div>
-                <div className="text-sm font-semibold text-zinc-50">Damar Wicaksono</div>
-                <div className="text-xs text-zinc-400">Director of Operations</div>
-                <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
-                  Director · WIT.ID
+              <Avatar name={profile.name} color={profile.avatarColor} size="lg" />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-zinc-50">{profile.name}</div>
+                <div className="truncate text-xs text-zinc-400">{profile.role}</div>
+                <div className="mt-1 truncate text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+                  {profile.org}
                 </div>
               </div>
             </div>
             <ul className="space-y-1">
-              <MenuItem
-                icon={User}
-                onClick={run(() =>
-                  toast.info("Damar Wicaksono", "Director of Operations · WIT.ID"),
-                )}
-              >
-                My profile
+              <MenuItem icon={User} onClick={openProfileEdit}>
+                Edit profile
               </MenuItem>
               <MenuItem icon={ShieldCheck} onClick={run(() => openApp("admin"))}>
                 Roles & permissions

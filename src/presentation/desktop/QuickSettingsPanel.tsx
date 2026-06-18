@@ -5,6 +5,7 @@ import {
   Bluetooth,
   ChevronRight,
   Focus,
+  Image as ImageIcon,
   LayoutGrid,
   Monitor,
   Moon,
@@ -18,7 +19,11 @@ import { useDesktopStore } from "@/state/desktop.store";
 import { useThemeStore } from "@/state/theme.store";
 import { useNotificationStore } from "@/state/notification.store";
 import { useSetupStore } from "@/state/setup.store";
+import { useProfileStore } from "@/state/profile.store";
+import { useCurrentWallpaper, useWallpaperStore } from "@/state/wallpaper.store";
+import { WALLPAPERS } from "@/constants/wallpapers";
 import { DismissLayer } from "@/presentation/shared/DismissLayer";
+import { cn } from "@/lib/cn";
 
 export function QuickSettingsPanel() {
   const isSettingsOpen = useDesktopStore((s) => s.isSettingsOpen);
@@ -29,6 +34,9 @@ export function QuickSettingsPanel() {
   const dnd = useNotificationStore((s) => s.dnd);
   const setDnd = useNotificationStore((s) => s.setDnd);
   const reopenSetup = useSetupStore((s) => s.reopen);
+  const setWallpaper = useWallpaperStore((s) => s.setWallpaper);
+  const wallpaper = useCurrentWallpaper();
+  const profile = useProfileStore((s) => s.profile);
 
   return (
     <>
@@ -46,7 +54,7 @@ export function QuickSettingsPanel() {
             <div>
               <div className="text-sm font-semibold text-zinc-50">Control Center</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-                Workspace · Damar Wicaksono
+                Workspace · {profile.name}
               </div>
             </div>
             <button
@@ -93,6 +101,32 @@ export function QuickSettingsPanel() {
                     aria-label={`Use accent ${c}`}
                     className="h-7 w-7 rounded-full ring-1 ring-white/10 transition-transform hover:scale-105"
                     style={{ background: c, boxShadow: `0 0 0 1px ${c}55, 0 6px 14px -4px ${c}66` }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="glass-soft rounded-xl p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="inline-flex items-center gap-2 text-xs text-zinc-200">
+                  <ImageIcon className="h-3.5 w-3.5 text-zinc-100" />
+                  Wallpaper
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                  {wallpaper.name}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {WALLPAPERS.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => setWallpaper(w.id)}
+                    aria-label={`Use ${w.name} wallpaper`}
+                    title={w.name}
+                    className={cn(
+                      "h-10 rounded-lg ring-1 ring-white/10 transition-transform hover:scale-105",
+                      wallpaper.id === w.id && "ring-2 ring-white/80",
+                    )}
+                    style={{ background: w.css }}
                   />
                 ))}
               </div>

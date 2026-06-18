@@ -7,6 +7,7 @@ interface DesktopState {
   isSettingsOpen: boolean;
   isProfileOpen: boolean;
   isLauncherOpen: boolean;
+  isProfileEditOpen: boolean;
   toggleNotifications: () => void;
   toggleSettings: () => void;
   toggleProfile: () => void;
@@ -14,6 +15,8 @@ interface DesktopState {
   openLauncher: () => void;
   closeLauncher: () => void;
   closeAllPanels: () => void;
+  openProfileEdit: () => void;
+  closeProfileEdit: () => void;
 }
 
 export const useDesktopStore = create<DesktopState>((set, get) => ({
@@ -21,6 +24,7 @@ export const useDesktopStore = create<DesktopState>((set, get) => ({
   isSettingsOpen: false,
   isProfileOpen: false,
   isLauncherOpen: false,
+  isProfileEditOpen: false,
   toggleNotifications: () =>
     set({
       isNotificationsOpen: !get().isNotificationsOpen,
@@ -64,4 +68,13 @@ export const useDesktopStore = create<DesktopState>((set, get) => ({
       isProfileOpen: false,
       isLauncherOpen: false,
     }),
+  openProfileEdit: () =>
+    set({
+      isProfileEditOpen: true,
+      isNotificationsOpen: false,
+      isSettingsOpen: false,
+      isProfileOpen: false,
+      isLauncherOpen: false,
+    }),
+  closeProfileEdit: () => set({ isProfileEditOpen: false }),
 }));

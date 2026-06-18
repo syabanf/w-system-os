@@ -6,16 +6,10 @@ import { ArrowRight, Lock, Moon, Power, RotateCcw } from "lucide-react";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
 import { useAuthStore } from "@/state/auth.store";
+import { useProfileStore } from "@/state/profile.store";
 import { useToast } from "@/state/toast.store";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
-
-const USER = {
-  name: "Damar Wicaksono",
-  role: "Director of Operations",
-  email: "damar@wit.id",
-  avatarColor: "#FBBF24",
-};
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -29,6 +23,7 @@ function useClock() {
 
 export function LoginPage() {
   const signIn = useAuthStore((s) => s.signIn);
+  const profile = useProfileStore((s) => s.profile);
   const toast = useToast();
   const now = useClock();
   const [password, setPassword] = useState("");
@@ -52,7 +47,7 @@ export function LoginPage() {
     window.setTimeout(() => {
       setBusy(false);
       signIn();
-      toast.success(`Welcome back, ${USER.name.split(" ")[0]}`, "Session active.");
+      toast.success(`Welcome back, ${profile.name.split(" ")[0]}`, "Session active.");
     }, 420);
   };
 
@@ -99,19 +94,19 @@ export function LoginPage() {
               <span
                 aria-hidden
                 className="absolute inset-0 -m-1 rounded-full"
-                style={{ boxShadow: `0 0 60px 6px ${USER.avatarColor}55` }}
+                style={{ boxShadow: `0 0 60px 6px ${profile.avatarColor}55` }}
               />
               <Avatar
-                name={USER.name}
-                color={USER.avatarColor}
+                name={profile.name}
+                color={profile.avatarColor}
                 size="lg"
                 className="relative !h-20 !w-20 !text-base ring-2 ring-white/20"
               />
             </div>
             <h1 className="mt-4 text-xl font-semibold tracking-tight text-white drop-shadow">
-              {USER.name}
+              {profile.name}
             </h1>
-            <p className="mt-0.5 text-[11px] text-white/70">{USER.role}</p>
+            <p className="mt-0.5 text-[11px] text-white/70">{profile.role}</p>
 
             <form onSubmit={handleSubmit} className="mt-6 w-full">
               <label className="relative block">
