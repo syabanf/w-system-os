@@ -4,11 +4,21 @@ import { create } from "zustand";
 
 const STORAGE_KEY = "wit-erp-os.profile";
 
+export type ProfileStatus = "online" | "away" | "busy" | "focus" | "offline";
+
 export interface Profile {
   name: string;
   role: string;
   org: string;
   avatarColor: string;
+  /** Custom avatar photo as a (downscaled) data URL. Falls back to initials. */
+  avatarImage?: string;
+  /** Override the auto-derived initials shown on the avatar tile. */
+  initials?: string;
+  /** Availability, shown as a presence dot on the avatar. */
+  status: ProfileStatus;
+  /** Short tagline shown under the name in the account menu. */
+  tagline?: string;
 }
 
 // Matches the demo identity the shell shipped with, so nothing changes until
@@ -18,6 +28,8 @@ const DEFAULT_PROFILE: Profile = {
   role: "Director of Operations",
   org: "WIT.ID",
   avatarColor: "#E8C170",
+  status: "online",
+  tagline: "Keeping delivery, finance, and people in sync.",
 };
 
 /** Palette offered by the profile editor for the avatar tile. */
@@ -31,6 +43,24 @@ export const PROFILE_AVATAR_COLORS = [
   "#34D399",
   "#2DD4BF",
 ];
+
+/** Availability presets offered by the profile editor (id → label + dot color). */
+export const PROFILE_STATUSES: ReadonlyArray<{
+  id: ProfileStatus;
+  label: string;
+  color: string;
+}> = [
+  { id: "online", label: "Active", color: "#34D399" },
+  { id: "away", label: "Away", color: "#FBBF24" },
+  { id: "busy", label: "Busy", color: "#FB7185" },
+  { id: "focus", label: "Focus", color: "#A78BFA" },
+  { id: "offline", label: "Offline", color: "#71717A" },
+];
+
+/** Resolve a status id to its label + dot color (falls back to Active). */
+export function statusMeta(status: ProfileStatus) {
+  return PROFILE_STATUSES.find((s) => s.id === status) ?? PROFILE_STATUSES[0];
+}
 
 function load(): Profile {
   if (typeof window === "undefined") return DEFAULT_PROFILE;

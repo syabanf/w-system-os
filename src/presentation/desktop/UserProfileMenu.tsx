@@ -6,7 +6,7 @@ import { useDesktopStore } from "@/state/desktop.store";
 import { useAuthStore } from "@/state/auth.store";
 import { useToast } from "@/state/toast.store";
 import { useWindowStore } from "@/state/window.store";
-import { useProfileStore } from "@/state/profile.store";
+import { statusMeta, useProfileStore } from "@/state/profile.store";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { DismissLayer } from "@/presentation/shared/DismissLayer";
 
@@ -58,16 +58,37 @@ export function UserProfileMenu() {
             </button>
           </header>
           <div className="p-4">
-            <div className="mb-3 flex items-center gap-3">
-              <Avatar name={profile.name} color={profile.avatarColor} size="lg" />
+            <div className="mb-2 flex items-center gap-3">
+              <Avatar
+                name={profile.name}
+                color={profile.avatarColor}
+                image={profile.avatarImage}
+                initials={profile.initials}
+                statusColor={statusMeta(profile.status).color}
+                size="lg"
+              />
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-zinc-50">{profile.name}</div>
                 <div className="truncate text-xs text-zinc-400">{profile.role}</div>
-                <div className="mt-1 truncate text-[10px] uppercase tracking-[0.18em] text-zinc-400">
-                  {profile.org}
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/8 px-1.5 py-0.5 text-[9px] font-medium text-zinc-200">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: statusMeta(profile.status).color }}
+                    />
+                    {statusMeta(profile.status).label}
+                  </span>
+                  <span className="truncate text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+                    {profile.org}
+                  </span>
                 </div>
               </div>
             </div>
+            {profile.tagline ? (
+              <p className="mb-3 text-[11px] leading-relaxed text-zinc-400">
+                {profile.tagline}
+              </p>
+            ) : null}
             <ul className="space-y-1">
               <MenuItem icon={User} onClick={openProfileEdit}>
                 Edit profile

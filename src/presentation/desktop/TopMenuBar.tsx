@@ -9,7 +9,6 @@ import {
   Search,
   Settings2,
   Sun,
-  User,
   Wifi,
   BatteryFull,
   CloudSun,
@@ -25,6 +24,8 @@ import { useWindowStore } from "@/state/window.store";
 import { useReddieStore } from "@/state/reddie.store";
 import { useShortcutsStore } from "@/state/shortcuts.store";
 import { useSetupStore } from "@/state/setup.store";
+import { statusMeta, useProfileStore } from "@/state/profile.store";
+import { Avatar } from "@/presentation/shared/Avatar";
 import { useIntegrationFilterStore } from "@/state/integrationFilter.store";
 import { APP_MODULES } from "@/constants/appModules";
 import { WitLogoMark } from "@/presentation/shared/WitLogoMark";
@@ -61,6 +62,7 @@ export function TopMenuBar() {
   const toggleNotifications = useDesktopStore((s) => s.toggleNotifications);
   const toggleSettings = useDesktopStore((s) => s.toggleSettings);
   const toggleProfile = useDesktopStore((s) => s.toggleProfile);
+  const profile = useProfileStore((s) => s.profile);
   const toggleLauncher = useDesktopStore((s) => s.toggleLauncher);
   const isLauncherOpen = useDesktopStore((s) => s.isLauncherOpen);
   const openSpotlight = useSpotlightStore((s) => s.open);
@@ -243,7 +245,15 @@ export function TopMenuBar() {
           <Settings2 className="h-3.5 w-3.5" />
         </IconButton>
         <IconButton onClick={toggleProfile} ariaLabel="Profile">
-          <User className="h-3.5 w-3.5" />
+          <Avatar
+            name={profile.name}
+            color={profile.avatarColor}
+            image={profile.avatarImage}
+            initials={profile.initials}
+            statusColor={statusMeta(profile.status).color}
+            size="sm"
+            className="!h-6 !w-6 !text-[9px]"
+          />
         </IconButton>
         <span className="mx-1 h-4 w-px bg-white/10" />
         <div className="flex items-center gap-1.5 text-zinc-400">

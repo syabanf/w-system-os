@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { UserRound, X } from "lucide-react";
+import { ImageUp, Loader2, Trash2, UserRound, X } from "lucide-react";
 import { useDesktopStore } from "@/state/desktop.store";
 import {
   PROFILE_AVATAR_COLORS,
+  PROFILE_STATUSES,
+  statusMeta,
   useProfileStore,
   type Profile,
 } from "@/state/profile.store";
@@ -13,8 +15,42 @@ import { Avatar } from "@/presentation/shared/Avatar";
 import { FormField } from "@/presentation/shared/FormField";
 import { cn } from "@/lib/cn";
 
-/** Edit the signed-in user's display identity (name, role, org, avatar tile).
- *  Opened from the account menu / Settings; persisted via the profile store. */
+const MAX_AVATAR = 256;
+
+/** Read an image file, center-crop to a square and downscale to a small JPEG
+ *  data URL so it stays well within the localStorage budget. */
+function fileToAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.onload = () => {
+      const src = reader.result as string;
+      const img = new window.Image();
+      img.onload = () => {
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = MAX_AVATAR;
+        canvas.height = MAX_AVATAR;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(src);
+          return;
+        }
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, MAX_AVATAR, MAX_AVATAR);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => reject(new Error("decode failed"));
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Edit the signed-in user's display identity (name, role, org, photo, status,
+ *  initials, tagline). Opened from the account menu / Settings; persisted via
+ *  the profile store. */
 export function ProfileDialog() {
   const open = useDesktopStore((s) => s.isProfileEditOpen);
   const close = useDesktopStore((s) => s.closeProfileEdit);
@@ -23,16 +59,40 @@ export function ProfileDialog() {
 
   const [draft, setDraft] = useState<Profile>(profile);
   const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(profile);
       setSubmitted(false);
+      setBusy(false);
     }
   }, [open, profile]);
 
   const set = <K extends keyof Profile>(key: K, value: Profile[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+
+  const derivedInitials = draft.name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the user re-pick the same file later
+    if (!file || !file.type.startsWith("image/")) return;
+    setBusy(true);
+    try {
+      set("avatarImage", await fileToAvatar(file));
+    } catch {
+      // ignore decode/read errors — keep the existing avatar
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const errors: Record<string, string> = {};
   if (draft.name.trim().length === 0) errors.name = "Required";
@@ -47,6 +107,10 @@ export function ProfileDialog() {
       role: draft.role.trim(),
       org: draft.org.trim(),
       avatarColor: draft.avatarColor,
+      avatarImage: draft.avatarImage,
+      initials: draft.initials?.trim() ? draft.initials.trim() : undefined,
+      status: draft.status,
+      tagline: draft.tagline?.trim() ? draft.tagline.trim() : undefined,
     });
     close();
   };
@@ -59,7 +123,7 @@ export function ProfileDialog() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 px-4 pt-[10vh] backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 px-4 pt-[8vh] backdrop-blur-md"
           onClick={close}
         >
           <motion.div
@@ -96,9 +160,12 @@ export function ProfileDialog() {
                 <Avatar
                   name={draft.name || "?"}
                   color={draft.avatarColor}
+                  image={draft.avatarImage}
+                  initials={draft.initials?.trim() || undefined}
+                  statusColor={statusMeta(draft.status).color}
                   size="lg"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-zinc-50">
                     {draft.name.trim() || "Your name"}
                   </div>
@@ -106,6 +173,39 @@ export function ProfileDialog() {
                     {draft.role.trim() || "Your role"}
                     {draft.org.trim() ? ` · ${draft.org.trim()}` : ""}
                   </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={onPickPhoto}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-zinc-200 transition-colors hover:bg-white/10 disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <ImageUp className="h-3 w-3" />
+                    )}
+                    {draft.avatarImage ? "Change" : "Photo"}
+                  </button>
+                  {draft.avatarImage ? (
+                    <button
+                      type="button"
+                      onClick={() => set("avatarImage", undefined)}
+                      aria-label="Remove photo"
+                      title="Remove photo"
+                      className="grid h-7 w-7 place-items-center rounded-full border border-white/10 text-zinc-400 transition-colors hover:bg-rose-500/15 hover:text-rose-300"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -142,23 +242,72 @@ export function ProfileDialog() {
                 </FormField>
               </div>
 
-              <FormField label="Avatar color">
+              <FormField label="Tagline">
+                <input
+                  type="text"
+                  value={draft.tagline ?? ""}
+                  onChange={(e) => set("tagline", e.target.value)}
+                  className={inputCls}
+                  placeholder="Keeping delivery, finance, and people in sync."
+                  maxLength={80}
+                />
+              </FormField>
+
+              <FormField label="Availability">
                 <div className="flex flex-wrap gap-1.5">
-                  {PROFILE_AVATAR_COLORS.map((c) => (
+                  {PROFILE_STATUSES.map((s) => (
                     <button
-                      key={c}
+                      key={s.id}
                       type="button"
-                      onClick={() => set("avatarColor", c)}
-                      aria-label={`Use ${c}`}
+                      onClick={() => set("status", s.id)}
                       className={cn(
-                        "h-7 w-7 rounded-full ring-1 ring-white/20 transition-transform",
-                        draft.avatarColor === c && "scale-110 ring-2 ring-white/80",
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                        draft.status === s.id
+                          ? "border-white/40 bg-white/10 text-zinc-50"
+                          : "border-white/10 text-zinc-300 hover:bg-white/8",
                       )}
-                      style={{ background: c }}
-                    />
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ background: s.color }}
+                      />
+                      {s.label}
+                    </button>
                   ))}
                 </div>
               </FormField>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Initials">
+                  <input
+                    type="text"
+                    value={draft.initials ?? ""}
+                    onChange={(e) =>
+                      set("initials", e.target.value.toUpperCase().slice(0, 3))
+                    }
+                    className={inputCls}
+                    placeholder={derivedInitials || "DW"}
+                    maxLength={3}
+                  />
+                </FormField>
+                <FormField label="Avatar color">
+                  <div className="flex flex-wrap gap-1.5">
+                    {PROFILE_AVATAR_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => set("avatarColor", c)}
+                        aria-label={`Use ${c}`}
+                        className={cn(
+                          "h-6 w-6 rounded-full ring-1 ring-white/20 transition-transform",
+                          draft.avatarColor === c && "scale-110 ring-2 ring-white/80",
+                        )}
+                        style={{ background: c }}
+                      />
+                    ))}
+                  </div>
+                </FormField>
+              </div>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">
                 <button

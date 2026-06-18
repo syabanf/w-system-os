@@ -99,6 +99,8 @@ export function LoginPage() {
               <Avatar
                 name={profile.name}
                 color={profile.avatarColor}
+                image={profile.avatarImage}
+                initials={profile.initials}
                 size="lg"
                 className="relative !h-20 !w-20 !text-base ring-2 ring-white/20"
               />
