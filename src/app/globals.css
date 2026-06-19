@@ -48,6 +48,7 @@
   --surface-glass-soft-border: rgba(255, 255, 255, 0.07);
   --surface-glass-inner: rgba(255, 255, 255, 0.08);
   --menu-surface-bg: #16131f;
+  --focus-ring: rgba(255, 255, 255, 0.6);
 
   /* Aurora wallpaper — soft top/bottom darkening so menu bar + dock stay readable,
      while the centre stays vivid. */
@@ -81,6 +82,7 @@
   --surface-glass-strong-border: rgba(15, 23, 42, 0.12);
   --surface-glass-soft-border: rgba(15, 23, 42, 0.08);
   --menu-surface-bg: #ffffff;
+  --focus-ring: rgba(37, 99, 235, 0.6);
   --surface-glass-inner: rgba(255, 255, 255, 0.60);
 
   --wallpaper-overlay-top: rgba(245, 243, 238, 0.78);
@@ -355,6 +357,14 @@ html {
     top: 0;
     align-self: start;
   }
+}
+
+/* Visible keyboard-focus ring on interactive elements; mouse focus stays clean
+   via :focus-visible. Outline-based so it doesn't fight existing border/bg
+   focus styles (elements with `focus:outline-none` keep their own treatment). */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .subtle-ring {

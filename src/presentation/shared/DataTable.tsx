@@ -126,7 +126,7 @@ export function DataTable<T>({
                   "hover:bg-white/[0.04]",
                   onRowClick && "cursor-pointer",
                   i % 2 === 1 && "bg-white/[0.015]",
-                  selected && "bg-blue-500/10 hover:bg-blue-500/15",
+                  selected && "bg-blue-500/15 hover:bg-blue-500/20",
                 )}
               >
                 {showSelect ? (
