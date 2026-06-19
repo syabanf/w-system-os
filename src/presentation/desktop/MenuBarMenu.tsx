@@ -53,7 +53,7 @@ export function MenuBarMenu({
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
             role="menu"
-            className="glass-strong absolute left-0 top-full z-50 mt-1 min-w-[220px] overflow-hidden rounded-xl border border-white/10 py-1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
+            className="menu-surface absolute left-0 top-full z-50 mt-1 min-w-[220px] overflow-hidden rounded-xl border border-white/10 py-1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
           >
             {resolved.map((it, i) =>
               it.separator ? (

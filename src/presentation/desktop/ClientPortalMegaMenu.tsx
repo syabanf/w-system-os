@@ -89,7 +89,7 @@ export function ClientPortalMegaMenu({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.16, ease: [0.2, 0.9, 0.25, 1.0] }}
-          className="glass-soft absolute left-0 top-full z-50 mt-1 w-[280px] overflow-hidden rounded-xl border border-white/10 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)]"
+          className="menu-surface absolute left-0 top-full z-50 mt-1 w-[280px] overflow-hidden rounded-xl border border-white/10 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)]"
           role="menu"
           aria-label="Client Portal categories"
         >
