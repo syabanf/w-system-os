@@ -1,6 +1,7 @@
 "use client";
 
-import { Briefcase, Calendar, Gauge, ShieldAlert, Sparkles, Target, Users2, Wallet } from "lucide-react";
+import { useState } from "react";
+import { Briefcase, Calendar, Gauge, LayoutGrid, ListChecks, ShieldAlert, Sparkles, Target, Users2, Wallet } from "lucide-react";
 import type { ProjectOverviewDTO } from "@/application/dtos/ProjectDTO";
 import type { EpicNode } from "@/application/use-cases/tasks/GetProjectBoard";
 import { mockTeam } from "@/infrastructure/data/team.mock";
@@ -8,7 +9,11 @@ import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { Avatar } from "@/presentation/shared/Avatar";
+import { ProjectMilestoneTracker } from "./ProjectMilestoneTracker";
+import { ProjectMilestoneTable } from "./ProjectMilestoneTable";
+import { type MilestoneCategory } from "./milestone.shared";
 import { formatIDRCompact, formatPercent } from "@/lib/currency";
+import { cn } from "@/lib/cn";
 
 const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "info" | "wit"> = {
   Discovery: "info",
@@ -43,6 +48,8 @@ interface ProjectDetailViewProps {
 }
 
 export function ProjectDetailView({ project, epics, onOpenEpic }: ProjectDetailViewProps) {
+  const [milestoneView, setMilestoneView] = useState<"kanban" | "list">("kanban");
+  const [category, setCategory] = useState<MilestoneCategory | "all">("all");
   const totalCommitted = epics.reduce((s, e) => s + e.rolledUpCommitted, 0);
   const totalCompleted = epics.reduce((s, e) => s + e.rolledUpCompleted, 0);
   const totalTasks = epics.reduce((s, e) => s + e.taskCount, 0);
@@ -167,6 +174,72 @@ export function ProjectDetailView({ project, epics, onOpenEpic }: ProjectDetailV
           trend={blockedCount > 0 ? "down" : "flat"}
           accent="#EF4444"
         />
+      </div>
+
+      <div className="glass rounded-[20px] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SectionHeader
+            eyebrow="Tracker"
+            title="Milestones"
+            description="Technical and commercial milestones — switch List / Kanban."
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {milestoneView === "kanban" ? (
+              <div className="glass-soft inline-flex rounded-full border border-white/8 p-0.5 text-[11px]">
+                {(["all", "technical", "commercial"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCategory(c)}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 capitalize transition-colors",
+                      category === c
+                        ? "bg-white/12 text-zinc-50"
+                        : "text-zinc-400 hover:text-zinc-200",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div className="glass-soft inline-flex rounded-full border border-white/8 p-0.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setMilestoneView("list")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors",
+                  milestoneView === "list"
+                    ? "bg-white/12 text-zinc-50"
+                    : "text-zinc-400 hover:text-zinc-200",
+                )}
+              >
+                <ListChecks className="h-3 w-3" />
+                List
+              </button>
+              <button
+                type="button"
+                onClick={() => setMilestoneView("kanban")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors",
+                  milestoneView === "kanban"
+                    ? "bg-white/12 text-zinc-50"
+                    : "text-zinc-400 hover:text-zinc-200",
+                )}
+              >
+                <LayoutGrid className="h-3 w-3" />
+                Kanban
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4">
+          {milestoneView === "kanban" ? (
+            <ProjectMilestoneTracker projectId={project.id} categoryFilter={category} />
+          ) : (
+            <ProjectMilestoneTable projectId={project.id} />
+          )}
+        </div>
       </div>
 
       <div className="glass rounded-[20px] p-5">

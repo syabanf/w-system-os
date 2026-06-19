@@ -42,6 +42,7 @@ import { formatIDRCompact } from "@/lib/currency";
 import { ClientFormDialog } from "@/presentation/modules/clients/ClientFormDialog";
 import { ProjectMilestoneTracker } from "@/presentation/modules/projects/ProjectMilestoneTracker";
 import { ProjectMilestoneTable } from "@/presentation/modules/projects/ProjectMilestoneTable";
+import { type MilestoneCategory } from "@/presentation/modules/projects/milestone.shared";
 import { PastelKPITile } from "./PastelKPITile";
 import { MilestoneCalendar } from "./MilestoneCalendar";
 import { InvoiceMiniList } from "./InvoiceMiniList";
@@ -574,6 +575,7 @@ function DrillView({
   onBack,
 }: DrillViewProps) {
   const toast = useToast();
+  const [milestoneCategory, setMilestoneCategory] = useState<MilestoneCategory | "all">("all");
   const owner = teamName(client.accountOwnerId);
   const updateClient = useClientsStore((s) => s.update);
 
@@ -889,6 +891,27 @@ function DrillView({
                 );
               })}
             </div>
+            {/* Technical / Commercial filter for the board view. */}
+            {view === "board" ? (
+              <div className="inline-flex rounded-full bg-white/5 p-0.5">
+                {(["all", "technical", "commercial"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setMilestoneCategory(c)}
+                    aria-pressed={milestoneCategory === c}
+                    className={cn(
+                      "press rounded-full px-3 py-1 text-[11px] font-semibold capitalize transition-colors",
+                      milestoneCategory === c
+                        ? "bg-white/15 text-zinc-50"
+                        : "text-zinc-300 hover:bg-white/8 hover:text-zinc-50",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="relative" ref={filterMenuRef}>
               <button
                 type="button"
@@ -989,7 +1012,10 @@ function DrillView({
             ) : view === "table" ? (
               <ProjectMilestoneTable projectId={selectedProject.id} />
             ) : (
-              <ProjectMilestoneTracker projectId={selectedProject.id} />
+              <ProjectMilestoneTracker
+                projectId={selectedProject.id}
+                categoryFilter={milestoneCategory}
+              />
             )}
           </div>
         </>

@@ -48,11 +48,14 @@ interface ProjectMilestoneTrackerProps {
   projectId: string;
   /** Optional inline title above the three columns. */
   title?: string;
+  /** Show only one category's bands, or both when "all"/undefined. */
+  categoryFilter?: MilestoneCategory | "all";
 }
 
 export function ProjectMilestoneTracker({
   projectId,
   title,
+  categoryFilter,
 }: ProjectMilestoneTrackerProps) {
   const milestones = useProjectMilestones(projectId);
   const teamRoles = useProjectTeamRoles(projectId);
@@ -164,7 +167,10 @@ export function ProjectMilestoneTracker({
       {/* Board grouped by category — Technical vs Commercial. Each band owns
           its milestone sections (+ the project team under Technical). */}
       <div className="space-y-4">
-        {CATEGORY_ORDER.map((category) => {
+        {(categoryFilter && categoryFilter !== "all"
+          ? [categoryFilter]
+          : CATEGORY_ORDER
+        ).map((category) => {
           const sections = CATEGORY_SECTIONS[category];
           const categoryItems = sections.flatMap((s) => grouped[s]);
           const pct = progressOf(categoryItems);
