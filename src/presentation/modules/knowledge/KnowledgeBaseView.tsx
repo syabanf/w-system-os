@@ -183,7 +183,7 @@ export function KnowledgeBaseView() {
             />
           ) : (
             <div className="rounded-xl border border-dashed border-white/8 p-6 text-center text-xs text-zinc-400">
-              Select an article to preview.
+              Pick an article to start reading.
             </div>
           )}
         </aside>

@@ -622,7 +622,7 @@ export function SupportTicketView() {
               />
             </div>
             <div className="glass rounded-[20px] p-5">
-              <SectionHeader eyebrow="SLA radar" title="Risk surface" />
+              <SectionHeader eyebrow="SLA radar" title="Deadlines at risk" />
               <SLARiskPanel tickets={enriched} />
             </div>
           </div>

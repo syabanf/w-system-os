@@ -95,9 +95,6 @@ const DATA_VIEW_MODES: ReadonlyArray<{
 const FILTER_TASK_OPTIONS = [
   { id: "invoices" as const, label: "Invoice List" },
   { id: "quotations" as const, label: "Quotation List" },
-  { id: "tasks" as const, label: "Task List" },
-  { id: "dev-doc" as const, label: "Development Document" },
-  { id: "demo" as const, label: "Demo Link" },
 ];
 
 /** Health → status-dot colour for project chips in the drill view. */
@@ -863,7 +860,11 @@ function DrillView({
             </button>
           </div>
 
-          <div className="glass-soft flex flex-wrap items-center gap-2 rounded-full border border-white/8 px-3 py-2">
+          {/* relative z-30: lift the whole toolbar (and its open dropdowns)
+              above the board/calendar content wrapper below, which is its own
+              stacking context (animate-fade-in-up) and would otherwise paint
+              over the menus and swallow their clicks. */}
+          <div className="glass-soft relative z-30 flex flex-wrap items-center gap-2 rounded-full border border-white/8 px-3 py-2">
             <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
               Project Filter
             </span>
@@ -908,7 +909,11 @@ function DrillView({
               {filterMenuOpen ? (
                 <div
                   role="menu"
-                  className="animate-scale-in glass-strong absolute left-0 top-full z-20 mt-1 w-48 origin-top-left overflow-hidden rounded-xl border border-white/10 shadow-xl"
+                  // Opaque `menu-surface` (not translucent glass) + inline
+                  // position:absolute so the menu floats above the board without
+                  // expanding the toolbar or letting content bleed through it.
+                  style={{ position: "absolute" }}
+                  className="animate-scale-in menu-surface absolute left-0 top-full z-30 mt-1 w-48 origin-top-left overflow-hidden rounded-xl border border-white/10 shadow-xl"
                 >
                   {FILTER_TASK_OPTIONS.map((opt) => (
                     <button
@@ -916,14 +921,7 @@ function DrillView({
                       type="button"
                       onClick={() => {
                         onCloseFilterMenu();
-                        if (opt.id === "invoices") {
-                          onChangeView("invoices");
-                        } else if (opt.id === "quotations") {
-                          onChangeView("quotations");
-                        } else {
-                          onChangeView("board");
-                          toast.info(opt.label, "Demo only");
-                        }
+                        onChangeView(opt.id);
                       }}
                       className="block w-full px-3 py-1.5 text-left text-[11px] text-zinc-200 hover:bg-white/8"
                     >
@@ -954,7 +952,10 @@ function DrillView({
               {actionMenuOpen ? (
                 <div
                   role="menu"
-                  className="animate-scale-in glass-strong absolute right-0 top-full z-20 mt-1 w-48 origin-top-right overflow-hidden rounded-xl border border-white/10 shadow-xl"
+                  // Opaque `menu-surface` + inline position:absolute (same fix as
+                  // the Filter Task menu) so it floats without bleed-through.
+                  style={{ position: "absolute" }}
+                  className="animate-scale-in menu-surface absolute right-0 top-full z-30 mt-1 w-48 origin-top-right overflow-hidden rounded-xl border border-white/10 shadow-xl"
                 >
                   <button
                     type="button"

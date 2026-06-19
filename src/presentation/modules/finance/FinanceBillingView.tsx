@@ -59,7 +59,7 @@ export function FinanceBillingView() {
             Finance · Accounting
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
-            Books & receivables
+            Billing & cash flow
           </h1>
           <p className="mt-1 max-w-2xl text-xs text-zinc-400">
             Monthly revenue and AR on the Billing tab; installment monitoring on the Termin

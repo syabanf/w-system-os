@@ -70,7 +70,7 @@ export function HRView() {
             Operations · HR
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
-            People operations
+            Your people
           </h1>
           <p className="mt-1 max-w-2xl text-xs text-zinc-400">
             Workforce overview, attendance pulse, leave pipeline, and the current payroll run.

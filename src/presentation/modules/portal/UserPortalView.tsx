@@ -588,6 +588,11 @@ function LeaveRequestTab() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!startDate || !endDate) return;
+    if (new Date(endDate) < new Date(startDate)) {
+      setToast("⚠ Your end date is before the start date.");
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
     const days =
       Math.floor(
         (new Date(endDate).getTime() - new Date(startDate).getTime()) /
@@ -598,7 +603,7 @@ function LeaveRequestTab() {
       type: leaveType,
       startDate,
       endDate,
-      days: Math.max(1, days),
+      days,
       reason: reason.trim() || "—",
       status: "pending",
       submittedAt: demoDateInput(),
@@ -606,9 +611,19 @@ function LeaveRequestTab() {
     setStartDate("");
     setEndDate("");
     setReason("");
-    setToast(`✓ Submitted leave request: ${leaveType} · ${days} day(s)`);
+    setToast(`✓ Leave request sent: ${leaveType} · ${days} day${days === 1 ? "" : "s"}`);
     setTimeout(() => setToast(null), 4000);
   };
+
+  const rangeValid =
+    !startDate || !endDate || new Date(endDate) >= new Date(startDate);
+  const totalDays =
+    startDate && endDate && rangeValid
+      ? Math.floor(
+          (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ) + 1
+      : 0;
 
   return (
     <div className="space-y-5">
@@ -681,6 +696,7 @@ function LeaveRequestTab() {
                 type="date"
                 required
                 value={endDate}
+                min={startDate || undefined}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 focus:border-white/25 focus:outline-none"
               />
@@ -696,10 +712,29 @@ function LeaveRequestTab() {
               />
             </label>
           </div>
-          <div className="mt-3 flex items-center justify-end gap-2">
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-[11px]">
+              {startDate && endDate ? (
+                rangeValid ? (
+                  <span className="text-zinc-400">
+                    Total:{" "}
+                    <span className="font-semibold text-zinc-200">
+                      {totalDays} day{totalDays === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-rose-300">
+                    End date can&apos;t be before the start date.
+                  </span>
+                )
+              ) : (
+                <span className="text-zinc-500">Pick your dates to see the total.</span>
+              )}
+            </span>
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/30"
+              disabled={!rangeValid}
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-emerald-500/20"
             >
               <Send className="h-3 w-3" />
               Submit

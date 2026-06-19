@@ -343,7 +343,7 @@ function SessionsTab() {
   ];
   return (
     <div className="glass rounded-[20px] p-5">
-      <SectionHeader eyebrow="Live" title={`Sessions (${mockSessions.length})`} description="Token-backed sessions across the workforce." />
+      <SectionHeader eyebrow="Live" title={`Sessions (${mockSessions.length})`} description="Active sign-ins across the team." />
       <DataTable rows={mockSessions} columns={cols} rowKey={(s) => s.id} dense />
     </div>
   );
