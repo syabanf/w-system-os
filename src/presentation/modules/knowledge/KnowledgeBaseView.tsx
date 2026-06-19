@@ -129,8 +129,10 @@ export function KnowledgeBaseView() {
         <KnowledgeCategoryGrid articles={articles} category={category} onSelect={setCategory} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_560px]">
-        <div className="glass rounded-[20px] p-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_560px] lg:items-start">
+        {/* Left list stays pinned (its own scroll on lg) while the article on
+            the right scrolls with the window. */}
+        <div className="glass-scroll glass sticky-pane rounded-[20px] p-5 lg:max-h-[calc(100vh-13rem)] lg:overflow-y-auto">
           <SectionHeader eyebrow="Library" title={`Articles (${filtered.length})`} />
           <ul className="space-y-2">
             {filtered.map((a) => {

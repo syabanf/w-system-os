@@ -162,7 +162,7 @@ function UsersTab() {
   void memberByUserId;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
       <div className="glass rounded-[20px] p-5">
         <SectionHeader
           eyebrow="Users"
@@ -183,7 +183,7 @@ function UsersTab() {
         />
         <UserRoleTable users={users} extraColumns={actionCols} />
       </div>
-      <div className="glass rounded-[20px] p-5">
+      <div className="glass sticky-pane rounded-[20px] p-5">
         <SectionHeader eyebrow="Distribution" title="By role" />
         <ul className="space-y-1.5">
           {mockRoles.map((r) => (

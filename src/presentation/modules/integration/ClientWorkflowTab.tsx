@@ -217,7 +217,7 @@ export function ClientWorkflowTab({
     // pages 5–6 pattern) while the selected client's detail renders on the
     // right. Selecting another row swaps the detail in place.
     return (
-      <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[300px_1fr] lg:items-start">
         <ClientSidebarList
           clients={filtered}
           activeId={drillClient.id}
@@ -1018,7 +1018,7 @@ function ClientSidebarList({
   onAddClient,
 }: ClientSidebarListProps) {
   return (
-    <aside className="glass flex flex-col rounded-[20px] p-3 lg:max-h-[calc(100vh-200px)]">
+    <aside className="glass sticky-pane flex flex-col rounded-[20px] p-3 lg:max-h-[calc(100vh-160px)]">
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
           Clients · {clients.length}

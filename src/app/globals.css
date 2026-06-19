@@ -346,6 +346,17 @@ html {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
+/* Sticky sidebar/list pane for master-detail layouts. Declared after the glass
+   surfaces so it beats `.glass`'s `position: relative` (unlayered, same
+   specificity → later wins). lg+ only; below that, columns stack and scroll. */
+@media (min-width: 1024px) {
+  .sticky-pane {
+    position: sticky;
+    top: 0;
+    align-self: start;
+  }
+}
+
 .subtle-ring {
   box-shadow:
     0 0 0 1px var(--surface-glass-border),
@@ -660,6 +671,6 @@ html {
     box-shadow 220ms ease;
 }
 .hover-lift:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.55);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 22px 48px -22px rgba(0, 0, 0, 0.6);
 }

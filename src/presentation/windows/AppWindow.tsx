@@ -160,14 +160,18 @@ export function AppWindow({ id, children, rightSlot, subtitle }: AppWindowProps)
         if (focused !== id) focusApp(id);
       }}
       initial={{ opacity: 0, scale: 0.96, y: 14 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+      // Focus depth: the focused window sits at full scale; unfocused windows
+      // recede slightly so the z-order reads spatially.
+      animate={{ opacity: 1, scale: isFocused ? 1 : 0.985, y: 0 }}
       exit={{ opacity: 0, scale: 0.96, y: 14 }}
       transition={{ type: "spring", stiffness: 320, damping: 30 }}
       className={cn(
         "glass-strong absolute overflow-hidden rounded-[24px] text-zinc-100 ring-1 ring-white/8",
-        "shadow-[0_40px_120px_-20px_rgba(0,0,0,0.75)]",
+        "transition-shadow duration-300",
+        isFocused
+          ? "shadow-[0_52px_130px_-20px_rgba(0,0,0,0.8)]"
+          : "shadow-[0_18px_70px_-28px_rgba(0,0,0,0.6)] saturate-[0.92]",
         isMax && "inset-x-4 top-12 bottom-24",
-        !isFocused && "saturate-[0.92]",
       )}
       style={{
         position: "absolute",

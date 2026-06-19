@@ -5,6 +5,7 @@ import { AlertOctagon, Sparkles } from "lucide-react";
 import { createDashboardService } from "@/application/factories/createDashboardService";
 import type { DashboardSummaryDTO } from "@/application/dtos/DashboardDTO";
 import { ChartCard } from "@/presentation/shared/ChartCard";
+import { Reveal } from "@/presentation/shared/Reveal";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { useProfileStore } from "@/state/profile.store";
@@ -57,9 +58,11 @@ export function ExecutiveDashboardView() {
         </div>
       </header>
 
-      <DashboardMetricGrid data={data} />
+      <Reveal index={0}>
+        <DashboardMetricGrid data={data} />
+      </Reveal>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <Reveal index={1} className="grid gap-4 xl:grid-cols-3">
         <ChartCard
           className="xl:col-span-2"
           title="Revenue trend"
@@ -115,9 +118,9 @@ export function ExecutiveDashboardView() {
             ))}
           </ul>
         </div>
-      </div>
+      </Reveal>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <Reveal index={2} className="grid gap-4 xl:grid-cols-3">
         <div className="glass rounded-[20px] p-5 xl:col-span-2">
           <SectionHeader
             eyebrow="Delivery"
@@ -158,7 +161,7 @@ export function ExecutiveDashboardView() {
             })}
           </ul>
         </div>
-      </div>
+      </Reveal>
     </div>
   );
 }

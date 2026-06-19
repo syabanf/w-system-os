@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from "lucide-react";
+import { AnimatedNumber } from "@/presentation/shared/AnimatedNumber";
 import { cn } from "@/lib/cn";
 
 interface MetricCardProps {
@@ -37,9 +38,9 @@ export function MetricCard({
     <div
       className={cn(
         "glass surface-smooth relative overflow-hidden rounded-[20px] p-4 md:p-5",
-        // Subtle lift on hover; faster active-state response for snappier feel.
-        "motion-safe:hover:-translate-y-0.5 hover:shadow-[0_18px_60px_-15px_rgba(0,0,0,0.55)]",
-        "active:translate-y-0 active:duration-75",
+        // Pronounced lift on hover; faster active-state response for snappier feel.
+        "motion-safe:hover:-translate-y-1 motion-safe:hover:scale-[1.01] hover:shadow-[0_22px_70px_-18px_rgba(0,0,0,0.6)]",
+        "active:translate-y-0 active:scale-100 active:duration-75",
         emphasis && "subtle-ring",
       )}
     >
@@ -61,7 +62,7 @@ export function MetricCard({
       </div>
       <div className="mt-3 flex items-end gap-2">
         <div className="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl md:text-[26px] lg:text-[28px]">
-          {value}
+          <AnimatedNumber value={value} />
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between text-xs">
