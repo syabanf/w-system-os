@@ -6,6 +6,7 @@ import { Sparkles, X } from "lucide-react";
 import { LEAD_STAGES, type Lead, type LeadSource, type LeadStage } from "@/domain/entities/Lead";
 import type { LeadDraft } from "@/state/leads.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 
 const SOURCES: LeadSource[] = ["Referral", "Website", "Outbound", "Event", "Partner", "Inbound"];
@@ -161,30 +162,20 @@ export function LeadFormDialog({ open, editing, initialName, onClose, onSubmit }
                   />
                 </FormField>
                 <FormField label="Stage">
-                  <select
+                  <SearchableSelect
                     value={draft.stage}
-                    onChange={(e) => set("stage", e.target.value as LeadStage)}
-                    className={inputCls}
-                  >
-                    {LEAD_STAGES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("stage", v as LeadStage)}
+                    options={LEAD_STAGES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Stage"
+                  />
                 </FormField>
                 <FormField label="Source">
-                  <select
+                  <SearchableSelect
                     value={draft.source}
-                    onChange={(e) => set("source", e.target.value as LeadSource)}
-                    className={inputCls}
-                  >
-                    {SOURCES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("source", v as LeadSource)}
+                    options={SOURCES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Source"
+                  />
                 </FormField>
                 <FormField label="Probability (0–100)">
                   <input

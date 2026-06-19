@@ -7,6 +7,7 @@ import { useMasterDataStore, MASTER_DATA_CATEGORIES } from "@/state/masterData.s
 import type { MDCategoryDef, MDFieldDef, MDItem } from "@/domain/entities/MasterData";
 import { APP_MODULE_MAP } from "@/constants/appModules";
 import { cn } from "@/lib/cn";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { StatusBadge } from "./StatusBadge";
 
 export function MasterDataDrawer() {
@@ -431,21 +432,15 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
           {value ? "Enabled" : "Disabled"}
         </button>
       ) : field.type === "select" ? (
-        <select
-          required={field.required}
+        <SearchableSelect
           value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          className={baseInput}
-        >
-          <option value="" disabled>
-            — choose —
-          </option>
-          {field.options?.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => onChange(v)}
+          options={[
+            { value: "", label: "— choose —", disabled: true },
+            ...(field.options?.map((o) => ({ value: o, label: o })) ?? []),
+          ]}
+          ariaLabel={field.label}
+        />
       ) : null}
       {field.hint ? (
         <span className="text-[9px] text-zinc-500">{field.hint}</span>

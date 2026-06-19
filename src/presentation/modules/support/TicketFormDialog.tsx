@@ -11,6 +11,7 @@ import {
 } from "@/domain/value-objects/TicketSeverity";
 import type { TicketDraft } from "@/state/tickets.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 
 const SEVERITIES: TicketSeverity[] = ["low", "medium", "high", "critical"];
 
@@ -149,30 +150,20 @@ export function TicketFormDialog({ open, editing, initialTitle, onClose, onSubmi
                   />
                 </FormField>
                 <FormField label="Severity">
-                  <select
+                  <SearchableSelect
                     value={draft.severity}
-                    onChange={(e) => set("severity", e.target.value as TicketSeverity)}
-                    className={inputCls}
-                  >
-                    {SEVERITIES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("severity", v as TicketSeverity)}
+                    options={SEVERITIES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Severity"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as TicketStatus)}
-                    className={inputCls}
-                  >
-                    {TICKET_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as TicketStatus)}
+                    options={TICKET_STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Assignee ID" required error={submitted ? errors.assignedToId : undefined}>
                   <input

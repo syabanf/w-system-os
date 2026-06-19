@@ -11,6 +11,7 @@ import type {
 import type { ProjectMilestoneDraft } from "@/state/milestones.store";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
 
@@ -215,19 +216,12 @@ export function MilestoneFormDialog({
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Section" required>
-                  <select
+                  <SearchableSelect
                     value={draft.section}
-                    onChange={(e) =>
-                      set("section", e.target.value as MilestoneSection)
-                    }
-                    className={inputCls}
-                  >
-                    {SECTIONS.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("section", v as MilestoneSection)}
+                    options={SECTIONS.map((s) => ({ value: s.value, label: s.label }))}
+                    ariaLabel="Section"
+                  />
                 </FormField>
                 <FormField label="Kind (slug)" required error={submitted ? errors.kind : undefined}>
                   <input
@@ -243,19 +237,12 @@ export function MilestoneFormDialog({
                   />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) =>
-                      set("status", e.target.value as MilestoneStatus)
-                    }
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as MilestoneStatus)}
+                    options={STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Due date">
                   <input
@@ -283,20 +270,15 @@ export function MilestoneFormDialog({
                   />
                 </FormField>
                 <FormField label="Owner">
-                  <select
+                  <SearchableSelect
                     value={draft.ownerId ?? ""}
-                    onChange={(e) =>
-                      set("ownerId", e.target.value || undefined)
-                    }
-                    className={inputCls}
-                  >
-                    <option value="">— Unassigned —</option>
-                    {mockTeam.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("ownerId", v || undefined)}
+                    options={[
+                      { value: "", label: "— Unassigned —" },
+                      ...mockTeam.map((m) => ({ value: m.id, label: m.name })),
+                    ]}
+                    ariaLabel="Owner"
+                  />
                 </FormField>
               </div>
 

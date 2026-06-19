@@ -6,6 +6,7 @@ import { FileSignature, X } from "lucide-react";
 import type { POStatus, PurchaseOrder } from "@/domain/entities/Transaction";
 import type { PurchaseOrderDraft } from "@/state/purchaseOrders.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { demoNow } from "@/lib/date";
 
 const STATUSES: POStatus[] = [
@@ -202,17 +203,12 @@ export function POFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as POStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as POStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Approver">
                   <input

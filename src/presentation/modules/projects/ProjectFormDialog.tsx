@@ -8,6 +8,7 @@ import { PROJECT_STATUSES, type ProjectStatus } from "@/domain/value-objects/Pro
 import type { RiskLevel } from "@/domain/value-objects/RiskLevel";
 import type { ProjectDraft } from "@/state/projects.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { demoDateInput } from "@/lib/date";
 
 const RISKS: RiskLevel[] = ["low", "medium", "high", "critical"];
@@ -173,30 +174,20 @@ export function ProjectFormDialog({ open, editing, initialName, onClose, onSubmi
                   />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as ProjectStatus)}
-                    className={inputCls}
-                  >
-                    {PROJECT_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as ProjectStatus)}
+                    options={PROJECT_STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Health">
-                  <select
+                  <SearchableSelect
                     value={draft.health}
-                    onChange={(e) => set("health", e.target.value as Project["health"])}
-                    className={inputCls}
-                  >
-                    {HEALTHS.map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("health", v as Project["health"])}
+                    options={HEALTHS.map((h) => ({ value: h, label: h }))}
+                    ariaLabel="Health"
+                  />
                 </FormField>
                 <FormField label="Progress (%)">
                   <input
@@ -211,17 +202,12 @@ export function ProjectFormDialog({ open, editing, initialName, onClose, onSubmi
                   />
                 </FormField>
                 <FormField label="Risk">
-                  <select
+                  <SearchableSelect
                     value={draft.riskLevel}
-                    onChange={(e) => set("riskLevel", e.target.value as RiskLevel)}
-                    className={inputCls}
-                  >
-                    {RISKS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("riskLevel", v as RiskLevel)}
+                    options={RISKS.map((r) => ({ value: r, label: r }))}
+                    ariaLabel="Risk"
+                  />
                 </FormField>
                 <FormField label="Budget (IDR)">
                   <input

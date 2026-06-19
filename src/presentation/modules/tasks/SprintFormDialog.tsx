@@ -7,6 +7,7 @@ import type { Sprint } from "@/domain/entities/Sprint";
 import type { SprintDraft } from "@/state/sprints.store";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
 
@@ -141,30 +142,23 @@ export function SprintFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Project" required>
-                  <select
+                  <SearchableSelect
                     value={draft.projectId}
-                    onChange={(e) => set("projectId", e.target.value)}
-                    className={inputCls}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} · {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("projectId", v)}
+                    options={mockProjects.map((p) => ({
+                      value: p.id,
+                      label: `${p.code} · ${p.name}`,
+                    }))}
+                    ariaLabel="Project"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as Sprint["status"])}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as Sprint["status"])}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Start date">
                   <input

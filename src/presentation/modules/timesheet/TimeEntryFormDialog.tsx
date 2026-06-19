@@ -8,6 +8,7 @@ import type { TimeEntryDraft } from "@/state/timesheet.store";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoDateInput } from "@/lib/date";
 
@@ -117,32 +118,23 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Member" required error={submitted ? errors.memberId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.memberId}
-                    onChange={(e) => set("memberId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.memberId}
-                  >
-                    {mockTeam.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("memberId", v)}
+                    options={mockTeam.map((m) => ({ value: m.id, label: m.name }))}
+                    ariaLabel="Member"
+                  />
                 </FormField>
                 <FormField label="Project" required error={submitted ? errors.projectId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.projectId}
-                    onChange={(e) => set("projectId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.projectId}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} · {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("projectId", v)}
+                    options={mockProjects.map((p) => ({
+                      value: p.id,
+                      label: `${p.code} · ${p.name}`,
+                    }))}
+                    ariaLabel="Project"
+                  />
                 </FormField>
                 <FormField label="Date" required>
                   <input
@@ -168,17 +160,12 @@ export function TimeEntryFormDialog({ open, editing, onClose, onSubmit }: Props)
                   />
                 </FormField>
                 <FormField label="Approval status">
-                  <select
+                  <SearchableSelect
                     value={draft.approvalStatus}
-                    onChange={(e) => set("approvalStatus", e.target.value as ApprovalStatus)}
-                    className={inputCls}
-                  >
-                    {APPROVAL_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("approvalStatus", v as ApprovalStatus)}
+                    options={APPROVAL_STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Approval status"
+                  />
                 </FormField>
                 <label className="mt-5 flex items-center gap-2 text-[11px] text-zinc-300">
                   <input

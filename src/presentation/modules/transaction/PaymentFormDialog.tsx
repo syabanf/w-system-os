@@ -11,6 +11,7 @@ import type {
 } from "@/domain/entities/Transaction";
 import type { PaymentDraft } from "@/state/payments.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoDateInput } from "@/lib/date";
 
@@ -125,17 +126,12 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Direction">
-                  <select
+                  <SearchableSelect
                     value={draft.type}
-                    onChange={(e) => set("type", e.target.value as PaymentType)}
-                    className={inputCls}
-                  >
-                    {TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("type", v as PaymentType)}
+                    options={TYPES.map((t) => ({ value: t, label: t }))}
+                    ariaLabel="Direction"
+                  />
                 </FormField>
                 <FormField label="Date">
                   <input
@@ -158,17 +154,12 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Method">
-                  <select
+                  <SearchableSelect
                     value={draft.method}
-                    onChange={(e) => set("method", e.target.value as PaymentMethod)}
-                    className={inputCls}
-                  >
-                    {METHODS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("method", v as PaymentMethod)}
+                    options={METHODS.map((m) => ({ value: m, label: m }))}
+                    ariaLabel="Method"
+                  />
                 </FormField>
                 <FormField label="Bank account" required error={submitted ? errors.bankAccount : undefined}>
                   <input
@@ -216,17 +207,12 @@ export function PaymentFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as PaymentStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as PaymentStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
               </div>
 

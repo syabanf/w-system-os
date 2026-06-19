@@ -6,6 +6,7 @@ import { Building2, X } from "lucide-react";
 import type { AccountHealth, Client } from "@/domain/entities/Client";
 import { useClientsStore, type ClientDraft } from "@/state/clients.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
 
@@ -186,17 +187,12 @@ export function ClientFormDialog({
                   />
                 </FormField>
                 <FormField label="Region">
-                  <select
+                  <SearchableSelect
                     value={draft.region}
-                    onChange={(e) => set("region", e.target.value)}
-                    className={inputCls}
-                  >
-                    {REGION_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("region", v)}
+                    options={REGION_OPTIONS.map((r) => ({ value: r, label: r }))}
+                    ariaLabel="Region"
+                  />
                 </FormField>
                 <FormField label="Account owner ID">
                   <input
@@ -264,17 +260,12 @@ export function ClientFormDialog({
                   />
                 </FormField>
                 <FormField label="Health">
-                  <select
+                  <SearchableSelect
                     value={draft.health}
-                    onChange={(e) => set("health", e.target.value as AccountHealth)}
-                    className={inputCls}
-                  >
-                    {HEALTH_OPTIONS.map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("health", v as AccountHealth)}
+                    options={HEALTH_OPTIONS.map((h) => ({ value: h, label: h }))}
+                    ariaLabel="Health"
+                  />
                 </FormField>
                 <FormField label="Renewal date">
                   <input

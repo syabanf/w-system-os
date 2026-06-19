@@ -6,6 +6,7 @@ import { KeyRound, X } from "lucide-react";
 import type { Role, UserAccount } from "@/domain/entities/User";
 import type { UserDraft } from "@/state/users.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 
 const ROLES: Role[] = [
   "Super Admin",
@@ -140,17 +141,12 @@ export function UserFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Role">
-                  <select
+                  <SearchableSelect
                     value={draft.role}
-                    onChange={(e) => set("role", e.target.value as Role)}
-                    className={inputCls}
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("role", v as Role)}
+                    options={ROLES.map((r) => ({ value: r, label: r }))}
+                    ariaLabel="Role"
+                  />
                 </FormField>
               </div>
 

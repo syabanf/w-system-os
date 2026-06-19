@@ -14,6 +14,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockSprints } from "@/infrastructure/data/tasks.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 
 const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "critical"];
@@ -151,58 +152,42 @@ export function TaskFormDialog({
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Project" required error={submitted ? errors.projectId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.projectId}
-                    onChange={(e) => set("projectId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.projectId}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} · {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("projectId", v)}
+                    options={mockProjects.map((p) => ({
+                      value: p.id,
+                      label: `${p.code} · ${p.name}`,
+                    }))}
+                    ariaLabel="Project"
+                  />
                 </FormField>
                 <FormField label="Sprint">
-                  <select
+                  <SearchableSelect
                     value={draft.sprintId ?? ""}
-                    onChange={(e) => set("sprintId", e.target.value || undefined)}
-                    className={inputCls}
-                  >
-                    <option value="">— Unassigned (backlog)</option>
-                    {projectSprints.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("sprintId", v || undefined)}
+                    options={[
+                      { value: "", label: "— Unassigned (backlog)" },
+                      ...projectSprints.map((s) => ({ value: s.id, label: s.name })),
+                    ]}
+                    ariaLabel="Sprint"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as TaskStatus)}
-                    className={inputCls}
-                  >
-                    {TASK_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as TaskStatus)}
+                    options={TASK_STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Priority">
-                  <select
+                  <SearchableSelect
                     value={draft.priority}
-                    onChange={(e) => set("priority", e.target.value as TaskPriority)}
-                    className={inputCls}
-                  >
-                    {PRIORITIES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("priority", v as TaskPriority)}
+                    options={PRIORITIES.map((p) => ({ value: p, label: p }))}
+                    ariaLabel="Priority"
+                  />
                 </FormField>
                 <FormField label="Story points" error={submitted ? errors.storyPoints : undefined}>
                   <input
@@ -216,18 +201,12 @@ export function TaskFormDialog({
                   />
                 </FormField>
                 <FormField label="Assignee" required error={submitted ? errors.assigneeId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.assigneeId}
-                    onChange={(e) => set("assigneeId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.assigneeId}
-                  >
-                    {mockTeam.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("assigneeId", v)}
+                    options={mockTeam.map((m) => ({ value: m.id, label: m.name }))}
+                    ariaLabel="Assignee"
+                  />
                 </FormField>
                 <FormField label="Due date">
                   <input

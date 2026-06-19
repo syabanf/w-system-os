@@ -13,6 +13,7 @@ import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { mockEpics } from "@/infrastructure/data/epics.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 
 const STATUSES: UserStoryStatus[] = ["Backlog", "Ready", "In Progress", "Review", "Done"];
 const PRIORITIES: UserStoryPriority[] = ["low", "medium", "high", "critical"];
@@ -219,61 +220,46 @@ export function StoryFormDialog({
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Project" required>
-                  <select
+                  <SearchableSelect
                     value={draft.projectId}
-                    onChange={(e) => set("projectId", e.target.value)}
-                    className={inputCls}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} · {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("projectId", v)}
+                    options={mockProjects.map((p) => ({
+                      value: p.id,
+                      label: `${p.code} · ${p.name}`,
+                    }))}
+                    ariaLabel="Project"
+                  />
                 </FormField>
                 <FormField label="Epic" required error={submitted ? errors.epicId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.epicId}
-                    onChange={(e) => set("epicId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.epicId}
-                  >
-                    {projectEpics.length === 0 ? (
-                      <option value="">— No epics in this project</option>
-                    ) : (
-                      projectEpics.map((ep) => (
-                        <option key={ep.id} value={ep.id}>
-                          {ep.code} · {ep.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                    onChange={(v) => set("epicId", v)}
+                    options={
+                      projectEpics.length === 0
+                        ? [{ value: "", label: "— No epics in this project" }]
+                        : projectEpics.map((ep) => ({
+                            value: ep.id,
+                            label: `${ep.code} · ${ep.name}`,
+                          }))
+                    }
+                    ariaLabel="Epic"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as UserStoryStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as UserStoryStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Priority">
-                  <select
+                  <SearchableSelect
                     value={draft.priority}
-                    onChange={(e) => set("priority", e.target.value as UserStoryPriority)}
-                    className={inputCls}
-                  >
-                    {PRIORITIES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("priority", v as UserStoryPriority)}
+                    options={PRIORITIES.map((p) => ({ value: p, label: p }))}
+                    ariaLabel="Priority"
+                  />
                 </FormField>
                 <FormField label="Story points">
                   <input
@@ -286,17 +272,12 @@ export function StoryFormDialog({
                   />
                 </FormField>
                 <FormField label="Owner">
-                  <select
+                  <SearchableSelect
                     value={draft.ownerId}
-                    onChange={(e) => set("ownerId", e.target.value)}
-                    className={inputCls}
-                  >
-                    {mockTeam.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("ownerId", v)}
+                    options={mockTeam.map((m) => ({ value: m.id, label: m.name }))}
+                    ariaLabel="Owner"
+                  />
                 </FormField>
               </div>
 

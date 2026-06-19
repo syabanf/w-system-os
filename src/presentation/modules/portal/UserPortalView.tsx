@@ -21,6 +21,7 @@ import {
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 import { mockTeam } from "@/infrastructure/data/team.mock";
@@ -666,17 +667,12 @@ function LeaveRequestTab() {
               <span className="text-[10px] uppercase tracking-wider text-zinc-400">
                 Leave type
               </span>
-              <select
+              <SearchableSelect
                 value={leaveType}
-                onChange={(e) => setLeaveType(e.target.value as LeaveType)}
-                className="rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 focus:border-white/25 focus:outline-none"
-              >
-                {types.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setLeaveType(v as LeaveType)}
+                options={types.map((t) => ({ value: t, label: t }))}
+                ariaLabel="Leave type"
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-wider text-zinc-400">
@@ -919,17 +915,12 @@ function MeetHRTab() {
           <div className="space-y-3">
             <label className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-wider text-zinc-400">Purpose</span>
-              <select
+              <SearchableSelect
                 value={purpose}
-                onChange={(e) => setPurpose(e.target.value as HRMeetingPurpose)}
-                className="rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-100 focus:border-white/25 focus:outline-none"
-              >
-                {purposes.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setPurpose(v as HRMeetingPurpose)}
+                options={purposes.map((p) => ({ value: p, label: p }))}
+                ariaLabel="Purpose"
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-wider text-zinc-400">Notes</span>

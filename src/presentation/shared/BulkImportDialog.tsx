@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClipboardPaste, Upload, X } from "lucide-react";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 
 export interface ImportFieldDef {
@@ -162,20 +163,17 @@ export function BulkImportDialog<T>({
                               <span className="ml-2 normal-case text-zinc-500">e.g. {f.example}</span>
                             ) : null}
                           </span>
-                          <select
+                          <SearchableSelect
                             value={resolvedMapping[f.key] ?? AUTO}
-                            onChange={(e) =>
-                              setMapping((m) => ({ ...m, [f.key]: e.target.value }))
+                            onChange={(v) =>
+                              setMapping((m) => ({ ...m, [f.key]: v }))
                             }
-                            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-zinc-100 focus:border-white/25 focus:outline-none"
-                          >
-                            <option value={SKIP}>— skip —</option>
-                            {headers.map((h) => (
-                              <option key={h} value={h}>
-                                {h}
-                              </option>
-                            ))}
-                          </select>
+                            options={[
+                              { value: SKIP, label: "— skip —" },
+                              ...headers.map((h) => ({ value: h, label: h })),
+                            ]}
+                            ariaLabel={f.label}
+                          />
                         </label>
                       ))}
                     </div>

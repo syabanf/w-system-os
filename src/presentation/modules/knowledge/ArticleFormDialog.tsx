@@ -6,6 +6,7 @@ import { BookOpenCheck, X } from "lucide-react";
 import type { KnowledgeArticle } from "@/infrastructure/data/knowledge.mock";
 import type { KnowledgeDraft } from "@/state/knowledge.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 
 const CATEGORIES: KnowledgeArticle["category"][] = [
@@ -141,19 +142,12 @@ export function ArticleFormDialog({ open, editing, onClose, onSubmit }: Props) {
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Category">
-                  <select
+                  <SearchableSelect
                     value={draft.category}
-                    onChange={(e) =>
-                      set("category", e.target.value as KnowledgeArticle["category"])
-                    }
-                    className={inputCls}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("category", v as KnowledgeArticle["category"])}
+                    options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+                    ariaLabel="Category"
+                  />
                 </FormField>
                 <FormField label="Author ID">
                   <input

@@ -10,6 +10,7 @@ import type {
 } from "@/domain/entities/Employee";
 import type { EmployeeDraft } from "@/state/employees.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { demoDateInput } from "@/lib/date";
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ["Permanent", "Contract", "Probation", "Intern"];
@@ -184,17 +185,12 @@ export function EmployeeFormDialog({
                   />
                 </FormField>
                 <FormField label="Department">
-                  <select
+                  <SearchableSelect
                     value={draft.department}
-                    onChange={(e) => set("department", e.target.value)}
-                    className={inputCls}
-                  >
-                    {DEPARTMENTS.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("department", v)}
+                    options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+                    ariaLabel="Department"
+                  />
                 </FormField>
                 <FormField label="Position" required error={submitted ? errors.position : undefined}>
                   <input
@@ -207,32 +203,20 @@ export function EmployeeFormDialog({
                   />
                 </FormField>
                 <FormField label="Employment type">
-                  <select
+                  <SearchableSelect
                     value={draft.employmentType}
-                    onChange={(e) =>
-                      set("employmentType", e.target.value as EmploymentType)
-                    }
-                    className={inputCls}
-                  >
-                    {EMPLOYMENT_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("employmentType", v as EmploymentType)}
+                    options={EMPLOYMENT_TYPES.map((t) => ({ value: t, label: t }))}
+                    ariaLabel="Employment type"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as EmployeeStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as EmployeeStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Join date">
                   <input

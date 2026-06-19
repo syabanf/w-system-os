@@ -46,6 +46,7 @@ import { PastelKPITile } from "./PastelKPITile";
 import { MilestoneCalendar } from "./MilestoneCalendar";
 import { InvoiceMiniList } from "./InvoiceMiniList";
 import { QuotationMiniList } from "./QuotationMiniList";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 
 const PAGE_SIZE = 7;
 
@@ -321,20 +322,16 @@ export function ClientWorkflowTab({
                 placeholder="Search clients…"
                 className="w-56"
               />
-              <select
+              <SearchableSelect
                 value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
+                onChange={(v) => {
+                  setStatus(v);
                   setPage(0);
                 }}
-                className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] text-zinc-200 outline-none focus:border-white/25"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                options={STATUS_OPTIONS.map((s) => ({ value: s.id, label: s.label }))}
+                ariaLabel="Filter by status"
+                className="w-40"
+              />
               {onAddClient ? (
                 <button
                   type="button"

@@ -10,6 +10,7 @@ import type {
 } from "@/domain/entities/Transaction";
 import type { ExpenseClaimDraft } from "@/state/expenseClaims.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoDateInput } from "@/lib/date";
 
@@ -139,17 +140,12 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Category">
-                  <select
+                  <SearchableSelect
                     value={draft.category}
-                    onChange={(e) => set("category", e.target.value as ExpenseCategory)}
-                    className={inputCls}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("category", v as ExpenseCategory)}
+                    options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+                    ariaLabel="Category"
+                  />
                 </FormField>
                 <FormField label="Amount" required error={submitted ? errors.amount : undefined}>
                   <input
@@ -163,17 +159,12 @@ export function ExpenseFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as ExpenseStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as ExpenseStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Approver">
                   <input

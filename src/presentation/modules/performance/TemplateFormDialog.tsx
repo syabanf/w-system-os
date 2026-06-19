@@ -9,6 +9,7 @@ import type {
 } from "@/infrastructure/data/performance360.mock";
 import type { PerformanceTemplateDraft } from "@/state/performanceTemplates.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { DEMO_YEAR } from "@/lib/date";
 
@@ -198,17 +199,12 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
                   />
                 </FormField>
                 <FormField label="Period kind">
-                  <select
+                  <SearchableSelect
                     value={draft.periodKind}
-                    onChange={(e) => set("periodKind", e.target.value as PeriodKind)}
-                    className={inputCls}
-                  >
-                    {PERIOD_KINDS.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("periodKind", v as PeriodKind)}
+                    options={PERIOD_KINDS.map((k) => ({ value: k, label: k }))}
+                    ariaLabel="Period kind"
+                  />
                 </FormField>
                 <FormField label="Period start">
                   <input
@@ -245,19 +241,12 @@ export function TemplateFormDialog({ open, editing, onClose, onSubmit }: Props) 
               </div>
 
               <FormField label="Status">
-                <select
+                <SearchableSelect
                   value={draft.status}
-                  onChange={(e) =>
-                    set("status", e.target.value as Performance360Status)
-                  }
-                  className={inputCls}
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => set("status", v as Performance360Status)}
+                  options={STATUSES.map((s) => ({ value: s, label: s }))}
+                  ariaLabel="Status"
+                />
               </FormField>
 
               <footer className="-mx-5 -mb-4 flex items-center justify-end gap-2 border-t border-white/8 bg-white/[0.02] px-5 py-3">

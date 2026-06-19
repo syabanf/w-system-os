@@ -12,6 +12,7 @@ import type {
   KpiUnit,
 } from "@/state/kpis.store";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 
 const PILLARS: KpiPillar[] = ["Growth", "Delivery", "People", "Finance", "Customer"];
@@ -197,30 +198,20 @@ export function KPIFormDialog({ open, editing, initialName, onClose, onSubmit }:
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Pillar">
-                  <select
+                  <SearchableSelect
                     value={draft.pillar}
-                    onChange={(e) => set("pillar", e.target.value as KpiPillar)}
-                    className={inputCls}
-                  >
-                    {PILLARS.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("pillar", v as KpiPillar)}
+                    options={PILLARS.map((p) => ({ value: p, label: p }))}
+                    ariaLabel="Pillar"
+                  />
                 </FormField>
                 <FormField label="Unit">
-                  <select
+                  <SearchableSelect
                     value={draft.unit}
-                    onChange={(e) => set("unit", e.target.value as KpiUnit)}
-                    className={inputCls}
-                  >
-                    {UNITS.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("unit", v as KpiUnit)}
+                    options={UNITS.map((u) => ({ value: u, label: u }))}
+                    ariaLabel="Unit"
+                  />
                 </FormField>
                 <FormField label="Current" required error={submitted ? errors.current : undefined}>
                   <input
@@ -245,32 +236,20 @@ export function KPIFormDialog({ open, editing, initialName, onClose, onSubmit }:
                   />
                 </FormField>
                 <FormField label="Direction">
-                  <select
+                  <SearchableSelect
                     value={draft.direction}
-                    onChange={(e) =>
-                      set("direction", e.target.value as KpiDirection)
-                    }
-                    className={inputCls}
-                  >
-                    {DIRECTIONS.map((d) => (
-                      <option key={d.value} value={d.value}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("direction", v as KpiDirection)}
+                    options={DIRECTIONS.map((d) => ({ value: d.value, label: d.label }))}
+                    ariaLabel="Direction"
+                  />
                 </FormField>
                 <FormField label="Cadence">
-                  <select
+                  <SearchableSelect
                     value={draft.cadence}
-                    onChange={(e) => set("cadence", e.target.value as KpiCadence)}
-                    className={inputCls}
-                  >
-                    {CADENCES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("cadence", v as KpiCadence)}
+                    options={CADENCES.map((c) => ({ value: c, label: c }))}
+                    ariaLabel="Cadence"
+                  />
                 </FormField>
               </div>
 

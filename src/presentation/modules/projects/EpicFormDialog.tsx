@@ -8,6 +8,7 @@ import type { EpicDraft } from "@/state/epics.store";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
 
@@ -165,43 +166,31 @@ export function EpicFormDialog({
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Project" required>
-                  <select
+                  <SearchableSelect
                     value={draft.projectId}
-                    onChange={(e) => set("projectId", e.target.value)}
-                    className={inputCls}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} · {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("projectId", v)}
+                    options={mockProjects.map((p) => ({
+                      value: p.id,
+                      label: `${p.code} · ${p.name}`,
+                    }))}
+                    ariaLabel="Project"
+                  />
                 </FormField>
                 <FormField label="Owner">
-                  <select
+                  <SearchableSelect
                     value={draft.ownerId}
-                    onChange={(e) => set("ownerId", e.target.value)}
-                    className={inputCls}
-                  >
-                    {mockTeam.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("ownerId", v)}
+                    options={mockTeam.map((m) => ({ value: m.id, label: m.name }))}
+                    ariaLabel="Owner"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as EpicStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as EpicStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
                 <FormField label="Accent color">
                   <div className="flex flex-wrap gap-1.5">

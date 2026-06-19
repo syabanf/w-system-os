@@ -9,6 +9,7 @@ import type { InvoiceDraft } from "@/state/invoices.store";
 import { mockClients } from "@/infrastructure/data/clients.mock";
 import { mockProjects } from "@/infrastructure/data/projects.mock";
 import { FormField } from "@/presentation/shared/FormField";
+import { SearchableSelect } from "@/presentation/shared/SearchableSelect";
 import { cn } from "@/lib/cn";
 import { demoNow } from "@/lib/date";
 
@@ -125,32 +126,23 @@ export function InvoiceFormDialog({ open, editing, onClose, onSubmit }: Props) {
             <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Client" required error={submitted ? errors.clientId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.clientId}
-                    onChange={(e) => set("clientId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.clientId}
-                  >
-                    {mockClients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("clientId", v)}
+                    options={mockClients.map((c) => ({ value: c.id, label: c.name }))}
+                    ariaLabel="Client"
+                  />
                 </FormField>
                 <FormField label="Project" required error={submitted ? errors.projectId : undefined}>
-                  <select
+                  <SearchableSelect
                     value={draft.projectId}
-                    onChange={(e) => set("projectId", e.target.value)}
-                    className={inputCls}
-                    aria-invalid={submitted && !!errors.projectId}
-                  >
-                    {mockProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} · {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("projectId", v)}
+                    options={mockProjects.map((p) => ({
+                      value: p.id,
+                      label: `${p.code} · ${p.name}`,
+                    }))}
+                    ariaLabel="Project"
+                  />
                 </FormField>
                 <FormField label="Issue date">
                   <input
@@ -192,27 +184,23 @@ export function InvoiceFormDialog({ open, editing, onClose, onSubmit }: Props) {
                   />
                 </FormField>
                 <FormField label="Currency">
-                  <select
+                  <SearchableSelect
                     value={draft.currency}
-                    onChange={(e) => set("currency", e.target.value as Invoice["currency"])}
-                    className={inputCls}
-                  >
-                    <option value="IDR">IDR</option>
-                    <option value="USD">USD</option>
-                  </select>
+                    onChange={(v) => set("currency", v as Invoice["currency"])}
+                    options={[
+                      { value: "IDR", label: "IDR" },
+                      { value: "USD", label: "USD" },
+                    ]}
+                    ariaLabel="Currency"
+                  />
                 </FormField>
                 <FormField label="Status">
-                  <select
+                  <SearchableSelect
                     value={draft.status}
-                    onChange={(e) => set("status", e.target.value as InvoiceStatus)}
-                    className={inputCls}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => set("status", v as InvoiceStatus)}
+                    options={STATUSES.map((s) => ({ value: s, label: s }))}
+                    ariaLabel="Status"
+                  />
                 </FormField>
               </div>
 
