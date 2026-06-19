@@ -7,9 +7,41 @@ import type {
 } from "@/domain/entities/Employee";
 import { mockTeam } from "./team.mock";
 
+// Department heads — each function reports to its own lead, and the leads roll
+// up to the Director of Operations. Names below all exist in the team mock.
+const DEPT_MANAGER: Record<string, string> = {
+  Backend: "Bagas Adhitya", // Head of Engineering (tm-001)
+  Frontend: "Rizky Pratama", // Senior Frontend Engineer (tm-003)
+  "UI/UX": "Sekar Wulandari", // Lead Product Designer (tm-002)
+  QA: "Putri Andriani", // QA Lead (tm-006)
+  DevOps: "Bayu Nugraha", // DevOps Lead (tm-016)
+  Product: "Hana Wijaya", // Product Manager (tm-010)
+  "Project Management": "Damar Wicaksono", // Director of Operations (tm-005)
+  "Business Analyst": "Damar Wicaksono", // rolls up to operations
+};
+// Members who *are* the head of their function report to the director instead.
+const DEPT_HEAD_MEMBER_IDS = new Set([
+  "tm-001",
+  "tm-002",
+  "tm-003",
+  "tm-006",
+  "tm-010",
+  "tm-016",
+]);
+const DIRECTOR = "Damar Wicaksono";
+
+// First payday-eligible hire dates, staggered so cohorts don't all share a day.
+const JOIN_DATES = [
+  "2023-02-06", "2023-04-12", "2023-05-22", "2023-07-03", "2023-09-18",
+  "2024-01-15", "2024-03-25", "2024-06-10", "2024-08-19", "2024-11-04",
+  "2025-01-13", "2025-02-03", "2025-04-21", "2025-07-07", "2025-09-15",
+  "2025-11-24",
+];
+
 // Build employees from existing team mock data so we don't duplicate identities.
 export const mockEmployees: Employee[] = mockTeam.map((member, idx) => {
   const [firstName, ...rest] = member.name.split(" ");
+  const isDeptHead = DEPT_HEAD_MEMBER_IDS.has(member.id);
   return {
     id: `emp-${idx + 1}`.padStart(7, "0"),
     memberId: member.id,
@@ -18,12 +50,17 @@ export const mockEmployees: Employee[] = mockTeam.map((member, idx) => {
     lastName: rest.join(" "),
     email: member.email,
     phone: `+62 8${100000000 + idx * 1234}`,
-    joinDate: idx < 5 ? "2023-04-12" : idx < 10 ? "2024-08-19" : "2025-02-03",
+    joinDate: JOIN_DATES[idx] ?? "2025-02-03",
     employmentType: idx < 3 ? "Permanent" : idx < 12 ? "Permanent" : "Contract",
     status: member.availability === "on-leave" ? "on-leave" : "active",
     department: member.department,
     position: member.role,
-    managerName: idx === 4 ? "Damar Wicaksono" : "Damar Wicaksono",
+    managerName:
+      member.id === "tm-005"
+        ? "Wira Hadiprawira" // Director reports to the CEO
+        : isDeptHead
+          ? DIRECTOR
+          : DEPT_MANAGER[member.department] ?? DIRECTOR,
     basicSalary: 12_000_000 + idx * 850_000 + (member.role.includes("Lead") ? 6_000_000 : 0),
     bpjsKes: true,
     bpjsTk: idx < 14,
@@ -183,13 +220,28 @@ export interface EmployeeAllowance {
 
 const PICKS = <T,>(arr: T[], n: number): T[] => arr.slice(0, n);
 
+// Real Indonesian given names so families don't read as "Pasangan {lastName}" /
+// "Anak Pertama {lastName}". Indexed by employee order for stable, varied output.
+const SPOUSE_NAMES = [
+  "Anindita", "Reza", "Maharani", "Bramantyo", "Sasikirana",
+  "Dewangga", "Kirana", "Yudhistira", "Paramita", "Wisnu",
+  "Cempaka", "Arjuna", "Larasati", "Bagaskara", "Mentari",
+  "Renjana",
+];
+const CHILD_NAMES = [
+  "Arsa", "Kayla", "Banyu", "Naura", "Gilang",
+  "Aleva", "Damai", "Sasha", "Bintang", "Kenzie",
+  "Langit", "Nayla", "Rendra", "Alga", "Cahaya",
+  "Devano",
+];
+
 export const mockFamilyMembers: EmployeeFamilyMember[] = mockEmployees.flatMap((emp, i) => {
   const list: EmployeeFamilyMember[] = [];
   if (i % 2 === 0) {
     list.push({
       id: `fm-${emp.id}-1`,
       employeeId: emp.id,
-      name: `${emp.firstName === "Bagas" ? "Anindita" : emp.firstName === "Sekar" ? "Reza" : "Pasangan"} ${emp.lastName}`,
+      name: `${SPOUSE_NAMES[i % SPOUSE_NAMES.length]} ${emp.lastName}`,
       relation: "Spouse",
       phone: `+62 81${200000000 + i * 999}`,
       birthDate: `19${85 + (i % 10)}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
@@ -200,7 +252,7 @@ export const mockFamilyMembers: EmployeeFamilyMember[] = mockEmployees.flatMap((
     list.push({
       id: `fm-${emp.id}-2`,
       employeeId: emp.id,
-      name: `Anak Pertama ${emp.lastName}`,
+      name: `${CHILD_NAMES[i % CHILD_NAMES.length]} ${emp.lastName}`,
       relation: "Child",
       birthDate: `20${15 + (i % 8)}-0${(i % 9) + 1}-15`,
       dependentForTax: true,
