@@ -19,6 +19,7 @@ import { useToast } from "@/state/toast.store";
 import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { SearchInput } from "@/presentation/shared/SearchInput";
+import { ClientFilterSelect } from "@/presentation/shared/ClientFilterSelect";
 import { ProjectTable } from "./ProjectTable";
 import { ProjectKanban } from "./ProjectKanban";
 import { ProjectRoadmap } from "./ProjectRoadmap";
@@ -58,6 +59,7 @@ export function ProjectManagementView() {
   const [board, setBoard] = useState<ProjectBoardDTO | null>(null);
   const [view, setView] = useState<View>("table");
   const [query, setQuery] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
   const [section, setSection] = useState<Section>("portfolio");
   // Drill position persisted per level so a drill-down survives reloads /
   // app switches. The `Drill` union below is derived from these ids; the
@@ -187,15 +189,17 @@ export function ProjectManagementView() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter(
-      (p) =>
+    return projects.filter((p) => {
+      if (clientFilter && p.clientId !== clientFilter) return false;
+      if (!q) return true;
+      return (
         p.name.toLowerCase().includes(q) ||
         p.code.toLowerCase().includes(q) ||
         p.clientName.toLowerCase().includes(q) ||
-        p.status.toLowerCase().includes(q),
-    );
-  }, [projects, query]);
+        p.status.toLowerCase().includes(q)
+      );
+    });
+  }, [projects, query, clientFilter]);
 
   const active = projects.filter((p) => p.status !== "Delivered" && p.status !== "Maintenance");
   const atRisk = projects.filter((p) => p.health === "red").length;
@@ -293,6 +297,11 @@ export function ProjectManagementView() {
                 onChange={setQuery}
                 placeholder="Search projects, code, client…"
                 className="w-full sm:w-auto md:w-72"
+              />
+              <ClientFilterSelect
+                value={clientFilter}
+                onChange={setClientFilter}
+                className="w-full sm:w-44"
               />
               <ViewSwitch view={view} onChange={setView} />
               <NewButton

@@ -19,6 +19,7 @@ import { DataTable, type Column } from "@/presentation/shared/DataTable";
 import { StatusBadge } from "@/presentation/shared/StatusBadge";
 import { EmptyState } from "@/presentation/shared/EmptyState";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
+import { ClientFilterSelect } from "@/presentation/shared/ClientFilterSelect";
 import { formatPercent } from "@/lib/currency";
 import { ManageMasterDataButton } from "@/presentation/shared/ManageMasterDataButton";
 
@@ -36,10 +37,22 @@ export function TimesheetView() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TimesheetEntry | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<TimesheetEntry | null>(null);
+  const [clientFilter, setClientFilter] = useState("");
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Timesheet entries carry a projectId, not a clientId — resolve the client
+  // through the project so the "Filter by client" control can scope everything.
+  const projClientMap = useMemo(
+    () => new Map(mockProjects.map((p) => [p.id, p.clientId])),
+    [],
+  );
+  const filteredEntries = useMemo(
+    () => entries.filter((e) => !clientFilter || projClientMap.get(e.projectId) === clientFilter),
+    [entries, clientFilter, projClientMap],
+  );
 
   // ⌘N / Ctrl-N opens the "Log time" dialog when this view is focused.
   useHotkey("mod+n", (e) => {
@@ -53,15 +66,15 @@ export function TimesheetView() {
   const summary: TimesheetSummary = useMemo(() => {
     const memberMap = new Map(mockTeam.map((m) => [m.id, m.name]));
     const projectMap = new Map(mockProjects.map((p) => [p.id, p.name]));
-    const enriched: EnrichedEntry[] = entries.map((e) => ({
+    const enriched: EnrichedEntry[] = filteredEntries.map((e) => ({
       ...e,
       memberName: memberMap.get(e.memberId) ?? "Unknown",
       projectName: projectMap.get(e.projectId) ?? "Unknown",
     }));
-    const totalHours = entries.reduce((s, e) => s + e.hours, 0);
-    const billableHours = entries.filter((e) => e.billable).reduce((s, e) => s + e.hours, 0);
+    const totalHours = filteredEntries.reduce((s, e) => s + e.hours, 0);
+    const billableHours = filteredEntries.filter((e) => e.billable).reduce((s, e) => s + e.hours, 0);
     const dayMap = new Map<string, { total: number; billable: number }>();
-    entries.forEach((e) => {
+    filteredEntries.forEach((e) => {
       const cur = dayMap.get(e.date) ?? { total: 0, billable: 0 };
       cur.total += e.hours;
       if (e.billable) cur.billable += e.hours;
@@ -75,10 +88,10 @@ export function TimesheetView() {
       totalHours,
       billableHours,
       billableRatio: totalHours > 0 ? (billableHours / totalHours) * 100 : 0,
-      pendingApproval: entries.filter((e) => e.approvalStatus === "submitted").length,
+      pendingApproval: filteredEntries.filter((e) => e.approvalStatus === "submitted").length,
       byDay,
     };
-  }, [entries]);
+  }, [filteredEntries]);
 
   const pendingRows = summary.entries
     .filter((e) => e.approvalStatus === "submitted")
@@ -171,6 +184,11 @@ export function TimesheetView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <ClientFilterSelect
+            value={clientFilter}
+            onChange={setClientFilter}
+            className="w-full sm:w-44"
+          />
           <button
             type="button"
             onClick={openCreate}

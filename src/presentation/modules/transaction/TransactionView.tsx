@@ -44,6 +44,7 @@ import { POFormDialog } from "./POFormDialog";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
 import { DeleteConfirmDialog } from "@/presentation/shared/DeleteConfirmDialog";
 import { NewButton } from "@/presentation/shared/NewButton";
+import { ClientFilterSelect } from "@/presentation/shared/ClientFilterSelect";
 
 type Tab = "invoices" | "payments" | "po" | "expenses";
 
@@ -308,6 +309,7 @@ function docLabel(ref: DocRef): { label: string; sublabel: string } {
 export function TransactionView() {
   const [data, setData] = useState<TransactionOverviewDTO | null>(null);
   const [tab, setTab] = useState<Tab>("invoices");
+  const [clientFilter, setClientFilter] = useState("");
   const [drillId, setDrillId] = useDrillState("transactions");
 
   // Payments + Invoices CRUD via stores. PO + Expenses still use the DTO.
@@ -451,6 +453,13 @@ export function TransactionView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {!docRef && (tab === "invoices" || tab === "payments") ? (
+            <ClientFilterSelect
+              value={clientFilter}
+              onChange={setClientFilter}
+              className="w-full sm:w-44"
+            />
+          ) : null}
           <TabSwitch
             tab={tab}
             onChange={(t) => {
@@ -508,7 +517,13 @@ export function TransactionView() {
 
           {tab === "invoices" && (
             <InvoicesTab
-              data={view}
+              data={{
+                ...view,
+                // Filter by client: invoices carry a direct clientId.
+                invoices: clientFilter
+                  ? view.invoices.filter((i) => i.clientId === clientFilter)
+                  : view.invoices,
+              }}
               onDrill={setDrillId}
               onAdd={() => {
                 setEditingInvoice(null);
@@ -523,7 +538,14 @@ export function TransactionView() {
           )}
           {tab === "payments" && (
             <PaymentsTab
-              data={view}
+              data={{
+                ...view,
+                // Filter by client: payments have an OPTIONAL clientId — keep
+                // vendor/outgoing payments (no clientId) visible regardless.
+                payments: clientFilter
+                  ? view.payments.filter((p) => !p.clientId || p.clientId === clientFilter)
+                  : view.payments,
+              }}
               onDrill={setDrillId}
               onAdd={() => {
                 setEditingPayment(null);

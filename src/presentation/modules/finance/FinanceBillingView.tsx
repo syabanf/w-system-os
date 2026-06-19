@@ -8,6 +8,7 @@ import { MetricCard } from "@/presentation/shared/MetricCard";
 import { SectionHeader } from "@/presentation/shared/SectionHeader";
 import { ChartCard } from "@/presentation/shared/ChartCard";
 import { SearchInput } from "@/presentation/shared/SearchInput";
+import { ClientFilterSelect } from "@/presentation/shared/ClientFilterSelect";
 import { InvoiceTable } from "./InvoiceTable";
 import { CashflowChart } from "./CashflowChart";
 import { ProfitabilityPanel } from "./ProfitabilityPanel";
@@ -23,6 +24,7 @@ type Tab = "billing" | "gl" | "termin";
 export function FinanceBillingView() {
   const [data, setData] = useState<FinanceOverviewDTO | null>(null);
   const [query, setQuery] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
   const [tab, setTab] = useState<Tab>("billing");
 
   useEffect(() => {
@@ -39,15 +41,17 @@ export function FinanceBillingView() {
   const invoices = useMemo(() => {
     if (!data) return [];
     const q = query.trim().toLowerCase();
-    if (!q) return data.invoices;
-    return data.invoices.filter(
-      (i) =>
+    return data.invoices.filter((i) => {
+      if (clientFilter && i.clientId !== clientFilter) return false;
+      if (!q) return true;
+      return (
         i.number.toLowerCase().includes(q) ||
         i.clientName.toLowerCase().includes(q) ||
         i.projectName.toLowerCase().includes(q) ||
-        i.status.toLowerCase().includes(q),
-    );
-  }, [data, query]);
+        i.status.toLowerCase().includes(q)
+      );
+    });
+  }, [data, query, clientFilter]);
 
   if (!data) return <SkeletonLoadingView />;
 
@@ -69,12 +73,19 @@ export function FinanceBillingView() {
         </div>
         <div className="flex items-center gap-2">
           {tab === "billing" ? (
-            <SearchInput
-              value={query}
-              onChange={setQuery}
-              placeholder="Search invoices, client, project…"
-              className="w-full sm:w-auto md:w-72"
-            />
+            <>
+              <SearchInput
+                value={query}
+                onChange={setQuery}
+                placeholder="Search invoices, client, project…"
+                className="w-full sm:w-auto md:w-72"
+              />
+              <ClientFilterSelect
+                value={clientFilter}
+                onChange={setClientFilter}
+                className="w-full sm:w-44"
+              />
+            </>
           ) : null}
           <TabSwitch tab={tab} onChange={setTab} />
           <ManageMasterDataButton moduleId="finance" />
