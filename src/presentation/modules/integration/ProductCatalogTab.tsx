@@ -90,14 +90,12 @@ export function ProductCatalogTab() {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-[1fr_1fr_2fr]">
-        <PastelKPITile tone="cream" value={String(productCount)} label="Product" />
+        <PastelKPITile tone="cream" value={String(productCount)} label="Products" />
         <PastelKPITile tone="mint" value={String(serviceCount)} label="Services" />
         <div className="glass grid place-items-center rounded-[20px] p-4 text-center">
           <div>
-            <div className="text-xs text-zinc-400">New</div>
-            <div className="text-2xl font-bold text-zinc-50">
-              20 Product
-            </div>
+            <div className="text-xs text-zinc-400">New products</div>
+            <div className="text-2xl font-bold text-zinc-50">20</div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
               Added this month
             </div>
@@ -107,7 +105,7 @@ export function ProductCatalogTab() {
 
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
-          <Panel title="Most Dealing Product">
+          <Panel title="Top products by deals">
             <ul className="space-y-2">
               {topDealing.map((k) => (
                 <li
@@ -118,13 +116,13 @@ export function ProductCatalogTab() {
                     {k.title}
                   </div>
                   <div className="mt-1 text-[11px] text-zinc-400">
-                    {k.readMinutes * 18} Deal · {k.category}
+                    {k.readMinutes * 18} deals · {k.category}
                   </div>
                 </li>
               ))}
             </ul>
           </Panel>
-          <Panel title="Most View Product">
+          <Panel title="Most viewed products">
             <ul className="space-y-2">
               {topViewed.map((k) => (
                 <li
@@ -135,7 +133,7 @@ export function ProductCatalogTab() {
                     {k.title}
                   </div>
                   <div className="mt-1 text-[11px] text-zinc-400">
-                    {k.readMinutes * 14} View · {Math.max(2, Math.round(k.readMinutes * 2.2))} Download
+                    {k.readMinutes * 14} views · {Math.max(2, Math.round(k.readMinutes * 2.2))} downloads
                   </div>
                 </li>
               ))}

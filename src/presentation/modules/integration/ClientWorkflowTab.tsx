@@ -178,9 +178,7 @@ export function ClientWorkflowTab({
   const companyCount = clientsSource.length;
   const clientCount = clientsSource.length;
   const projectCount = projects.length;
-  // No projects use "Cancelled" status in mock; PDF shows the tile anyway.
-  const cancelCount =
-    projects.filter((p) => p.status === "Delivered").length || 100;
+  const deliveredCount = projects.filter((p) => p.status === "Delivered").length;
 
   const topViewed = useMemo(
     () => [...knowledge].sort((a, b) => b.readMinutes - a.readMinutes).slice(0, 3),
@@ -278,16 +276,16 @@ export function ClientWorkflowTab({
       ) : null}
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <PastelKPITile tone="cream" value={String(companyCount)} label="Company" style={{ "--stagger-index": 0 } as React.CSSProperties} />
-        <PastelKPITile tone="mint" value={String(clientCount)} label="Client" style={{ "--stagger-index": 1 } as React.CSSProperties} />
-        <PastelKPITile tone="blue" value={String(projectCount)} label="Project" style={{ "--stagger-index": 2 } as React.CSSProperties} />
-        <PastelKPITile tone="lilac" value={String(cancelCount)} label="Cancel" style={{ "--stagger-index": 3 } as React.CSSProperties} />
+        <PastelKPITile tone="cream" value={String(companyCount)} label="Companies" style={{ "--stagger-index": 0 } as React.CSSProperties} />
+        <PastelKPITile tone="mint" value={String(clientCount)} label="Clients" style={{ "--stagger-index": 1 } as React.CSSProperties} />
+        <PastelKPITile tone="blue" value={String(projectCount)} label="Projects" style={{ "--stagger-index": 2 } as React.CSSProperties} />
+        <PastelKPITile tone="lilac" value={String(deliveredCount)} label="Delivered" style={{ "--stagger-index": 3 } as React.CSSProperties} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
         <aside className="glass rounded-[20px] p-4">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            Most View Product
+            Most viewed products
           </div>
           <ul className="mt-3 space-y-2">
             {topViewed.map((k) => (
@@ -299,7 +297,7 @@ export function ClientWorkflowTab({
                   {k.title}
                 </div>
                 <div className="mt-1 text-[10px] text-zinc-400">
-                  {k.readMinutes * 14} View · {Math.max(2, Math.round(k.readMinutes * 2.2))} Download
+                  {k.readMinutes * 14} views · {Math.max(2, Math.round(k.readMinutes * 2.2))} downloads
                 </div>
               </li>
             ))}

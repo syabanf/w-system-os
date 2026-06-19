@@ -38,7 +38,7 @@ export function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password.trim().length === 0) {
-      setError("Enter your password to continue");
+      setError("Please enter your password.");
       return;
     }
     setError(null);

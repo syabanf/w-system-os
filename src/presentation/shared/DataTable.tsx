@@ -73,7 +73,7 @@ export function DataTable<T>({
   if (rows.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs text-zinc-400">
-        {empty ?? "No records."}
+        {empty ?? "Nothing here yet."}
       </div>
     );
   }

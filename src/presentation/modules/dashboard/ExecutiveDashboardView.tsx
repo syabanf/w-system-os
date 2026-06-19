@@ -42,7 +42,7 @@ export function ExecutiveDashboardView() {
             Executive Briefing · {formatDemoToday()}
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
-            Good morning, <span className="headline-gradient">{profile.name.split(" ")[0]}</span>. Here is your firm.
+            Good morning, <span className="headline-gradient">{profile.name.split(" ")[0]}</span>. Here&apos;s how your firm is doing.
           </h1>
           <p className="mt-1 max-w-2xl text-xs text-zinc-400">
             A composite view of revenue, delivery health, people utilization, and risks across all
@@ -130,7 +130,7 @@ export function ExecutiveDashboardView() {
           <SectionHeader
             eyebrow="Pulse"
             title="Recent team activity"
-            description="Last actions across the operating system."
+            description="What your team has been working on lately."
           />
           <ul className="space-y-2">
             {data.activityFeed.slice(0, 7).map((a) => {
