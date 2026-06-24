@@ -9,6 +9,7 @@ import {
   BellOff,
   Bluetooth,
   Focus,
+  Image as ImageIcon,
   Lock,
   Moon,
   Music2,
@@ -16,10 +17,10 @@ import {
   Play,
   RotateCcw,
   Search,
-  Settings2,
   Sparkles,
   Sun,
   SunMedium,
+  UserRound,
   Volume2,
   Wifi,
   WifiOff,
@@ -30,6 +31,8 @@ import { useDesktopStore } from "@/state/desktop.store";
 import { useSpotlightStore } from "@/state/spotlight.store";
 import { useReddieStore } from "@/state/reddie.store";
 import { useNotificationStore } from "@/state/notification.store";
+import { useCurrentWallpaper, useWallpaperStore } from "@/state/wallpaper.store";
+import { WALLPAPERS } from "@/constants/wallpapers";
 import { cn } from "@/lib/cn";
 
 /** iOS-style Control Center sheet. Renders nothing when neither open nor
@@ -102,10 +105,12 @@ function ControlCenterContent() {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggle);
   const toggleNotifications = useDesktopStore((s) => s.toggleNotifications);
-  const toggleProfile = useDesktopStore((s) => s.toggleProfile);
+  const openProfileEdit = useDesktopStore((s) => s.openProfileEdit);
   const toggleSpotlight = useSpotlightStore((s) => s.toggle);
   const openReddie = useReddieStore((s) => s.open);
   const unread = useNotificationStore((s) => s.unread);
+  const setWallpaper = useWallpaperStore((s) => s.setWallpaper);
+  const currentWallpaper = useCurrentWallpaper();
 
   // Quick toggles persist across sessions (Wi-Fi, brightness, …) via the store.
   const toggles = useControlCenterStore((s) => s.toggles);
@@ -224,6 +229,35 @@ function ControlCenterContent() {
         onChange={(v) => setToggle("volume", v)}
       />
 
+      {/* Wallpaper picker — the touch equivalent of the desktop right-click
+          "change wallpaper" menu. Applies instantly via the wallpaper store. */}
+      <div className="mt-2.5 rounded-[22px] bg-white/[0.06] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="inline-flex items-center gap-2 text-[12px] font-medium text-zinc-100">
+            <ImageIcon className="h-4 w-4" />
+            Wallpaper
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-400">
+            {currentWallpaper.name}
+          </span>
+        </div>
+        <div className="grid grid-cols-7 gap-1.5">
+          {WALLPAPERS.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => setWallpaper(w.id)}
+              aria-label={`Use ${w.name} wallpaper`}
+              title={w.name}
+              className={cn(
+                "h-9 rounded-lg ring-1 ring-white/10 transition-transform active:scale-95",
+                currentWallpaper.id === w.id && "ring-2 ring-white/80",
+              )}
+              style={{ background: w.css }}
+            />
+          ))}
+        </div>
+      </div>
+
       {/* App shortcuts — surface the desktop equivalents on a touch device */}
       <div className="mt-3 grid grid-cols-5 gap-2">
         <ShortcutTile
@@ -258,10 +292,10 @@ function ControlCenterContent() {
           accent="#EC4899"
         />
         <ShortcutTile
-          icon={Settings2}
+          icon={UserRound}
           label="Profile"
           onClick={() => {
-            toggleProfile();
+            openProfileEdit();
             close();
           }}
         />

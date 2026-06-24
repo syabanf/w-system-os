@@ -7,6 +7,7 @@ import { useEdgeSwipe } from "@/hooks/useEdgeSwipe";
 import { DesktopBackground } from "@/presentation/desktop/DesktopBackground";
 import { MasterDataDrawer } from "@/presentation/shared/MasterDataDrawer";
 import { ControlCenter } from "@/presentation/shared/ControlCenter";
+import { ProfileDialog } from "@/presentation/shared/ProfileDialog";
 import { MobileStatusBar } from "./MobileStatusBar";
 import { MobileHomeScreen } from "./MobileHomeScreen";
 import { MobileAppCanvas } from "./MobileAppCanvas";
@@ -49,6 +50,7 @@ export function MobileShell() {
       </AnimatePresence>
       <MasterDataDrawer />
       <ControlCenter />
+      <ProfileDialog />
     </main>
   );
 }

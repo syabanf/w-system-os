@@ -10,6 +10,7 @@ import { QuickSettingsPanel } from "@/presentation/desktop/QuickSettingsPanel";
 import { SpotlightSearch } from "@/presentation/desktop/SpotlightSearch";
 import { MasterDataDrawer } from "@/presentation/shared/MasterDataDrawer";
 import { ControlCenter } from "@/presentation/shared/ControlCenter";
+import { ProfileDialog } from "@/presentation/shared/ProfileDialog";
 import { TabletStatusBar } from "./TabletStatusBar";
 import { TabletHomeScreen } from "./TabletHomeScreen";
 import { TabletAppCanvas } from "./TabletAppCanvas";
@@ -54,6 +55,7 @@ export function TabletShell() {
       <SpotlightSearch />
       <MasterDataDrawer />
       <ControlCenter />
+      <ProfileDialog />
     </main>
   );
 }
