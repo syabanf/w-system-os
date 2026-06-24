@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowUpRight,
   Bell,
@@ -8,12 +9,14 @@ import {
   CheckSquare,
   Home,
   Package,
+  Pause,
   PlayCircle,
   Users,
 } from "lucide-react";
 import { mockTeam } from "@/infrastructure/data/team.mock";
 import { Avatar } from "@/presentation/shared/Avatar";
 import { useToast } from "@/state/toast.store";
+import { useWindowStore } from "@/state/window.store";
 import { cn } from "@/lib/cn";
 
 type NavId = "announcement" | "task" | "calendar" | "product" | "project";
@@ -34,8 +37,10 @@ const EXTERNAL_APPS: { id: string; label: string; icon: React.ComponentType<{ cl
 
 export function TeamTimelineTab() {
   const toast = useToast();
+  const openApp = useWindowStore((s) => s.openApp);
   const me = mockTeam[0];
   const [activeNav, setActiveNav] = useState<NavId>("project");
+  const [playing, setPlaying] = useState(false);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[260px_1fr_280px]">
@@ -113,12 +118,24 @@ export function TeamTimelineTab() {
             <div className="absolute inset-0 bg-black/30" />
             <button
               type="button"
-              onClick={() => toast.info("Playing video", "Demo only")}
+              onClick={() => setPlaying((p) => !p)}
               className="relative grid h-16 w-16 place-items-center rounded-full bg-white/85 text-zinc-900 shadow-xl transition-transform hover:scale-105"
-              aria-label="Play video"
+              aria-label={playing ? "Pause video" : "Play video"}
             >
-              <PlayCircle className="h-9 w-9" />
+              {playing ? <Pause className="h-8 w-8" /> : <PlayCircle className="h-9 w-9" />}
             </button>
+            {playing ? (
+              // A real 12s progress sweep; auto-returns to the paused state when it
+              // reaches the end (key forces it to restart each time you hit play).
+              <motion.div
+                key="progress"
+                className="absolute inset-x-0 bottom-0 h-1 origin-left bg-white/85"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 12, ease: "linear" }}
+                onAnimationComplete={() => setPlaying(false)}
+              />
+            ) : null}
           </div>
           <div className="p-4">
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
@@ -146,13 +163,19 @@ export function TeamTimelineTab() {
           eyebrow="New Product"
           title="New Product Presentation"
           gradient="linear-gradient(135deg, #06B6D4 0%, #6366F1 100%)"
-          onView={() => toast.info("Opening presentation", "Demo only")}
+          onView={() => {
+            openApp("knowledge");
+            toast.info("Opening Knowledge Base", "New Product Presentation");
+          }}
         />
         <FeatureCard
           eyebrow="Portfolio"
           title="New Portfolio Publish"
           gradient="linear-gradient(135deg, #F472B6 0%, #A855F7 100%)"
-          onView={() => toast.info("Opening portfolio", "Demo only")}
+          onView={() => {
+            openApp("projects");
+            toast.info("Opening Projects", "Portfolio");
+          }}
         />
       </aside>
     </div>

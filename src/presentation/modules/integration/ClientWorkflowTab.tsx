@@ -487,26 +487,22 @@ export function ClientWorkflowTab({
                             tone="default"
                             onClick={() => setDrillId(c.id)}
                           />
-                          <RowAction
-                            label={`Edit ${c.name}`}
-                            icon={Pencil}
-                            tone="default"
-                            onClick={() =>
-                              onEditClient
-                                ? onEditClient(c)
-                                : toast.info("Edit triggered", c.name)
-                            }
-                          />
-                          <RowAction
-                            label={`Delete ${c.name}`}
-                            icon={Trash2}
-                            tone="danger"
-                            onClick={() =>
-                              onDeleteClient
-                                ? onDeleteClient(c)
-                                : toast.warning("Delete demo", `${c.name} (no-op)`)
-                            }
-                          />
+                          {onEditClient ? (
+                            <RowAction
+                              label={`Edit ${c.name}`}
+                              icon={Pencil}
+                              tone="default"
+                              onClick={() => onEditClient(c)}
+                            />
+                          ) : null}
+                          {onDeleteClient ? (
+                            <RowAction
+                              label={`Delete ${c.name}`}
+                              icon={Trash2}
+                              tone="danger"
+                              onClick={() => onDeleteClient(c)}
+                            />
+                          ) : null}
                         </div>
                       </Td>
                     </tr>

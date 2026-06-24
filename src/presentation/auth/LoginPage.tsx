@@ -160,6 +160,12 @@ export function LoginPage() {
             <div className="mt-4 flex items-center gap-2 text-[10px] text-white/60">
               <button
                 type="button"
+                onClick={() => {
+                  setPassword("");
+                  setError(null);
+                  inputRef.current?.focus();
+                  toast.info("Switch user", "This workspace has a single profile.");
+                }}
                 className="rounded-full px-2 py-1 hover:bg-white/10 hover:text-white"
               >
                 Switch user
@@ -167,6 +173,9 @@ export function LoginPage() {
               <span className="h-3 w-px bg-white/20" />
               <button
                 type="button"
+                onClick={() =>
+                  toast.info("No reset needed", "Mock auth — any password signs you in.")
+                }
                 className="rounded-full px-2 py-1 hover:bg-white/10 hover:text-white"
               >
                 Reset password
@@ -177,9 +186,21 @@ export function LoginPage() {
 
       {/* Bottom session controls */}
       <div className="pointer-events-auto absolute inset-x-0 bottom-8 flex items-center justify-center gap-3 text-white/80">
-        <SessionButton icon={Moon} label="Sleep" />
-        <SessionButton icon={RotateCcw} label="Restart" />
-        <SessionButton icon={Power} label="Shut Down" />
+        <SessionButton
+          icon={Moon}
+          label="Sleep"
+          onClick={() => toast.info("Sleeping…", "Move the mouse to wake the workspace.")}
+        />
+        <SessionButton
+          icon={RotateCcw}
+          label="Restart"
+          onClick={() => window.location.reload()}
+        />
+        <SessionButton
+          icon={Power}
+          label="Shut Down"
+          onClick={() => window.location.reload()}
+        />
       </div>
 
       {/* Footer label */}
@@ -193,13 +214,16 @@ export function LoginPage() {
 function SessionButton({
   icon: Icon,
   label,
+  onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="group flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[11px] transition-all hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.10]"
       style={{ backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
     >
