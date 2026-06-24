@@ -1,20 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bluetooth,
   ChevronRight,
   Focus,
   Image as ImageIcon,
   LayoutGrid,
-  Monitor,
   Moon,
-  Palette,
   Shapes,
   Sun,
-  Volume2,
-  Wifi,
   X,
 } from "lucide-react";
 import { useDesktopStore } from "@/state/desktop.store";
@@ -43,11 +37,6 @@ export function QuickSettingsPanel() {
   const profile = useProfileStore((s) => s.profile);
   const iconSetId = useIconSetStore((s) => s.id);
   const setIconSet = useIconSetStore((s) => s.setIconSet);
-  const [wifi, setWifi] = useState(true);
-  const [bluetooth, setBluetooth] = useState(true);
-  const [volume, setVolume] = useState(64);
-  const [brightness, setBrightness] = useState(82);
-  const [accent, setAccent] = useState("#E8C170");
 
   return (
     <>
@@ -85,20 +74,6 @@ export function QuickSettingsPanel() {
           <div className="space-y-3 p-4">
             <div className="glass-soft grid grid-cols-2 gap-2 rounded-xl p-3">
               <Toggle
-                icon={Wifi}
-                label="Wi-Fi"
-                hint={wifi ? "WIT-OFFICE-5G" : "Off"}
-                active={wifi}
-                onClick={() => setWifi((v) => !v)}
-              />
-              <Toggle
-                icon={Bluetooth}
-                label="Bluetooth"
-                hint={bluetooth ? "Connected" : "Off"}
-                active={bluetooth}
-                onClick={() => setBluetooth((v) => !v)}
-              />
-              <Toggle
                 icon={Focus}
                 label="Do Not Disturb"
                 hint={dnd ? "Silencing alerts" : "Alerts on"}
@@ -112,38 +87,6 @@ export function QuickSettingsPanel() {
                 active
                 onClick={toggleTheme}
               />
-            </div>
-            <Slider icon={Volume2} label="Volume" value={volume} onChange={setVolume} />
-            <Slider icon={Monitor} label="Brightness" value={brightness} onChange={setBrightness} />
-            <div className="glass-soft rounded-xl p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="inline-flex items-center gap-2 text-xs text-zinc-200">
-                  <Palette className="h-3.5 w-3.5 text-zinc-100" />
-                  Accent color
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-zinc-500">Parchment</span>
-              </div>
-              <div className="flex gap-2">
-                {["#E8C170", "#FAFAF9", "#A1A1AA", "#FBBF24", "#60A5FA", "#34D399"].map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => {
-                      setAccent(c);
-                      if (typeof document !== "undefined") {
-                        document.documentElement.style.setProperty("--accent", c);
-                      }
-                    }}
-                    aria-label={`Use accent ${c}`}
-                    aria-pressed={accent === c}
-                    className={cn(
-                      "h-7 w-7 rounded-full ring-1 ring-white/10 transition-transform hover:scale-105",
-                      accent === c && "scale-110 ring-2 ring-white/80",
-                    )}
-                    style={{ background: c, boxShadow: `0 0 0 1px ${c}55, 0 6px 14px -4px ${c}66` }}
-                  />
-                ))}
-              </div>
             </div>
             <div className="glass-soft rounded-xl p-3">
               <div className="mb-2 flex items-center justify-between">
@@ -275,45 +218,5 @@ function Toggle({ icon: Icon, label, hint, active, onClick }: ToggleProps) {
         ) : null}
       </span>
     </button>
-  );
-}
-
-interface SliderProps {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  onChange?: (value: number) => void;
-}
-
-function Slider({ icon: Icon, label, value, onChange }: SliderProps) {
-  return (
-    <div className="glass-soft rounded-xl p-3">
-      <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="inline-flex items-center gap-2 text-zinc-200">
-          <Icon className="h-3.5 w-3.5 text-zinc-100" />
-          {label}
-        </span>
-        <span className="font-mono text-zinc-400">{value}%</span>
-      </div>
-      <div className="relative h-1.5 w-full rounded-full bg-white/8">
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 rounded-full"
-          style={{
-            width: `${value}%`,
-            background: "linear-gradient(90deg, #FAFAF9 0%, #A1A1AA 100%)",
-          }}
-        />
-        {/* Transparent native range overlay makes the track draggable. */}
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={value}
-          onChange={(e) => onChange?.(Number(e.target.value))}
-          aria-label={label}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-      </div>
-    </div>
   );
 }
