@@ -78,7 +78,7 @@ export function TabletAppCanvas({ id }: { id: AppModuleId }) {
         </div>
         <span className="w-12" />
       </header>
-      <div className="glass-scroll flex-1 overflow-y-auto px-4 py-4 sm:px-5">{renderModule(id)}</div>
+      <div className="glass-scroll touch-readable flex-1 overflow-y-auto px-4 py-4 sm:px-5">{renderModule(id)}</div>
       <button
         onClick={() => closeApp(id)}
         aria-label="Return home"

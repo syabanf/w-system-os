@@ -684,3 +684,45 @@ html {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 22px 48px -22px rgba(0, 0, 0, 0.6);
 }
+
+/* ── Touch readability (phone + tablet) ────────────────────────────────────
+   The mobile/tablet shells reuse the desktop module views, but on a small
+   screen the dimmest greys (zinc-500 ≈ 3.7:1, below AA) and the 9–10px eyebrow
+   labels are hard to read. `.touch-readable` wraps each app-canvas scroll area;
+   inside it we lift the muted tiers one step and raise the two smallest font
+   sizes. Desktop is left untouched. Unlayered so it beats Tailwind's layered
+   utilities; light mode needs !important + the extra `.touch-readable` class to
+   outrank the global light-text remap defined earlier in this file. */
+.touch-readable .text-zinc-500 { color: #a8abb4; }
+.touch-readable .text-zinc-400 { color: #cdd0d7; }
+[data-theme="light"] .touch-readable .text-zinc-500 { color: #475569 !important; }
+[data-theme="light"] .touch-readable .text-zinc-400 { color: #334155 !important; }
+[data-theme="light"] .touch-readable .text-zinc-300 { color: #1f2937 !important; }
+.touch-readable .text-\[9px\]  { font-size: 10px; }
+.touch-readable .text-\[10px\] { font-size: 11px; }
+
+/* Control Center (mobile/tablet) renders on a permanently-dark sheet, so its
+   text must stay light in BOTH themes — otherwise the global light remap above
+   paints it dark-on-dark and the whole sheet becomes unreadable. Also lifts the
+   dim sublabels and keeps the inner tiles light-tinted in light mode. */
+[data-control-center] .text-zinc-400 { color: #c4c7cf; }
+[data-theme="light"] [data-control-center] .text-zinc-50,
+[data-theme="light"] [data-control-center] .text-zinc-100 { color: #fafafa !important; }
+[data-theme="light"] [data-control-center] .text-zinc-200 { color: #e4e4e7 !important; }
+[data-theme="light"] [data-control-center] .text-zinc-300 { color: #d4d4d8 !important; }
+[data-theme="light"] [data-control-center] .text-zinc-400 { color: #c4c7cf !important; }
+[data-theme="light"] [data-control-center] .bg-white\/\[0\.04\],
+[data-theme="light"] [data-control-center] .bg-white\/\[0\.06\] { background-color: rgba(255, 255, 255, 0.06) !important; }
+[data-theme="light"] [data-control-center] .bg-white\/8  { background-color: rgba(255, 255, 255, 0.08) !important; }
+[data-theme="light"] [data-control-center] .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
+[data-theme="light"] [data-control-center] .bg-white\/12 { background-color: rgba(255, 255, 255, 0.12) !important; }
+
+/* Home-screen greeting sits directly on the wallpaper (any colour, plus a
+   vignette-darkened top). In light theme the zinc remap would turn it dark and
+   make it vanish on a dark wallpaper, so the greeting uses white + a halo
+   shadow instead — legible on light and dark wallpapers alike, in both themes.
+   Mirrors how the app already forces the home-grid icon labels white. */
+.on-wallpaper {
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 10px rgba(0, 0, 0, 0.40);
+}

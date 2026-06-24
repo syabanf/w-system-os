@@ -80,9 +80,13 @@ export function MobileHomeScreen() {
   return (
     <div className="flex h-full flex-col px-6 pb-3 pt-2">
       <div className="mb-3 px-1">
-        <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/80">Good morning</div>
-        <div className="text-2xl font-semibold tracking-tight text-zinc-50">{profile.name}</div>
-        <div className="mt-0.5 text-[11px] text-zinc-300/70">
+        <div className="on-wallpaper text-[10px] uppercase tracking-[0.22em] opacity-90">
+          Good morning
+        </div>
+        <div className="on-wallpaper text-2xl font-semibold tracking-tight">
+          {profile.name}
+        </div>
+        <div className="on-wallpaper mt-0.5 text-[11px] opacity-90">
           {formatDemoToday()} · 7 signals waiting
         </div>
       </div>

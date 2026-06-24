@@ -84,7 +84,7 @@ export function MobileAppCanvas({ id }: { id: AppModuleId }) {
         <span className="w-12" />
       </header>
 
-      <div className="glass-scroll flex-1 overflow-y-auto px-3 py-3">
+      <div className="glass-scroll touch-readable flex-1 overflow-y-auto px-3 py-3">
         {renderModule(id)}
       </div>
 

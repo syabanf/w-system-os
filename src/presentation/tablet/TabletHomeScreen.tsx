@@ -149,12 +149,16 @@ export function TabletHomeScreen() {
   };
 
   return (
-    <div className="flex h-full flex-col px-10 pb-3 pt-4">
+    <div className="touch-readable flex h-full flex-col px-10 pb-3 pt-4">
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/80">Good morning</div>
-          <div className="text-3xl font-semibold tracking-tight text-zinc-50">{profile.name}</div>
-          <div className="mt-0.5 text-xs text-zinc-300/70">
+          <div className="on-wallpaper text-[10px] uppercase tracking-[0.22em] opacity-90">
+            Good morning
+          </div>
+          <div className="on-wallpaper text-3xl font-semibold tracking-tight">
+            {profile.name}
+          </div>
+          <div className="on-wallpaper mt-0.5 text-xs opacity-90">
             {formatDemoToday()} · {unread} {unread === 1 ? "signal" : "signals"} waiting in your inbox
           </div>
         </div>

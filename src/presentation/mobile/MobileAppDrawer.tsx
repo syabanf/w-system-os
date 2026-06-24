@@ -82,7 +82,7 @@ export function MobileAppDrawer({ open, onClose, activeId }: MobileAppDrawerProp
             />
             <header className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300/70">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-300">
                   App library
                 </div>
                 <div className="text-sm font-semibold text-zinc-50">All apps</div>
